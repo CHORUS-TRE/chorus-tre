@@ -1,0 +1,30 @@
+{{- if .Values.minikube }}
+# we don't need a loadbalancer for local deployment purposes
+{{ else }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "caddy-ingress-controller.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.loadBalancer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "caddy-ingress-controller.labels" . | nindent 4 }}
+spec:
+  type: "LoadBalancer"
+  loadBalancerIP: {{ .Values.loadBalancer.loadBalancerIP }} #Deprecated in Kubernetes v1.24
+  externalTrafficPolicy: {{ .Values.loadBalancer.externalTrafficPolicy }}
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: https
+  selector:
+    {{- include "caddy-ingress-controller.selectorLabels" . | nindent 4 }}
+{{- end }}
