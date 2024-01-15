@@ -28,7 +28,8 @@ ingressController:
     acmeEABKeyId: ""
     acmeEABMacKey: ""
     # -- Acme Server URL
-    acmeCA: "https://acme-staging-v02.api.letsencrypt.org/directory"
+    acmeCA: "https://acme-v02.api.letsencrypt.org/directory"
+    #acmeCA: "https://acme-staging-v02.api.letsencrypt.org/directory"
     debug: true
     email: "nathalie.casati@chuv.ch"
     metrics: true
