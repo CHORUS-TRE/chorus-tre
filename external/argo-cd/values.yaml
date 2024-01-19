@@ -19,3 +19,14 @@ argo-cd:
         - /
       pathType: Prefix
       tls: []
+    ingressGrpc:
+      enabled: true
+      ingressClassName: ""
+      annotations:
+        kubernetes.io/ingress.class: caddy
+      hosts:
+        - grpc.argo-cd.gpu1.thehip.app
+      paths:
+        - /
+      pathType: Prefix
+      tls: []
