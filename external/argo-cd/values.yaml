@@ -7,3 +7,16 @@ argo-cd:
     enabled: false
   server:
     extraArgs: []
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: ""
+    annotations:
+      kubernetes.io/ingress.class: caddy
+    hosts:
+      - host: argo-cd.gpu1.thehip.app
+    paths:
+      - /
+    pathType: Prefix
+    tls: []
