@@ -6,7 +6,8 @@ argo-cd:
   applicationSet:
     enabled: false
   server:
-    extraArgs: []
+    extraArgs:
+      - --insecure
     ingress:
       enabled: true
       ingressClassName: ""
