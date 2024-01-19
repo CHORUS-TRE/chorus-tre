@@ -14,7 +14,7 @@ argo-cd:
       annotations:
         kubernetes.io/ingress.class: caddy
       hosts:
-        - host: argo-cd.gpu1.thehip.app
+        - argo-cd.gpu1.thehip.app
       paths:
         - /
       pathType: Prefix
