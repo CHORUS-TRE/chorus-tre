@@ -14,8 +14,7 @@
 global:
   imageRegistry: ""
   #load secrets
-  imagePullSecrets:
-    - postgres-db-secret
+  imagePullSecrets: []
   storageClass: ""
 
 ## @section Common parameters
@@ -122,7 +121,7 @@ auth:
   adminPassword: ""
   ## @param auth.existingSecret Existing secret containing Keycloak admin password
   ##
-  existingSecret: "postgres-db-secret"
+  existingSecret: "keycloak-admin-postgres"
   ## @param auth.passwordSecretKey Key where the Keycloak admin password is being stored inside the existing secret.
   ##
   passwordSecretKey: "adminPassword"
@@ -1058,7 +1057,7 @@ postgresql:
     username: bn_keycloak
     password: ""
     database: bitnami_keycloak
-    existingSecret: "postgres-db-secret"
+    existingSecret: "keycloak-admin-postgres"
   architecture: standalone
 ## External PostgreSQL configuration
 ## All of these values are only used when postgresql.enabled is set to false
