@@ -1,4 +1,3 @@
-internal/**/charts
-extarnal/**/charts
+**/charts
 **/*.tgz
 **/Chart.lock
