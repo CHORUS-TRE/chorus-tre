@@ -8,7 +8,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/CHUV-DIP/helm-charts.git
-    path: external/root-app/
+    path: internal/root-app/
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc
