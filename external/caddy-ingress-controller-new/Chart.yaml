@@ -1,7 +1,0 @@
-apiVersion: v2
-name: mycaddy
-version: 1.0.0
-dependencies:
-  - name: caddy-ingress-controller
-    version: 1.1.0 
-    repository: https://caddyserver.github.io/ingress

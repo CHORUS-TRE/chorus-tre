@@ -1,9 +1,0 @@
-caddy-ingress-controller:
-  # Default values for the caddy ingress controller.
-  ingressController:
-    config:
-      # -- Acme Server URL
-      acmeCA: "https://acme-v02.api.letsencrypt.org/directory"
-      #acmeCA: "https://acme-staging-v02.api.letsencrypt.org/directory"
-      debug: true
-      email: "nathalie.casati@chuv.ch"
