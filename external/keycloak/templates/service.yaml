@@ -39,8 +39,8 @@ spec:
     - name: http
       port: {{ coalesce .Values.service.ports.http .Values.service.port }}
       protocol: TCP
-      targetPort: 8080 # pod port
-      #targetPort: http # pod port
+      #targetPort: 8080 # pod port
+      targetPort: http # pod port
       {{- if (and (or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer")) (not (empty .Values.service.nodePorts.http))) }}
       nodePort: {{ .Values.service.nodePorts.http }}
       {{- else if eq .Values.service.type "ClusterIP" }}
