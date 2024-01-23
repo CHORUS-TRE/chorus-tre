@@ -1,111 +1,86 @@
 keycloak:
-## @param namespaceOverride String to fully override common.names.namespace
-##
+  ## @param namespaceOverride String to fully override common.names.namespace
+  ##
   namespaceOverride: "keycloak"
 
-## Keycloak authentication parameters
-## ref: https://github.com/bitnami/containers/tree/main/bitnami/keycloak#admin-credentials
-##
+  ## Keycloak authentication parameters
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/keycloak#admin-credentials
+  ##
   auth:
-  ## @param auth.adminUser Keycloak administrator user
-  ##
+    ## @param auth.adminUser Keycloak administrator user
+    ##
     adminUser: "admin"
-  ## @param auth.adminPassword Keycloak administrator password for the new user
-  ##
-    adminPassword: ""
-  ## @param auth.existingSecret Existing secret containing Keycloak admin password
-  ##
+    ## @param auth.existingSecret Existing secret containing Keycloak admin password
+    ##
     existingSecret: "keycloak-admin-postgres"
-  ## @param auth.passwordSecretKey Key where the Keycloak admin password is being stored inside the existing secret.
-  ##
+    ## @param auth.passwordSecretKey Key where the Keycloak admin password is being stored inside the existing secret.
+    ##
     passwordSecretKey: "adminPassword"
-  ## @param auth.annotations Additional custom annotations for Keycloak auth secret object
-  ##
-    annotations: {}
 
-## @param production Run Keycloak in production mode. TLS configuration is required except when using proxy=edge.
-##
+  ## @param production Run Keycloak in production mode. TLS configuration is required except when using proxy=edge.
+  ##
   production: true
-## @param proxy reverse Proxy mode edge, reencrypt, passthrough or none
-## ref: https://www.keycloak.org/server/reverseproxy
-##
+
+  ## @param proxy reverse Proxy mode edge, reencrypt, passthrough or none
+  ## ref: https://www.keycloak.org/server/reverseproxy
+  ##
   proxy: edge
 
-## Service configuration
-##
-  service:
-  ## @param service.ports.http Keycloak service HTTP port
-  ## @param service.ports.https Keycloak service HTTPS port
+  ## Service configuration
   ##
+  service:
+    ## @param service.ports.http Keycloak service HTTP port
+    ##
     ports:
       http: 8080 # container port
-      https: 443
 
-## Keycloak ingress parameters
-## ref: https://kubernetes.io/docs/user-guide/ingress/
-##
+  ## Keycloak ingress parameters
+  ## ref: https://kubernetes.io/docs/user-guide/ingress/
+  ##
   ingress:
-  ## @param ingress.enabled Enable ingress record generation for Keycloak
-  ##
+    ## @param ingress.enabled Enable ingress record generation for Keycloak
+    ##
     enabled: true
-  ## @param ingress.ingressClassName IngressClass that will be be used to implement the Ingress (Kubernetes 1.18+)
-  ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster .
-  ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
-  ##
+    ## @param ingress.ingressClassName IngressClass that will be be used to implement the Ingress (Kubernetes 1.18+)
+    ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster .
+    ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
+    ##
     ingressClassName: "caddy"
-  ## @param ingress.pathType Ingress path type
-  ##
+    ## @param ingress.pathType Ingress path type
+    ##
     pathType: Prefix
-  ## @param ingress.apiVersion Force Ingress API version (automatically detected if not set)
-  ##
-    apiVersion: ""
-  ## @param ingress.hostname Default host for the ingress record (evaluated as template)
-  ##
+    ## @param ingress.hostname Default host for the ingress record (evaluated as template)
+    ##
     hostname: keycloak.gpu1.thehip.app
-  ## @param ingress.path [string] Default path for the ingress record (evaluated as template)
-  ##
-    path: "{{ .Values.httpRelativePath }}"
-  ## @param ingress.servicePort Backend service port to use
-  ## Default is http. Alternative is https.
-  ##
+    ## @param ingress.servicePort Backend service port to use
+    ## Default is http. Alternative is https.
+    ##
     servicePort: 8080
-  ## @param ingress.annotations [object] Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
-  ## Use this parameter to set the required annotations for cert-manager, see
-  ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
-  ## e.g:
-  ## annotations:
-  ##   kubernetes.io/ingress.class: nginx
-  ##   cert-manager.io/cluster-issuer: cluster-issuer-name
-  ##
+    ## @param ingress.annotations [object] Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
+    ## Use this parameter to set the required annotations for cert-manager, see
+    ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
+    ## e.g:
+    ## annotations:
+    ##   kubernetes.io/ingress.class: nginx
+    ##   cert-manager.io/cluster-issuer: cluster-issuer-name
+    ##
     annotations:
       kubernetes.io/ingress.class: caddy
-  ## @param ingress.tls Enable TLS configuration for the host defined at `ingress.hostname` parameter
-  ## TLS certificates will be retrieved from a TLS secret with name: `{{- printf "%s-tls" (tpl .Values.ingress.hostname .) }}`
-  ## You can:
-  ##   - Use the `ingress.secrets` parameter to create this TLS secret
-  ##   - Rely on cert-manager to create it by setting the corresponding annotations
-  ##   - Rely on Helm to create self-signed certificates by setting `ingress.selfSigned=true`
-  ##
+    ## @param ingress.tls Enable TLS configuration for the host defined at `ingress.hostname` parameter
+    ## TLS certificates will be retrieved from a TLS secret with name: `{{- printf "%s-tls" (tpl .Values.ingress.hostname .) }}`
+    ## You can:
+    ##   - Use the `ingress.secrets` parameter to create this TLS secret
+    ##   - Rely on cert-manager to create it by setting the corresponding annotations
+    ##   - Rely on Helm to create self-signed certificates by setting `ingress.selfSigned=true`
+    ##
     tls: []
 
-## @section Database parameters
+  ## @section Database parameters
 
-## PostgreSQL chart configuration
-## ref: https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
-## @param postgresql.enabled Switch to enable or disable the PostgreSQL helm chart
-## @param postgresql.auth.postgresPassword Password for the "postgres" admin user. Ignored if `auth.existingSecret` with key `postgres-password` is provided
-## @param postgresql.auth.username Name for a custom user to create
-## @param postgresql.auth.password Password for the custom user to create
-## @param postgresql.auth.database Name for a custom database to create
-## @param postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials
-## @param postgresql.architecture PostgreSQL architecture (`standalone` or `replication`)
-##
+  ## PostgreSQL chart configuration
+  ## ref: https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
+  ## @param postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials
+  ##
   postgresql:
-    enabled: true
     auth:
-      postgresPassword: ""
-      username: bn_keycloak
-      password: ""
-      database: bitnami_keycloak
       existingSecret: "keycloak-admin-postgres"
-    architecture: standalone
