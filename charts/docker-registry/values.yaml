@@ -1,0 +1,10 @@
+docker-registry:
+  ingress:
+    enabled: true
+    className: ""
+    annotations:
+      kubernetes.io/ingress.class: caddy
+    hosts:
+      - registry.gpu1.thehip.app
+    path: /
+    tls: []
