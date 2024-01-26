@@ -1,6 +1,4 @@
 docker-registry:
-  secrets:
-    htpasswd: registry-htpasswd
   ingress:
     enabled: true
     className: ""
@@ -10,3 +8,9 @@ docker-registry:
       - registry.gpu1.thehip.app
     path: /
     tls: []
+  env:
+  - name: secrets.htpasswd
+    valueFrom:
+      secretKeyRef:
+        name: registry-htpasswd
+        key: htpasswd
