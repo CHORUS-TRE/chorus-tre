@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths:
+      - charts/**
 
 jobs:
   release:
@@ -30,3 +32,11 @@ jobs:
             oci_password: ${{ secrets.GITHUB_TOKEN }}
             github_token: ${{ secrets.GITHUB_TOKEN }}
             charts_dir: charts
+      - name: Update Index
+        run: |
+          helm repo index .
+          git config --global user.email "no-reply@chuv.ch"
+          git config --global user.name "CHUV Bot"
+          git add index.yaml
+          git commit -m "Update chart index"
+          git push
