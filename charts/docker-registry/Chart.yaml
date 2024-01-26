@@ -1,0 +1,8 @@
+apiVersion: v2
+description: A Helm chart for Docker Registry
+name: docker-registry
+version: 0.0.1
+dependencies:
+  - name: docker-registry
+    version: 2.2.2
+    repository: https://helm.twun.io
