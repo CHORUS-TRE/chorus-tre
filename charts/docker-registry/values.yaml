@@ -1,4 +1,6 @@
 docker-registry:
+  secrets:
+    htpasswd: registry-htpasswd
   ingress:
     enabled: true
     className: ""
