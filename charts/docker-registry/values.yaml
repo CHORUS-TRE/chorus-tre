@@ -10,7 +10,7 @@ docker-registry:
     tls: []
   env:
     - name: REGISTRY_AUTH
-    valueFrom:
-      secretKeyRef:
-        name: registry-htpasswd
-        key: htpasswd
+      valueFrom:
+        secretKeyRef:
+          name: registry-htpasswd
+          key: htpasswd
