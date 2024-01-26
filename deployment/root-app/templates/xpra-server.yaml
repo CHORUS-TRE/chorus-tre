@@ -8,7 +8,7 @@ spec:
   project: default
   source:
     repoURL: ghcr.io
-    chart: chuv-dip/xpra-server
+    chart: chuv-dip/horus/xpra-server
     targetRevision: 0.0.1
   destination:
     server: https://kubernetes.default.svc
