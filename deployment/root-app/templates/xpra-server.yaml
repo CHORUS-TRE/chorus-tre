@@ -8,8 +8,8 @@ spec:
   project: default
   source:
     repoURL: https://github.com/CHUV-DIP/horus.git
-    path: charts/xpra-server
-    targetRevision: HEAD
+    chart: xpra-server
+    targetRevision: 0.0.1
   destination:
     server: https://kubernetes.default.svc
     namespace: default
