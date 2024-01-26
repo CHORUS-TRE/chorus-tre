@@ -7,8 +7,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/CHUV-DIP/helm-charts.git
-    path: external/caddy-ingress-controller
+    repoURL: https://github.com/CHUV-DIP/horus.git
+    path: charts/caddy-ingress-controller
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc

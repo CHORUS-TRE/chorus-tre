@@ -8,8 +8,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/CHUV-DIP/helm-charts.git
-    path: internal/root-app/
+    repoURL: https://github.com/CHUV-DIP/horus.git
+    path: deployment/root-app/
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc
