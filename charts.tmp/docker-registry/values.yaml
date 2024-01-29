@@ -10,7 +10,10 @@ docker-registry:
     tls: []
   persistence:
     enabled: true
-    size: 500Gi
+    #size: 500Gi
+    deleteEnabled: true
+    #storageClass: microk8s-hostpath
+    existingClaim: docker-registry-pv-claim
   env:
     - name: REGISTRY_AUTH
       valueFrom:
