@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: docker-registry
+  name: registry
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
     repoURL: https://github.com/CHUV-DIP/horus.git
-    path: charts/docker-registry
+    path: charts/registry
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc
