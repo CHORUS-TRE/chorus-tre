@@ -8,7 +8,7 @@ spec:
   project: default
   source:
     repoURL: registry.gpu1.thehip.app
-    path: argo-cd
+    chart: argo-cd
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc
