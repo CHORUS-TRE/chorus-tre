@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: registry.gpu1.thehip.app
     chart: argo-cd
-    targetRevision: HEAD
+    targetRevision: 0.0.1
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
