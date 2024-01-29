@@ -8,7 +8,7 @@ spec:
   project: default
   source:
     repoURL: registry.gpu1.thehip.app
-    chart: charts/caddy-ingress-controller
+    chart: caddy-ingress-controller
     targetRevision: 0.0.1
   destination:
     server: https://kubernetes.default.svc
