@@ -7,8 +7,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/CHUV-DIP/horus.git
-    path: charts/argo-cd
+    repoURL: registry.gpu1.thehip.app
+    path: argo-cd
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc
