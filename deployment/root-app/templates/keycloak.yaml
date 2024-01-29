@@ -7,9 +7,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/CHUV-DIP/horus.git
-    path: charts/keycloak
-    targetRevision: HEAD
+    repoURL: registry.gpu1.thehip.app
+    chart: keycloak
+    targetRevision: 0.0.1
   destination:
     server: https://kubernetes.default.svc
     namespace: keycloak
