@@ -4,15 +4,18 @@ name: horus
 version: 0.0.1
 
 dependencies:
-  - name: argo-cd
-    version: 0.0.1
-    repository: "oci://registry.gpu1.thehip.app"
-  - name: caddy-ingress-controller
-    version: 0.0.1
-    repository: "oci://registry.gpu1.thehip.app"
+  #- name: argo-cd
+  #  version: 0.0.1
+  #  repository: "oci://registry.gpu1.thehip.app"
+  #- name: caddy-ingress-controller
+  #  version: 0.0.1
+  #  repository: "oci://registry.gpu1.thehip.app"
   - name: keycloak
     version: 0.0.1
     repository: "oci://registry.gpu1.thehip.app"
   - name: xpra-server 
     version: 0.0.1
     repository: "oci://registry.gpu1.thehip.app"
+  #- name: registry
+  #  version: 0.0.1
+  #  repository: "oci://registry.gpu1.thehip.app"
