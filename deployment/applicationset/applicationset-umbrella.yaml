@@ -9,7 +9,7 @@ spec:
       # Parameters are generated based on this cluster list, to be substituted
       # into the template below.
       elements: 
-      - cluster: horus-build
+      - cluster: k8s-cluster-build
         url: https://kubernetes.default.svc
   template: 
     # An Argo CD Application template, with support for parameter substitution 
@@ -25,3 +25,8 @@ spec:
       destination:
         server: '{{url}}'
         namespace: default
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: horus-build
+  namespace: argocd
+spec:
+  generators:
+    # Generator for apps that should deploy to chosen cluster.
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  env: build
+          - list:
+              elements:
+                #- appName: argocd
+                #namespace: argocd
+                #revision: 0.0.2
+              - appName: caddy-ingress-controller
+                namespace: caddy-system
+                revision: 0.0.1
+              - appName: registry
+                namespace: registry
+                revision: 0.0.1
+  template:
+    metadata:
+      name: "{{name}}-{{appName}}"
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: ".;.."
+    spec:
+      project: default
+      source:
+        repoURL: registry.gpu1.thehip.app
+        chart: "{{appName}}"
+        targetRevision: "{{revision}}"
+        #helm:
+          # Release name override (defaults to application name)
+        #  releaseName: "{{appName}}"
+        #  valueFiles:
+        #  - "values.yaml"
+        #  - "../../values/{{name}}/{{appName}}/values.yaml"
+      destination:
+        name: "{{name}}"
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+        retry:
+          limit: 2

@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: horus-build-bootstrap
+  namespace: argocd
+spec:
+  generators:
+    # Generator for apps that should deploy to chosen cluster.
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - cluster: k8s-cluster-build
+                  url: https://kubernetes.default.svc
+          - list:
+              elements:
+              - appName: argo-cd
+                namespace: argocd
+                #revision: 0.0.2
+              - appName: caddy-ingress-controller
+                namespace: caddy-system
+                #revision: 0.0.1
+              - appName: registry
+                namespace: registry
+                #revision: 0.0.1
+  template:
+    metadata:
+      name: "{{cluster}}-{{appName}}"
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: ".;.."
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CHUV-DIP/horus.git
+        path: "charts/{{appName}}"
+        targetRevision: HEAD
+        #targetRevision: "{{revision}}"
+        #helm:
+          # Release name override (defaults to application name)
+        #  releaseName: "{{appName}}"
+        #  valueFiles:
+        #  - "values.yaml"
+        #  - "../../values/{{name}}/{{appName}}/values.yaml"
+      destination:
+        server: "{{url}}"
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+        retry:
+          limit: 2
