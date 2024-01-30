@@ -14,9 +14,9 @@ spec:
                   env: build
           - list:
               elements:
-                #- appName: argocd
-                #namespace: argocd
-                #revision: 0.0.2
+              - appName: argo-cd
+                namespace: argocd
+                revision: 0.0.2
               - appName: caddy-ingress-controller
                 namespace: caddy-system
                 revision: 0.0.1

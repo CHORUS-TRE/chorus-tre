@@ -14,9 +14,6 @@ spec:
                   url: https://kubernetes.default.svc
           - list:
               elements:
-              - appName: argo-cd
-                namespace: argocd
-                #revision: 0.0.2
               - appName: caddy-ingress-controller
                 namespace: caddy-system
                 #revision: 0.0.1
