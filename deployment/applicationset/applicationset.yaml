@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: horus
+  namespace: argocd
+spec:
+  generators:
+  - list: 
+      # Parameters are generated based on this cluster list, to be substituted
+      # into the template below.
+      elements: 
+      - cluster: horus-build
+        url: https://kubernetes.default.svc
+  template: 
+    # An Argo CD Application template, with support for parameter substitution 
+    # with values from parameters generated above.
+    metadata:
+      name: '{{cluster}}-horus'
+    spec:
+      project: default
+      source:
+        repoURL: registry.gpu1.thehip.app
+        chart: horus
+        targetRevision: 0.0.1
+      destination:
+        server: '{{url}}'
+        namespace: default
