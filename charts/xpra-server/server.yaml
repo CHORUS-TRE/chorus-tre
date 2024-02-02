@@ -5,7 +5,7 @@
 name: xpra-server
 image:
   repository: registry.dip-dev.thehip.app/xpra-server
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "master"
 env:

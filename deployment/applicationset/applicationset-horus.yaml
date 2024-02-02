@@ -11,11 +11,7 @@ spec:
           - clusters:
               selector:
                 matchLabels:
-                  env: dev
-          - clusters:
-              selector:
-                matchLabels:
-                  env: qa
+                  env: deploy
           - list:
               elements:
               - appName: caddy-ingress-controller
@@ -26,7 +22,7 @@ spec:
                 revision: 0.0.1
               - appName: xpra-server
                 namespace: default
-                revision: 0.0.1
+                revision: 0.0.2
   template:
     metadata:
       name: "{{name}}-{{appName}}"
