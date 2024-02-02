@@ -11,18 +11,21 @@ spec:
           - clusters:
               selector:
                 matchLabels:
-                  env: build
-                    #- clusters:
-                    #selector:
-                    #matchLabels:
-                    #env: dev
+                  env: dev
+          - clusters:
+              selector:
+                matchLabels:
+                  env: qa
           - list:
               elements:
-              - appName: xpra-server
-                namespace: default
+              - appName: caddy-ingress-controller
+                namespace: caddy-system
                 revision: 0.0.1
               - appName: keycloak
                 namespace: keycloak
+                revision: 0.0.1
+              - appName: xpra-server
+                namespace: default
                 revision: 0.0.1
   template:
     metadata:
