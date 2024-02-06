@@ -1,4 +1,0 @@
-chart: xpra-server
-version: 0.0.1
-namespace: default
-cluster: horus-prod

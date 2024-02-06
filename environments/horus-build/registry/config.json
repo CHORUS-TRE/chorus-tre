@@ -1,0 +1,6 @@
+{
+  "chart": "registry",
+  "version": "0.0.1",
+  "namespace": "registry",
+  "cluster": "horus-build"
+}

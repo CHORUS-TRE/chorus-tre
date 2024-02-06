@@ -18,13 +18,17 @@ spec:
       name: 'horus-dev-{{.path.basename}}'
     spec:
       project: default
-      source:
-        repoURL: 'registry.gpu1.thehip.app'
+      sources:
+      - repoURL: 'registry.gpu1.thehip.app'
         chart: '{{.chart}}'  # Take chart from config.json
         targetRevision: '{{.version}}'  # Take version from config.json
-          #helm:
-          #valueFiles:
-          # - environments/horus-dev/{{.path.basename}}/values.yaml
+        helm:
+          valueFiles:
+          - $values/environments/horus-dev/{{.path.basename}}/values.yaml
+      - repoURL: 'https://github.com/CHUV-DIP/horus.git'
+        targetRevision: HEAD
+        ref: values
+
       destination:
         name: '{{.cluster}}'
         namespace: '{{.namespace}}'  # Take namespace from config.json

@@ -1,4 +1,0 @@
-chart: argo-cd
-version: 0.0.2
-namespace: argocd
-cluster: horus-build
