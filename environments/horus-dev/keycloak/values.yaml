@@ -1,3 +1,2 @@
-keycloak:
-  ingress:
-    hostname: keycloak.horus-dev.thehip.app
+ingress:
+  hostname: keycloak.horus-dev.thehip.app
