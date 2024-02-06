@@ -19,15 +19,15 @@ spec:
     spec:
       project: default
       sources:
+      - repoURL: 'https://github.com/CHUV-DIP/horus.git'
+        targetRevision: HEAD
+        ref: values
       - repoURL: 'registry.gpu1.thehip.app'
         chart: '{{.chart}}'  # Take chart from config.json
         targetRevision: '{{.version}}'  # Take version from config.json
         helm:
           valueFiles:
           - $values/environments/{{index .path.segments 1}}/{{.path.basename}}/values.yaml
-      - repoURL: 'https://github.com/CHUV-DIP/horus.git'
-        targetRevision: HEAD
-        ref: values
 
       destination:
         name: '{{.cluster}}'
