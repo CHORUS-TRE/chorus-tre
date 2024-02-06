@@ -1,0 +1,6 @@
+ingress:
+  hosts:
+    - host: horus.thehip.app
+      paths:
+        - path: /
+          pathType: Prefix
