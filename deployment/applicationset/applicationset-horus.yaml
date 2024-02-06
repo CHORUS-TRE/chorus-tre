@@ -1,32 +1,37 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: multi-environment-appset
+  name: horus
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
-    - git:
-        repoURL: 'https://github.com/CHUV-DIP/horus.git'
-        revision: HEAD
-        files:
-          - path: "environments/**"
+  - git:
+      repoURL: 'https://github.com/CHUV-DIP/horus.git'
+      revision: HEAD
+      files:
+      - path: "environments/*/*/config.json"
   template:
+    metadata:
+      name: '{{index .path.segments 1}}-{{.path.basename}}'
     spec:
       project: default
-      source:
+      sources:
+      - repoURL: 'registry.gpu1.thehip.app'
+        chart: '{{.chart}}'  # Take chart from config.json
+        targetRevision: '{{.version}}'  # Take version from config.json
         helm:
-          repoURL: 'repoURL: registry.gpu1.thehip.app'
-          chart: '{{path.basename}}'  # Use the folder name as the Helm chart name
-          version: '{{ .Params.version }}'  # Take version from app.yaml
           valueFiles:
-            - environments/{{path.basename}}/{{path.basename}}-values.yaml
-      parameters:
-        - name: version
-          value: '{{app.params.version}}'
+          - $values/environments/{{index .path.segments 1}}/{{.path.basename}}/values.yaml
+      - repoURL: 'https://github.com/CHUV-DIP/horus.git'
+        targetRevision: HEAD
+        ref: values
+
       destination:
-        server: '{{ .Params.clusterName }}'  # Take the server URL from the environment's clusters.yaml
-        namespace: '{{ .Params.namespace }}'  # Take namespace from app.yaml
+        name: '{{.cluster}}'
+        namespace: '{{.namespace}}'  # Take namespace from config.json
       syncPolicy:
         automated:
           prune: true  # Optionally enable pruning for resources not defined in Git
@@ -34,5 +39,3 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
-      source:
-        path: environments/{{path.basename}}
