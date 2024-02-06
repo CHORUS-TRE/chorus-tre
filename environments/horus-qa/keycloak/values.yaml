@@ -1,0 +1,3 @@
+keycloak:
+  ingress:
+    hostname: keycloak.horus-qa.thehip.app
