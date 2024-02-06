@@ -1,0 +1,6 @@
+{
+  "chart": "keycloak",
+  "version": "0.0.1",
+  "namespace": "keycloak",
+  "cluster": "horus-dev"
+}

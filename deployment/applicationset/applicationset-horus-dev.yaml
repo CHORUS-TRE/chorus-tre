@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: horus-dev
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: 'https://github.com/CHUV-DIP/horus.git'
+              revision: HEAD
+              directories:
+                - path: "environments/horus-dev/*/config.json"
+          - clusters:
+              selector:
+                matchLabels:
+                  env: 'dev'
+  template:
+    metadata:
+      name: 'horus-dev-{{path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: 'registry.gpu1.thehip.app'
+        chart: '{{.chart}}'  # Take chart from config.json
+        targetRevision: '{{.version}}'  # Take version from config.json
+        helm:
+          valueFiles:
+          - environments/horus-dev/{{path.basename}}/{{path.basename}}-values.yaml
+      destination:
+        server: '{{ server }}'
+        namespace: '{{ .namespace }}'  # Take namespace from config.json
+      syncPolicy:
+        automated:
+          prune: true  # Optionally enable pruning for resources not defined in Git
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - preserveResourcesOnDeletion=true

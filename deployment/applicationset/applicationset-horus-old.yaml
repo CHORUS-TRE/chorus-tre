@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: horus-build
+  name: horus
   namespace: argocd
 spec:
   syncPolicy:
@@ -13,18 +13,18 @@ spec:
           - clusters:
               selector:
                 matchLabels:
-                  env: build
+                  env: deploy
           - list:
               elements:
-              - appName: argo-cd
-                namespace: argocd
-                revision: 0.0.2
               - appName: caddy-ingress-controller
                 namespace: caddy-system
                 revision: 0.0.1
-              - appName: registry
-                namespace: registry
+              - appName: keycloak
+                namespace: keycloak
                 revision: 0.0.1
+              - appName: xpra-server
+                namespace: default
+                revision: 0.0.2
   template:
     metadata:
       name: "{{name}}-{{appName}}"

@@ -1,53 +1,38 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: horus
-  namespace: argocd
+  name: multi-environment-appset
 spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   generators:
-    # Generator for apps that should deploy to chosen cluster.
-    - matrix:
-        generators:
-          - clusters:
-              selector:
-                matchLabels:
-                  env: deploy
-          - list:
-              elements:
-              - appName: caddy-ingress-controller
-                namespace: caddy-system
-                revision: 0.0.1
-              - appName: keycloak
-                namespace: keycloak
-                revision: 0.0.1
-              - appName: xpra-server
-                namespace: default
-                revision: 0.0.2
+    - git:
+        repoURL: 'https://github.com/CHUV-DIP/horus.git'
+        revision: HEAD
+        files:
+          - path: "environments/**"
   template:
-    metadata:
-      name: "{{name}}-{{appName}}"
-      annotations:
-        argocd.argoproj.io/manifest-generate-paths: ".;.."
     spec:
       project: default
       source:
-        repoURL: registry.gpu1.thehip.app
-        chart: "{{appName}}"
-        targetRevision: "{{revision}}"
-        #helm:
-          # Release name override (defaults to application name)
-        #  releaseName: "{{appName}}"
-        #  valueFiles:
-        #  - "values.yaml"
-        #  - "../../values/{{name}}/{{appName}}/values.yaml"
+        helm:
+          repoURL: 'repoURL: registry.gpu1.thehip.app'
+          chart: '{{path.basename}}'  # Use the folder name as the Helm chart name
+          version: '{{ .Params.version }}'  # Take version from app.yaml
+          valueFiles:
+            - environments/{{path.basename}}/{{path.basename}}-values.yaml
+      parameters:
+        - name: version
+          value: '{{app.params.version}}'
       destination:
-        name: "{{name}}"
-        namespace: "{{namespace}}"
+        server: '{{ .Params.clusterName }}'  # Take the server URL from the environment's clusters.yaml
+        namespace: '{{ .Params.namespace }}'  # Take namespace from app.yaml
       syncPolicy:
         automated:
-          prune: false
+          prune: true  # Optionally enable pruning for resources not defined in Git
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
-        retry:
-          limit: 2
+          - preserveResourcesOnDeletion=true
+      source:
+        path: environments/{{path.basename}}

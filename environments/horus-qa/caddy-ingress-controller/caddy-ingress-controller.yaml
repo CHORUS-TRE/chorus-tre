@@ -1,0 +1,4 @@
+chart: caddy-ingress-controller
+version: 0.0.1
+namespace: caddy-system
+cluster: horus-qa
