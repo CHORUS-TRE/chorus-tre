@@ -22,9 +22,9 @@ spec:
         repoURL: 'registry.gpu1.thehip.app'
         chart: '{{.chart}}'  # Take chart from config.json
         targetRevision: '{{.version}}'  # Take version from config.json
-        helm:
-          valueFiles:
-          - environments/horus-dev/{{.path.basename}}/values.yaml
+          #helm:
+          #valueFiles:
+          # - environments/horus-dev/{{.path.basename}}/values.yaml
       destination:
         name: '{{.cluster}}'
         namespace: '{{.namespace}}'  # Take namespace from config.json
