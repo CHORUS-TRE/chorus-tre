@@ -1,0 +1,3 @@
+xpra-server:
+  hosts:
+    - host: horus-dev.thehip.app
