@@ -7,6 +7,15 @@ spec:
     preserveResourcesOnDeletion: true
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
+  ignoreApplicationDifferences:
+    - jqPathExpressions:
+        - .spec.sources[]
+        - .spec.sources.repoURL
+        - .spec.sources.chart
+        - .spec.sources.targetRevision
+        - .spec.sources.helm.valueFiles
+        - .spec.sources.helm.parameters
+        - .spec.sources.ref
   generators:
   - git:
       repoURL: 'https://github.com/CHUV-DIP/horus.git'

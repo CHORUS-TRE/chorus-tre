@@ -51,7 +51,7 @@ keycloak:
     pathType: Prefix
     ## @param ingress.hostname Default host for the ingress record (evaluated as template)
     ##
-    hostname: keycloak.gpu1.thehip.app
+    #hostname: keycloak.gpu1.thehip.app
     ## @param ingress.servicePort Backend service port to use
     ## Default is http. Alternative is https.
     ##
