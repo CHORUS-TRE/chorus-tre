@@ -8,20 +8,14 @@ spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-    - matrix:
-        generators:
-          - git:
-              repoURL: 'https://github.com/CHUV-DIP/horus.git'
-              revision: HEAD
-              directories:
-                - path: "environments/horus-dev/*/config.json"
-          - clusters:
-              selector:
-                matchLabels:
-                  env: 'dev'
+  - git:
+      repoURL: 'https://github.com/CHUV-DIP/horus.git'
+      revision: HEAD
+      files:
+      - path: "environments/horus-dev/*/config.json"
   template:
     metadata:
-      name: 'horus-dev-{{path.basename}}'
+      name: 'horus-dev-{{.path.basename}}'
     spec:
       project: default
       source:
@@ -30,10 +24,10 @@ spec:
         targetRevision: '{{.version}}'  # Take version from config.json
         helm:
           valueFiles:
-          - environments/horus-dev/{{path.basename}}/{{path.basename}}-values.yaml
+          - environments/horus-dev/{{.path.basename}}/values.yaml
       destination:
-        server: '{{ server }}'
-        namespace: '{{ .namespace }}'  # Take namespace from config.json
+        name: '{{.cluster}}'
+        namespace: '{{.namespace}}'  # Take namespace from config.json
       syncPolicy:
         automated:
           prune: true  # Optionally enable pruning for resources not defined in Git
