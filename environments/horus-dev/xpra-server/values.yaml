@@ -1,3 +1,4 @@
 xpra-server:
-  hosts:
-    - host: horus-dev.thehip.app
+  ingress:
+    hosts:
+      - host: horus-dev.thehip.app
