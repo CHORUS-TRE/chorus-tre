@@ -1,7 +1,6 @@
-xpra-server:
-  ingress:
-    hosts:
-      - host: horus-dev.thehip.app
-        paths:
-          - path: /
-            pathType: Prefix
+ingress:
+  hosts:
+    - host: horus-dev.thehip.app
+      paths:
+        - path: /
+          pathType: Prefix
