@@ -1,7 +1,7 @@
 {
   "chart": "xpra-server",
   "version": "0.0.4",
-  "images": "registry.dip-dev.thehip.app/xpra-server, registry.dip-dev.thehip.app/brainstorm",
+  "images": "argocd-image-updater.argoproj.io/image-list: registry.dip-dev.thehip.app/xpra-server, registry.dip-dev.thehip.app/brainstorm",
   "namespace": "default",
   "cluster": "horus-dev"
 }
