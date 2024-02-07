@@ -17,7 +17,7 @@ spec:
     metadata:
       name: '{{index .path.segments 1}}-{{.path.basename}}'
       annotations:
-        argocd-image-updater.argoproj.io/image-list: '{{.images | default "" }}'
+        argocd-image-updater.argoproj.io/image-list: '{{.images}}'
     spec:
       project: default
       sources:
