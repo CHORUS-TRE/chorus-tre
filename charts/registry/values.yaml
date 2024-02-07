@@ -5,7 +5,7 @@ docker-registry:
     annotations:
       kubernetes.io/ingress.class: caddy
     hosts:
-      - registry.gpu1.thehip.app
+      - registry.horus-build.thehip.app
     path: /
     tls: []
   persistence:
