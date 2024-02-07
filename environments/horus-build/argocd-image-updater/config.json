@@ -1,7 +1,6 @@
 {
   "chart": "argocd-image-updater",
   "version": "0.0.1",
-  "images": "",
   "namespace": "argocd",
   "cluster": "horus-build"
 }
