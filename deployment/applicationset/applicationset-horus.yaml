@@ -21,7 +21,7 @@ spec:
     spec:
       project: default
       sources:
-      - repoURL: 'registry.gpu1.thehip.app'
+      - repoURL: 'registry.horus-build.thehip.app'
         chart: '{{.chart}}'  # Take chart from config.json
         targetRevision: '{{.version}}'  # Take version from config.json
         helm:
