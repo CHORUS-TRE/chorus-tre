@@ -1,6 +1,7 @@
 {
   "chart": "xpra-server",
   "version": "0.0.4",
+  "images": "",
   "namespace": "default",
   "cluster": "horus-prod"
 }
