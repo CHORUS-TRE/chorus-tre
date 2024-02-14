@@ -1,7 +1,0 @@
-{
-  "chart": "argo-cd",
-  "version": "0.0.3",
-  "images": "",
-  "namespace": "argocd",
-  "cluster": "horus-build"
-}

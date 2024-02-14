@@ -1,7 +1,0 @@
-{
-  "chart": "caddy-ingress-controller",
-  "version": "0.0.1",
-  "images": "",
-  "namespace": "caddy-system",
-  "cluster": "horus-prod"
-}

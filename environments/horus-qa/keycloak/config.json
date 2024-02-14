@@ -1,7 +1,0 @@
-{
-  "chart": "keycloak",
-  "version": "0.0.3",
-  "images": "",
-  "namespace": "keycloak",
-  "cluster": "horus-qa"
-}

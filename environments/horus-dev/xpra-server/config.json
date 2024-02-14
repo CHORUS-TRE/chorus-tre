@@ -1,7 +1,0 @@
-{
-  "chart": "xpra-server",
-  "version": "0.0.4",
-  "images": "registry.horus-build.thehip.app/xpra-server, registry.horus-build.thehip.app/brainstorm",
-  "namespace": "default",
-  "cluster": "horus-dev"
-}

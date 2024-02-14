@@ -9,13 +9,13 @@ spec:
   goTemplateOptions: ["missingkey=error"]
   generators:
   - git:
-      repoURL: 'https://github.com/CHUV-DIP/horus.git'
+      repoURL: 'https://github.com/CHUV-DIP/environments.git'
       revision: HEAD
       files:
-      - path: "environments/*/*/config.json"
+      - path: "*/*/config.json"
   template:
     metadata:
-      name: '{{index .path.segments 1}}-{{.path.basename}}'
+      name: '{{index .path.segments 0}}-{{.path.basename}}'
       #annotations:
       #  argocd-image-updater.argoproj.io/image-list: '{{.images}}'
     spec:
@@ -26,8 +26,8 @@ spec:
         targetRevision: '{{.version}}'  # Take version from config.json
         helm:
           valueFiles:
-          - $values/environments/{{index .path.segments 1}}/{{.path.basename}}/values.yaml
-      - repoURL: 'https://github.com/CHUV-DIP/horus.git'
+          - $values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml
+      - repoURL: 'https://github.com/CHUV-DIP/environments.git'
         targetRevision: HEAD
         ref: values
 
