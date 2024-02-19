@@ -1,7 +1,7 @@
 apiVersion: v2
 description: A Helm chart for Docker Registry
 name: registry
-version: 0.0.1
+version: 0.0.2
 dependencies:
   - name: docker-registry
     version: 2.2.2

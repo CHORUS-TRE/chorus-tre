@@ -9,9 +9,15 @@ docker-registry:
     path: /
     tls: []
   persistence:
+    type: pvc
     enabled: true
     deleteEnabled: true
-    existingClaim: registry-pv-claim
+    #existingClaim: registry-pv-claim
+    size: 500Gi
+  extraContainers: []
+    # Additional containers to be added
+  # Use StatefulSet instead of Deployment. Default uses Deployment.
+  useStatefulSet: true
   env:
     - name: REGISTRY_AUTH
       valueFrom:
