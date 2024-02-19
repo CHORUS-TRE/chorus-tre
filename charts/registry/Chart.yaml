@@ -10,4 +10,4 @@ maintainers:
 name: docker-registry
 sources:
 - https://github.com/docker/distribution-library-image
-version: 2.2.2-sts-1
+version: 2.2.3
