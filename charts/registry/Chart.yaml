@@ -7,7 +7,7 @@ maintainers:
 - email: devin@canterberry.cc
   name: Devin Canterberry
   url: https://canterberry.cc/
-name: docker-registry
+name: registry
 sources:
 - https://github.com/docker/distribution-library-image
 version: 2.2.3
