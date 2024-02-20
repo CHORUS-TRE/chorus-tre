@@ -1,0 +1,6 @@
+dependencies:
+- name: caddy-ingress-controller
+  repository: https://caddyserver.github.io/ingress
+  version: 1.1.0
+digest: sha256:48e66530096ec88817c6aa3181a392e086645800ab898daaded7ab9a19a01737
+generated: "2024-01-23T12:39:50.538389021Z"
