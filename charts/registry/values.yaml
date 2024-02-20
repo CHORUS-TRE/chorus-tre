@@ -64,9 +64,9 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 persistence:
-  type: pvc
+  type: sts
   accessMode: 'ReadWriteOnce'
-  enabled: false
+  enabled: true
   size: 500Gi
   # storageClass: '-'
   ## Name of an existing PVC. Can be templated.
