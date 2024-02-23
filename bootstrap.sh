@@ -35,5 +35,8 @@ echo -n "ArgoCD password: "
 microk8s kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 echo -e "\n" 
 
+# create namespace for launching argo-workflows
+microk8s kubectl create namespace workflows
+
 # deploy the applicatinset
 microk8s kubectl -n argocd apply -f deployment/applicationset/applicationset-horus.yaml
