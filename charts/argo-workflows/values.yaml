@@ -1,0 +1,21 @@
+argo-workflows:
+  workflow:
+    serviceAccount:
+      name: "argo-workflow"
+  controller:
+    workflowNamespaces:
+      - workflows
+  server:
+    #extraArgs:
+    #  - --insecure
+    ingress:
+      enabled: true
+      ingressClassName: ""
+      annotations:
+        kubernetes.io/ingress.class: caddy
+      hosts:
+        - argo-cd.horus-build.thehip.app
+      paths:
+        - /
+      pathType: Prefix
+      tls: []
