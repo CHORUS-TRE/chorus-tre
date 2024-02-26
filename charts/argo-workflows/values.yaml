@@ -6,8 +6,8 @@ argo-workflows:
     workflowNamespaces:
       - workflows
   server:
-    #extraArgs:
-    #  - --insecure
+    authModes:
+      - server
     ingress:
       enabled: true
       ingressClassName: ""
