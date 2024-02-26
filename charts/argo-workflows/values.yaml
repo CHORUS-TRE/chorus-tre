@@ -7,7 +7,7 @@ argo-workflows:
       - workflows
   server:
     authModes:
-      - server
+      - client
     ingress:
       enabled: true
       ingressClassName: ""
