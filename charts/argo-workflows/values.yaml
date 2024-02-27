@@ -4,7 +4,7 @@ argo-workflows:
       name: "argo-workflow"
   controller:
     workflowNamespaces:
-      - workflows
+      - argo
   server:
     authModes:
       - client
