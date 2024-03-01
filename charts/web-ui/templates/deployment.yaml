@@ -1,28 +1,61 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deployment-frontend-{{ include "web-ui.nameid" . }}
+  name: {{ include "web-ui.fullname" . }}
   labels:
-    app: deployment-frontend-{{ include "web-ui.nameid" . }}
-    nameid: {{ include "web-ui.nameid" . }}
-    version: {{ .Values.version }}
+    {{- include "web-ui.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
-      app: deployment-frontend-{{ include "web-ui.nameid" . }}
+      {{- include "web-ui.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      labels:
-        app: deployment-frontend-{{ include "web-ui.nameid" . }}
+      {{- with .Values.podAnnotations }}
       annotations:
-        timestamp: {{ dateInZone "2006-01-02 15:04:05Z" (now) "UTC"| quote }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "web-ui.selectorLabels" . | nindent 8 }}
     spec:
-      containers:
-        - name: deployment-frontend-{{ include "web-ui.nameid" . }}
-          image: "{{ .Values.image }}"
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 80
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        - name: registry-auth
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "web-ui.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

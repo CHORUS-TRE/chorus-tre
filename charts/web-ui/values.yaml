@@ -6,8 +6,8 @@ replicaCount: 1
 
 imagePullSecrets:
   - name: regcred
+nameOverride: ""
 fullnameOverride: ""
-nameOverride: "template-frontend"
 
 image:
   repository: registry.dip-dev.thehip.app/dip-cicd-template-frontend
