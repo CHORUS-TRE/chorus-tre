@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-frontend-{{ include "web-ui.nameid" . }}
+  labels:
+    app: deployment-frontend-{{ include "web-ui.nameid" . }}
+    nameid: {{ include "web-ui.nameid" . }}
+    version: {{ .Values.version }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-frontend-{{ include "web-ui.nameid" . }}
+  template:
+    metadata:
+      labels:
+        app: deployment-frontend-{{ include "web-ui.nameid" . }}
+      annotations:
+        timestamp: {{ dateInZone "2006-01-02 15:04:05Z" (now) "UTC"| quote }}
+    spec:
+      containers:
+        - name: deployment-frontend-{{ include "web-ui.nameid" . }}
+          image: "{{ .Values.image }}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets:
+        - name: registry-auth
