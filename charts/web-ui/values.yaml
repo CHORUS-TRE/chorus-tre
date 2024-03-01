@@ -41,7 +41,7 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 80 # container port
-  targetPort: 3001 # pod port
+  targetPort: 80 # pod port
 
 ingress:
   enabled: true
