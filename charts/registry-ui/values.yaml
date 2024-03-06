@@ -1,0 +1,11 @@
+registry-ui:
+  ui:
+    title: "CHORUS OCI registry"
+    dockerRegistryUrl: registry.gpu1.thehip.app
+    registrySecured: true
+  ingress:
+    enabled: true
+    host: registry-ui.gpu1.thehip.app
+    ingressClassName: ""
+    annotations:                                       
+      kubernetes.io/ingress.class: caddy

@@ -1,0 +1,6 @@
+dependencies:
+- name: docker-registry-ui
+  repository: https://helm.joxit.dev
+  version: 1.1.3
+digest: sha256:fcca464e550ce5b0e49e9051bf65f20a3c16b92f43ac7a93a2cf80308b32703c
+generated: "2024-03-06T13:47:14.277325014Z"
