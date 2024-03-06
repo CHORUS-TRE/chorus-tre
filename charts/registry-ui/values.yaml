@@ -1,4 +1,4 @@
-registry-ui:
+docker-registry-ui:
   ui:
     title: "CHORUS OCI registry"
     dockerRegistryUrl: registry.horus-build.thehip.app
