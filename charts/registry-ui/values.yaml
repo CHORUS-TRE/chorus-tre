@@ -1,7 +1,7 @@
 docker-registry-ui:
   ui:
     title: "CHORUS OCI registry"
-    dockerRegistryUrl: registry.horus-build.thehip.app
+    dockerRegistryUrl: "https://registry.horus-build.thehip.app"
     registrySecured: true
     ingress:
       enabled: true
