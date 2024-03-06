@@ -40,8 +40,8 @@ helm create <helm_chart_name>
 ```
 or add your own chart. Chart numbering starts at `0.0.1` for all charts.
  
-Finally, after committing this newly created folder, the new chart will be released in this repository and added to the CHORUS OCI registry.
+Finally, after committing this newly created folder, the new chart will be automatically released in this repository and pushed to the CHORUS helm OCI registry.
 
 ## **How to modify a helm chart in this repository**
 
-Go ahead and modify the files that need to be updated. Bump `version` in `Chart.yaml` and commit.
+Go ahead and modify the files that need to be updated. Bump `version` in `Chart.yaml` and commit. A new release of the chart will be released to this repository and pushed to the CHORUS helm OCI registry.
