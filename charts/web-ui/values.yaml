@@ -50,7 +50,7 @@ ingress:
     kubernetes.io/ingress.class: caddy
   host: "web-ui.dip-dev.thehip.app"
   hosts:
-    - host: web-ui.gpu1.thehip.app
+    - host: web-ui.horus-build.thehip.app
       paths:
         - path: /
           pathType: Prefix
