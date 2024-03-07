@@ -9,5 +9,7 @@ docker-registry-ui:
       ingressClassName: ""
       annotations:                                       
         kubernetes.io/ingress.class: caddy
+    proxy: true
     useControlCacheHeader: true
     #nginxProxyHeaders: [{ Access-Control-Allow-Origin: 'https://registry.horus-build.thehip.app' }, { Access-Control-Allow-Credentials: 'true'}]
+    nginxProxyHeaders: [{Access-Control-Allow-Credentials: 'true'}]
