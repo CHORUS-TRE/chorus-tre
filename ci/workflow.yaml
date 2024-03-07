@@ -1,0 +1,38 @@
+##create a secret for git
+# kubectl create secret generic git-creds \
+#     --from-file=ssh=$HOME/.ssh/id_rsa \
+#     --from-file=known_hosts=$HOME/.ssh/known_hosts -n [NAMESPACE]
+ 
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ci-test
+spec:
+  entrypoint: pipeline
+
+  #start the sequence
+  templates:
+    - name: pipeline
+      steps:
+        - - name: git-clone
+            template: git-clone
+        #todo add other steps later
+
+    - name: git-clone
+      inputs:
+        artifacts:
+          - name: images
+            path: /src
+            git:
+              repo: https://github.com/CHUV-DIP/images.git
+              usernameSecret:
+                name: argo-workflows-github-images
+                key: username
+              passwordSecret:
+                name: argo-workflows-github-images
+                key: password
+      container:
+        image: golang:1.10
+        command: [sh, -c]
+        args: ["git status && ls"]
+        workingDir: /src

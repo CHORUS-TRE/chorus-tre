@@ -12,4 +12,4 @@ docker-registry-ui:
     proxy: true
     useControlCacheHeader: true
     #nginxProxyHeaders: [{ Access-Control-Allow-Origin: 'https://registry.horus-build.thehip.app' }, { Access-Control-Allow-Credentials: 'true'}]
-    nginxProxyHeaders: [{'Access-Control-Allow-Credentials': 'true'}]
+    nginxProxyHeaders: [{'Access-Control-Allow-Credentials': '"true"'}]
