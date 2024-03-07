@@ -1,3 +1,5 @@
+cert-manager:
+  installCRDs: true
 clusterissuer:
   name: letsencrypt-prod
   server: https://acme-v02.api.letsencrypt.org/directory
