@@ -1,0 +1,5 @@
+clusterissuer:
+  name: letsencrypt-prod
+  server: https://acme-v02.api.letsencrypt.org/directory
+  email: no-reply@thehip.app
+  secret: letsencrypt-prod
