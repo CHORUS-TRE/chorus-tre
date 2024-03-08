@@ -11,14 +11,14 @@ as well as Argo Workflows to build docker images used in internal charts.
 | Component                                                          | Description                                                                                                                                                                                                      |
 | ------------------------------------------------------------------ | ---------------------------------------------------- |
 | [Git](https://git-scm.com/downloads)                               | Git is required to clone this repository             |
-| [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) | Kubernetes command-line tool, kubectl, allows you to run commands against Kubernetes clusters                                                                                                                    |
+| [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) | Kubernetes command-line tool kubectl, allows you to run commands against Kubernetes clusters                                                                                                                    |
 | [helm 3](https://github.com/helm/helm#install)                     | Helm Charts are used to package Kubernetes resources for each component 
 
 ### Infrastructure
 | Component          | Description                                                                                                        | Required |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------ | -------- |
-| Kubernetes cluster | An infrastructure with working installation of Kubernetes services. | Required |
-| Domain name        | CHORUS-TRE is only accessible via HTTPS and it's essential register a domain name via registrars like Cloudflare, Route53, etc. | Required |  
+| Kubernetes cluster | An infrastructure with a working Kubernetes cluster. | Required |
+| Domain name        | CHORUS-TRE is only accessible via HTTPS and it's essential to register a domain name via registrars like Cloudflare, Route53, etc. | Required |  
 | DNS Server         | CHORUS-TRE is only accessible via HTTPS and it's essential to have a DNS server via providers like Cloudflare, Route53, etc.                  | Required |
 ## Installation
 
