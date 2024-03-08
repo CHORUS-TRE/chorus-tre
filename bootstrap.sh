@@ -1,6 +1,9 @@
 #!/bin/bash
 
 read -p "Please enter domain name of your CHORUS instance: " DOMAIN_NAME
+if [[ -z "$DOMAIN_NAME" ]]; then
+  DOMAIN_NAME="chorus-tre.ch"
+fi
 
 # install argocd
 helm dep update charts/argo-cd
@@ -13,6 +16,11 @@ helm dep update charts/caddy-ingress-controller
 kubectl get namespace | grep -q "^caddy-system " || kubectl create namespace caddy-system
 helm install chorus-build-caddy-ingress-controller charts/caddy-ingress-controller -n caddy-system
 echo "" 
+
+# install sealed-secrets
+helm dep update charts/sealed-secrets
+helm install chorus-build-sealed-secrets charts/sealed-secrets -n kube-system
+echo ""
 
 # install registry
 kubectl get namespace | grep -q "^registry " || kubectl create namespace registry
