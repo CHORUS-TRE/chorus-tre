@@ -10,9 +10,10 @@ as well as Argo Workflows to build docker images used in internal charts.
 ### Local machine tools
 | Component                                                          | Description                                                                                                                                                                                                      |
 | ------------------------------------------------------------------ | ---------------------------------------------------- |
-| [Git](https://git-scm.com/downloads)                               | Git is required to clone this repository             |
+| [git](https://git-scm.com/downloads)                               | Git is required to clone this repository             |
 | [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) | Kubernetes command-line tool kubectl, allows you to run commands against Kubernetes clusters                                                                                                                    |
-| [helm 3](https://github.com/helm/helm#install)                     | Helm Charts are used to package Kubernetes resources for each component 
+| [helm 3](https://github.com/helm/helm#install)                     | Helm Charts are used to package Kubernetes resources for each component |
+| [argo cd cli](https://argo-cd.readthedocs.io/en/stable/cli_installation/)                     | ArgoCD CLI is used to manage the CHORUS-TRE ArgoCD instance |
 
 ### Infrastructure
 | Component          | Description                                                                                                        | Required |
@@ -22,7 +23,7 @@ as well as Argo Workflows to build docker images used in internal charts.
 | DNS Server         | CHORUS-TRE is only accessible via HTTPS and it's essential to have a DNS server via providers like Cloudflare, Route53, etc.                  | Required |
 ## Installation
 
-1. Make sure your `KUBECONFIG` environment variable points to a Kubernetes cluster, where the `build` environment of CHORUS will be installed.
+1. Make sure your `KUBECONFIG` environment variable points to a Kubernetes cluster context, where the `build` environment of CHORUS will be installed.
 2. Clone this repository:
    ```bash
    git clone git@github.com:CHORUS-TRE/chorus.git
@@ -40,6 +41,12 @@ as well as Argo Workflows to build docker images used in internal charts.
    ./bootstrap.sh
    ```
 This will bootstrap the installation of ArgoCD as well as the OCI registry.
+
+6. Login to ArgoCD with the username/password received during the previous step, and add the build cluster:
+   ```bash
+   argocd login <argo-cd URL>
+   argocd cluster add <k8s-context> --in-cluster --label env=build --name=chorus-build
+   ```
 
 ## Contributing to this repository
 
