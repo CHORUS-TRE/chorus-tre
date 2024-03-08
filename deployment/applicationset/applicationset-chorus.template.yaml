@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: horus
+  name: chorus
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
@@ -9,7 +9,7 @@ spec:
   goTemplateOptions: ["missingkey=error"]
   generators:
   - git:
-      repoURL: 'https://github.com/CHUV-DIP/environments.git'
+      repoURL: 'https://github.com/<YOUR-ORG>/environments-template.git'
       revision: HEAD
       files:
       - path: "*/*/config.json"
@@ -21,13 +21,13 @@ spec:
     spec:
       project: default
       sources:
-      - repoURL: 'registry.horus-build.thehip.app'
+      - repoURL: 'registry.build.chorus-tre.local'
         chart: '{{.chart}}'  # Take chart from config.json
         targetRevision: '{{.version}}'  # Take version from config.json
         helm:
           valueFiles:
           - $values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml
-      - repoURL: 'https://github.com/CHUV-DIP/environments.git'
+      - repoURL: 'https://github.com/<YOUR-ORG>/environments-template.git'
         targetRevision: HEAD
         ref: values
 
