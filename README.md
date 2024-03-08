@@ -14,7 +14,7 @@ as well as Argo Workflows to build docker images used in internal charts.
 | [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl) | Kubernetes command-line tool kubectl is required to run commands against Kubernetes clusters                                                                                                                    |
 | [helm 3](https://github.com/helm/helm#install)                     | Helm Charts are used to package Kubernetes resources for each component |
 | [argo cd cli](https://argo-cd.readthedocs.io/en/stable/cli_installation)                     | ArgoCD CLI is required to manage the CHORUS-TRE ArgoCD instance |
-| [kubeseal](https://argo-cd.readthedocs.io/en/stable/cli_installation)                        | Kubeseal is required to seal secrets in CHORUS K8s cluster |
+| [kubeseal](https://argo-cd.readthedocs.io/en/stable/cli_installation)                        | Kubeseal is required to seal secrets in the CHORUS K8s cluster |
 
 
 
