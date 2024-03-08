@@ -1,4 +1,4 @@
-# CHORUS
+# CHORUS-TRE
 [CHORUS-TRE](https://www.chorus-tre.ch) is a secure Trusted Research Environment developed by the University Hospital of Lausanne [BDSC team](https://www.chuv.ch/en/bdsc/).
 
 This repository contains all helm charts used across CHORUS environments,
@@ -11,9 +11,12 @@ as well as Argo Workflows to build docker images used in internal charts.
 | Component                                                          | Description                                                                                                                                                                                                      |
 | ------------------------------------------------------------------ | ---------------------------------------------------- |
 | [git](https://git-scm.com/downloads)                               | Git is required to clone this repository             |
-| [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) | Kubernetes command-line tool kubectl, allows you to run commands against Kubernetes clusters                                                                                                                    |
+| [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl) | Kubernetes command-line tool kubectl is required to run commands against Kubernetes clusters                                                                                                                    |
 | [helm 3](https://github.com/helm/helm#install)                     | Helm Charts are used to package Kubernetes resources for each component |
-| [argo cd cli](https://argo-cd.readthedocs.io/en/stable/cli_installation/)                     | ArgoCD CLI is used to manage the CHORUS-TRE ArgoCD instance |
+| [argo cd cli](https://argo-cd.readthedocs.io/en/stable/cli_installation)                     | ArgoCD CLI is required to manage the CHORUS-TRE ArgoCD instance |
+| [kubeseal](https://argo-cd.readthedocs.io/en/stable/cli_installation)                        | Kubeseal is required to seal secrets in CHORUS K8s cluster |
+
+
 
 ### Infrastructure
 | Component          | Description                                                                                                        | Required |
@@ -26,7 +29,7 @@ as well as Argo Workflows to build docker images used in internal charts.
 1. Make sure your `KUBECONFIG` environment variable points to a Kubernetes cluster context, where the `build` environment of CHORUS will be installed.
 2. Clone this repository:
    ```bash
-   git clone git@github.com:CHORUS-TRE/chorus.git
+   git clone git@github.com:CHORUS-TRE/chorus-tre.git
    ```
 3. Fork https://github.com/CHORUS-TRE/environments-template to your GitHub organization.
 4. Modify the ApplicationSet template for your use case:
