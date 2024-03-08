@@ -31,24 +31,48 @@ as well as Argo Workflows to build docker images used in internal charts.
    ```bash
    git clone git@github.com:CHORUS-TRE/chorus-tre.git
    ```
-3. Fork https://github.com/CHORUS-TRE/environments-template to your GitHub organization.
-4. Modify the ApplicationSet template for your use case:
+3. Modify the ApplicationSet template for your use case:
    ```bash
    cd chorus
    mv deployment/applicationset-chorus.template.yaml deployment/applicationset-chorus.yaml
    ```
    In this file, change the links to `https://github.com/<YOUR-ORG>/environments-template` to your new fork.
    
-5. Execute the bootstrapping script:
+4. Execute the bootstrapping script:
    ```bash
    ./bootstrap.sh
    ```
 This will bootstrap the installation of ArgoCD as well as the OCI registry.
 
-6. Login to ArgoCD with the username/password received during the previous step, and add the build cluster:
+5. Login to ArgoCD with the username/password received during the previous step, and add the build cluster:
    ```bash
    argocd login <argo-cd URL>
    argocd cluster add <k8s-context> --in-cluster --label env=build --name=chorus-build
+   ```
+6. Fork https://github.com/CHORUS-TRE/environments-template to your GitHub organization.
+7. Create a GitHub fine-grained token to allow access to this fork from the ApplicationSet and create the following associated secret:
+   `chorus-build-argo-cd-github-environments-template.secret.yaml`
+   ```yaml
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: argo-cd-github-environments-template
+     namespace: argocd
+     labels:
+       argocd.argoproj.io/secret-type: repository
+   stringData:
+     type: git
+     name: github-environments-templates
+     url: https://github.com/<YOUR-ORG>/environments-template
+     password: <FINE-GRAINED TOKEN>
+     username: none
+   ```
+9. Seal this secret with kubeseal and apply it to your cluster. It is safe to delete these secrets afterwards, however don't forget to store the token somewhere secure.
+   ```bash
+   kubeseal -f chorus-build-argo-cd-github-environments-template.secret.yaml -w chorus-build-argo-cd-github-environments-template.seal.yaml
+   kubectl apply -f chorus-build-argo-cd-github-environments-template.sealed.yaml
+   rm chorus-build-argo-cd-github-environments-template.secret.yaml
+   rm chorus-build-argo-cd-github-environments-template.sealed.yaml
    ```
 
 ## Contributing to this repository
