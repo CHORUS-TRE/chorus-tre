@@ -1,5 +1,5 @@
 # CHORUS
-CHORUS-TRE is a Trusted Research environment developed by the BDSC team at CHUV.
+[CHORUS-TRE](https://www.chorus-tre.ch) is a secure Trusted Research Environment developed by the University Hospital of Lausanne [BDSC team](https://www.chuv.ch/en/bdsc/).
 
 This repository contains all helm charts used across CHORUS environments,
 an ArgoCD ApplicationSet to deploy them on K8s clusters through the `environments-template` repository,
