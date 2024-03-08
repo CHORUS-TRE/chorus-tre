@@ -27,7 +27,7 @@ jobs:
       - name: Run chart-releaser
         uses: bitdeps/helm-oci-charts-releaser@v0.1.0
         with:
-            oci_registry: registry.horus-build.thehip.app
+            oci_registry: registry.build.chorus-tre.ch
             oci_username: admin
             oci_password: ${{ secrets.REGISTRY_PASSWORD }}
             github_token: ${{ secrets.GITHUB_TOKEN }}

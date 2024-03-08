@@ -151,7 +151,7 @@ config:
     #   credentials: ext:/scripts/auth1.sh
     #   credsexpire: 10h
     - name: Horus Registry
-      api_url: https://registry.gpu1.thehip.app
+      api_url: https://registry.build.chorus-tre.local
       ping: yes
       credentials: pullsecret:default/regcred
 

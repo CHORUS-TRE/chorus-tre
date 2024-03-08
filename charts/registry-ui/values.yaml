@@ -1,14 +1,14 @@
 docker-registry-ui:
   ui:
     title: "CHORUS OCI registry"
-    dockerRegistryUrl: "https://registry.horus-build.thehip.app"
+    dockerRegistryUrl: "https://registry.build.chorus-tre.local"
     registrySecured: false
     ingress:
       enabled: true
-      host: registry-ui.horus-build.thehip.app
+      host: registry-ui.build.chorus-tre.local
       ingressClassName: ""
       annotations:                                       
         kubernetes.io/ingress.class: caddy
     proxy: false
     useControlCacheHeader: true
-    nginxProxyHeaders: [{'Access-Control-Allow-Credentials': '"true"'}, { 'Access-Control-Allow-Origin': 'https://registry.horus-build.thehip.app' }]
+    nginxProxyHeaders: [{'Access-Control-Allow-Credentials': '"true"'}, { 'Access-Control-Allow-Origin': 'https://registry.build.chorus-tre.local' }]

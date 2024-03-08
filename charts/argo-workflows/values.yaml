@@ -14,7 +14,7 @@ argo-workflows:
       annotations:
         kubernetes.io/ingress.class: caddy
       hosts:
-        - argo-workflows.horus-build.thehip.app
+        - argo-workflows.build.chorus-tre.ch
       paths:
         - /
       pathType: Prefix

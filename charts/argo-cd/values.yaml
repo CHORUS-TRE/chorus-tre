@@ -14,7 +14,7 @@ argo-cd:
       annotations:
         kubernetes.io/ingress.class: caddy
       hosts:
-        - argo-cd.horus-build.thehip.app
+        - argo-cd.build.chorus-tre.local
       paths:
         - /
       pathType: Prefix
@@ -25,7 +25,7 @@ argo-cd:
       annotations:
         kubernetes.io/ingress.class: caddy
       hosts:
-        - grpc.argo-cd.horus-build.thehip.app
+        - grpc.argo-cd.build.chorus-tre.local
       paths:
         - /
       pathType: Prefix

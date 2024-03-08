@@ -48,9 +48,8 @@ ingress:
   className: ""
   annotations:
     kubernetes.io/ingress.class: caddy
-  host: "web-ui.dip-dev.thehip.app"
   hosts:
-    - host: web-ui.horus-build.thehip.app
+    - host: web-ui.chorus-tre.local
       paths:
         - path: /
           pathType: Prefix
