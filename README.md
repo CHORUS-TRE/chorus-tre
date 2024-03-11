@@ -16,8 +16,6 @@ as well as Argo Workflows to build docker images used in internal charts.
 | [argocd cli](https://argo-cd.readthedocs.io/en/stable/cli_installation)                     | ArgoCD CLI is required to manage the CHORUS-TRE ArgoCD instance |
 | [kubeseal](https://argo-cd.readthedocs.io/en/stable/cli_installation)                        | Kubeseal is required to seal secrets in the CHORUS K8s cluster |
 
-
-
 ### Infrastructure
 | Component          | Description                                                                                                        | Required |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------ | -------- |
@@ -39,11 +37,12 @@ as well as Argo Workflows to build docker images used in internal charts.
    ```
    In this file, change the links to `https://github.com/<YOUR-ORG>/environments-template` to your new fork.
    
-4. Execute the bootstrapping script:
+4. Execute the bootstrapping script and, when asked, the domain name you wish to deploy your instance to:
    ```bash
    ./bootstrap.sh
+   Please enter domain name of your CHORUS instance: <domain_name>
    ```
-This will bootstrap the installation of ArgoCD as well as the OCI registry.
+This will bootstrap the installation of ArgoCD as well as the OCI registry to the specified domain name.
 
 5. Login to ArgoCD with the username/password received during the previous step, and add the build cluster:
    ```bash
@@ -57,23 +56,40 @@ Several secrets need to be created, sealed and applied to the cluster.
 
 #### Secrets creation
 ##### ApplicationSet access to the environments repository fork
-1. Create a GitHub fine-grained token to allow access to the environments repository fork from the ApplicationSet and create the following associated secret:
+1. Create a GitHub fine-grained token to allow access to the environments repository fork from the ApplicationSet and create the following associated secret.
    `chorus-build-argo-cd-github-environments-template.secret.yaml`
    ```yaml
    apiVersion: v1
    kind: Secret
    metadata:
-     name: argo-cd-github-environments-template
-     namespace: argocd
-     labels:
-       argocd.argoproj.io/secret-type: repository
+      name: argo-cd-github-environments-template
+      namespace: argocd
+      labels:
+         argocd.argoproj.io/secret-type: repository
    stringData:
-     type: git
-     name: github-environments-templates
-     url: https://github.com/<YOUR-ORG>/environments-template
-     password: <FINE-GRAINED TOKEN>
-     username: none
+      type: git
+      name: github-environments-templates
+      url: https://github.com/<YOUR-ORG>/environments-template
+      password: <FINE-GRAINED TOKEN>
+      username: none
    ```
+2. Create a secret that contains the registry htpasswd. Make sure to use the domain name specified when you bootstrapped the ArgoCD instance above.
+   `chorus-build-argo-cd-registry-htpasswd.secret.yaml`
+   ```yaml
+   apiVersion: v1
+   kind: Secret
+   metadata:
+      name: argo-cd-registry-htpasswd
+      namespace: argocd
+      labels:
+         argocd.argoproj.io/secret-type: repository
+   stringData:
+      enableOCI: "true"
+      name: chorus-build-registry
+      password: "<REGISTRY PASSWORD>"
+      type: helm
+      url: registry.build.<DOMAIN NAME>
+      username: "admin"
 #### Secrets sealing and application to the cluster
 Seal the secrets created in the previous step with `kubeseal` and apply them to your cluster. It is safe to delete these secrets afterwards, however don't forget to store them somewhere secure.
 
