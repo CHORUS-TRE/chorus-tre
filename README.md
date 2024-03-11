@@ -84,11 +84,11 @@ Follow these steps for each secret:
    rm <name>.secret.yaml
    rm <name>.sealed.yaml
    ```
-### Deploying to the specific environments
+### Deploy to the specific environments
 
-## Contributing to this repository
+## Contribute to this repository
 
-### Adding a new helm chart
+### Add a new helm chart
 
 :warning: Please add/modify only one chart at a time, this is necessary for the Github action to do its job properly :warning:
 
@@ -127,6 +127,6 @@ or add your own chart. Chart numbering starts at `0.0.1` for all charts.
  
 Finally, after committing this newly created folder, the new chart will be automatically released in this repository and pushed to the CHORUS helm OCI registry.
 
-### Updating/modifying a helm chart
+### Update/modify a helm chart
 
 Go ahead and modify the files that need to be updated. Bump `version` in `Chart.yaml` and commit. A new release of the chart will be released to this repository and pushed to the CHORUS helm OCI registry.
