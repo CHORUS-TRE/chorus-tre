@@ -151,7 +151,7 @@ argocd-image-updater:
       #   insecure: no
       #   credentials: ext:/scripts/auth1.sh
       #   credsexpire: 10h
-      - name: Horus Registry
+      - name: CHORUS OCI Registry
         api_url: https://registry.build.chorus-tre.local
         ping: yes
         credentials: pullsecret:default/regcred
