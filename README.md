@@ -25,6 +25,7 @@ as well as Argo Workflows to build docker images used in internal charts.
 | Domain name        | CHORUS-TRE is only accessible via HTTPS and it's essential to register a domain name via registrars like Cloudflare, Route53, etc. | Required |  
 | DNS Server         | CHORUS-TRE is only accessible via HTTPS and it's essential to have a DNS server via providers like Cloudflare, Route53, etc.                  | Required |
 ## Installation
+### Bootstrap
 
 1. Make sure your `KUBECONFIG` environment variable points to a Kubernetes cluster context, where the `build` environment of CHORUS will be installed.
 2. Clone this repository:
@@ -50,7 +51,13 @@ This will bootstrap the installation of ArgoCD as well as the OCI registry.
    argocd cluster add <k8s-context> --in-cluster --label env=build --name=chorus-build
    ```
 6. Fork https://github.com/CHORUS-TRE/environments-template to your GitHub organization.
-7. Create a GitHub fine-grained token to allow access to this fork from the ApplicationSet and create the following associated secret:
+   
+### Secrets
+Several secrets need to be created, sealed and applied to the cluster.
+
+#### Secrets creation
+##### ApplicationSet access to the environments repository fork
+1. Create a GitHub fine-grained token to allow access to the environments repository fork from the ApplicationSet and create the following associated secret:
    `chorus-build-argo-cd-github-environments-template.secret.yaml`
    ```yaml
    apiVersion: v1
@@ -67,13 +74,17 @@ This will bootstrap the installation of ArgoCD as well as the OCI registry.
      password: <FINE-GRAINED TOKEN>
      username: none
    ```
-9. Seal this secret with kubeseal and apply it to your cluster. It is safe to delete these secrets afterwards, however don't forget to store the token somewhere secure.
+#### Secrets sealing and application to the cluster
+Seal the secrets created in the previous step with `kubeseal` and apply them to your cluster. It is safe to delete these secrets afterwards, however don't forget to store them somewhere secure.
+
+Follow these steps for each secret:
    ```bash
-   kubeseal -f chorus-build-argo-cd-github-environments-template.secret.yaml -w chorus-build-argo-cd-github-environments-template.seal.yaml
-   kubectl apply -f chorus-build-argo-cd-github-environments-template.sealed.yaml
-   rm chorus-build-argo-cd-github-environments-template.secret.yaml
-   rm chorus-build-argo-cd-github-environments-template.sealed.yaml
+   kubeseal -f <name>.secret.yaml -w <name>.sealed.yaml
+   kubectl apply -f <name>.sealed.yaml
+   rm <name>.secret.yaml
+   rm <name>.sealed.yaml
    ```
+### Deploying to the specific environments
 
 ## Contributing to this repository
 
