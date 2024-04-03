@@ -51,7 +51,7 @@ keycloak:
     pathType: Prefix
     ## @param ingress.hostname Default host for the ingress record (evaluated as template)
     ##
-    hostname: keycloak.build.chorus-tre.local
+    hostname: keycloak.chorus-tre.local
     ## @param ingress.servicePort Backend service port to use
     ## Default is http. Alternative is https.
     ##
