@@ -1,0 +1,45 @@
+keycloak:
+  ## @param namespaceOverride String to fully override common.names.namespace
+  ##
+  namespaceOverride: "keycloak"
+
+  ## Keycloak authentication parameters
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/keycloak#admin-credentials
+  ##
+  auth:
+    ## @param auth.adminUser Keycloak administrator user
+    ##
+    adminUser: "admin"
+    ## @param auth.existingSecret Existing secret containing Keycloak admin password
+    ##
+    existingSecret: "keycloak-admin-postgres"
+    ## @param auth.passwordSecretKey Key where the Keycloak admin password is being stored inside the existing secret.
+    ##
+    passwordSecretKey: "adminPassword"
+
+  ## @param production Run Keycloak in production mode. TLS configuration is required except when using proxy=edge.
+  ##
+  production: true
+
+  ## @param proxy reverse Proxy mode edge, reencrypt, passthrough or none
+  ## ref: https://www.keycloak.org/server/reverseproxy
+  ##
+  proxy: edge
+
+  ## Service configuration
+  ##
+  service:
+    ## @param service.ports.http Keycloak service HTTP port
+    ##
+    ports:
+      http: 8080 # container port
+
+  ## @section Database parameters
+
+  ## PostgreSQL chart configuration
+  ## ref: https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
+  ## @param postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials
+  ##
+  postgresql:
+    auth:
+      existingSecret: "keycloak-admin-postgres"
