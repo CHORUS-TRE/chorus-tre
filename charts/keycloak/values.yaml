@@ -34,6 +34,47 @@ keycloak:
     ports:
       http: 8080 # container port
 
+  ## Keycloak ingress parameters
+  ## ref: https://kubernetes.io/docs/user-guide/ingress/
+  ##
+  ingress:
+    ## @param ingress.enabled Enable ingress record generation for Keycloak
+    ##
+    enabled: true
+    ## @param ingress.ingressClassName IngressClass that will be be used to implement the Ingress (Kubernetes 1.18+)
+    ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster .
+    ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
+    ##
+    ingressClassName: "caddy"
+    ## @param ingress.pathType Ingress path type
+    ##
+    pathType: Prefix
+    ## @param ingress.hostname Default host for the ingress record (evaluated as template)
+    ##
+    hostname: keycloak.build.chorus-tre.local
+    ## @param ingress.servicePort Backend service port to use
+    ## Default is http. Alternative is https.
+    ##
+    servicePort: 8080
+    ## @param ingress.annotations [object] Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
+    ## Use this parameter to set the required annotations for cert-manager, see
+    ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
+    ## e.g:
+    ## annotations:
+    ##   kubernetes.io/ingress.class: nginx
+    ##   cert-manager.io/cluster-issuer: cluster-issuer-name
+    ##
+    annotations:
+      kubernetes.io/ingress.class: caddy
+    ## @param ingress.tls Enable TLS configuration for the host defined at `ingress.hostname` parameter
+    ## TLS certificates will be retrieved from a TLS secret with name: `{{- printf "%s-tls" (tpl .Values.ingress.hostname .) }}`
+    ## You can:
+    ##   - Use the `ingress.secrets` parameter to create this TLS secret
+    ##   - Rely on cert-manager to create it by setting the corresponding annotations
+    ##   - Rely on Helm to create self-signed certificates by setting `ingress.selfSigned=true`
+    ##
+    tls: []
+
   ## @section Database parameters
 
   ## PostgreSQL chart configuration
