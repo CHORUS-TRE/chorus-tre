@@ -11,10 +11,16 @@ kubectl get namespace | grep -q "^argocd " || kubectl create namespace argocd
 helm install chorus-build-argo-cd charts/argo-cd -n argocd --set argo-cd.server.ingress.hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME
 echo "" 
 
-# install caddy-ingress-controller
-helm dep update charts/caddy-ingress-controller
-kubectl get namespace | grep -q "^caddy-system " || kubectl create namespace caddy-system
-helm install chorus-build-caddy-ingress-controller charts/caddy-ingress-controller -n caddy-system
+# install ingress-nginx
+helm dep update charts/ingress-nginx
+kubectl get namespace | grep -q "^ingress-nginx " || kubectl create namespace ingress-nginx
+helm install chorus-build-ingress-nginx charts/ingress-nginx -n ingress-nginx
+echo ""
+
+# install cert-manager
+helm dep update charts/cert-manager
+kubectl get namespace | grep -q "^cert-manager " || kubectl create namespace cert-manager
+helm install chorus-build-cert-manager charts/cert-manager -n cert-manager
 echo "" 
 
 # install sealed-secrets
@@ -33,17 +39,22 @@ kubectl wait pod \
 	--all \
 	--for=condition=Ready \
 	--namespace=argocd \
-        --timeout=60s
+    --timeout=60s
 kubectl wait pod \
 	--all \
 	--for=condition=Ready \
-	--namespace=caddy-system \
-        --timeout=60s
+	--namespace=ingress-nginx \
+    --timeout=60s
+kubectl wait pod \
+    --all \
+    --for=condition=Ready \
+    --namespace=cert-manager \
+    --timeout=60s
 kubectl wait pod \
 	--all \
 	--for=condition=Ready \
 	--namespace=registry \
-        --timeout=60s
+    --timeout=60s
 echo "" 
 
 
