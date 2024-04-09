@@ -7,7 +7,7 @@ image:
   repository: registry.build.chorus-tre.ch/xpra-server
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "dev"
+  tag: "master-dev"
 env:
   card: none
   xpraKeycloakAuth: false
