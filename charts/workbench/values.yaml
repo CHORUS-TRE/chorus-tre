@@ -48,10 +48,10 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  tls:
+    - hosts:
+        - workbench.chorus-tre.local
+      secretName: default-workbench-tls
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
