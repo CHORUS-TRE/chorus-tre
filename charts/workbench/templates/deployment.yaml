@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "xpra-server.fullname" . }}
+  name: {{ include "workbench.fullname" . }}
   labels:
-    {{- include "xpra-server.labels" . | nindent 4 }}
+    {{- include "workbench.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "xpra-server.selectorLabels" . | nindent 6 }}
+      {{- include "workbench.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,13 +18,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "xpra-server.selectorLabels" . | nindent 8 }}
+        {{- include "workbench.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "xpra-server.serviceAccountName" . }}
+      serviceAccountName: {{ include "workbench.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       volumes:

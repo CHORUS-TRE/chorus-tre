@@ -44,7 +44,7 @@ ingress:
     # kubernetes.io/ingress.class: caddy
     # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: xpra.chorus-tre.local
+    - host: workbench.chorus-tre.local
       paths:
         - path: /
           pathType: Prefix
