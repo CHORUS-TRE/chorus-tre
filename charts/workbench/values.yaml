@@ -50,7 +50,7 @@ ingress:
   tls:
   - hosts:
     - workbench.chorus-tre.local
-    secretName: default-workbench-tls
+    secretName: workbench-tls
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
