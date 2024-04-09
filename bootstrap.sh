@@ -5,10 +5,15 @@ if [[ -z "$DOMAIN_NAME" ]]; then
   DOMAIN_NAME="chorus-tre.ch"
 fi
 
+read -p "Please enter your Let's Encrypt email: " EMAIL
+if [[ -z "$EMAIL" ]]; then
+  EMAIL="no-reply@chorus-tre.ch"
+fi
+
 # install argocd
 helm dep update charts/argo-cd
 kubectl get namespace | grep -q "^argocd " || kubectl create namespace argocd
-helm install chorus-build-argo-cd charts/argo-cd -n argocd --set argo-cd.server.ingress.hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME
+helm install chorus-build-argo-cd charts/argo-cd -n argocd --set argo-cd.server.ingress.hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.tls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.tls[0].secretName=argocd-ingress-http --set argo-cd.server.ingressGrpc.hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.tls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.tls[0].secretName=argocd-ingress-grpc
 echo "" 
 
 # install ingress-nginx
@@ -18,9 +23,10 @@ helm install chorus-build-ingress-nginx charts/ingress-nginx -n ingress-nginx
 echo ""
 
 # install cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.4/cert-manager.crds.yaml
 helm dep update charts/cert-manager
 kubectl get namespace | grep -q "^cert-manager " || kubectl create namespace cert-manager
-helm install chorus-build-cert-manager charts/cert-manager -n cert-manager
+helm install chorus-build-cert-manager charts/cert-manager -n cert-manager --set clusterissuer.email=$EMAIL
 echo "" 
 
 # install sealed-secrets
@@ -30,7 +36,7 @@ echo ""
 
 # install registry
 kubectl get namespace | grep -q "^registry " || kubectl create namespace registry
-helm install chorus-build-registry charts/registry -n registry --set ingress.hosts[0]=registry.build.$DOMAIN_NAME
+helm install chorus-build-registry charts/registry -n registry --set ingress.hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].secretName=registry-tls
 echo "" 
 
 # wait
