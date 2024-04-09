@@ -12,21 +12,29 @@ argo-cd:
       enabled: true
       ingressClassName: ""
       annotations:
-        kubernetes.io/ingress.class: caddy
+        kubernetes.io/ingress.class: nginx
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
       hosts:
         - argo-cd.build.chorus-tre.local
       paths:
         - /
       pathType: Prefix
-      tls: []
+      tls:
+        - hosts:
+          - argo-cd.build.chorus-tre.local
+          secretName: argocd-argo-cd-server-tls
     ingressGrpc:
       enabled: true
       ingressClassName: ""
       annotations:
-        kubernetes.io/ingress.class: caddy
+        kubernetes.io/ingress.class: nginx
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
       hosts:
         - grpc.argo-cd.build.chorus-tre.local
       paths:
         - /
       pathType: Prefix
-      tls: []
+      tls:
+        - hosts:
+          - grpc.argo-cd.build.chorus-tre.local
+          secretName: argocd-argo-cd-grpc-tls
