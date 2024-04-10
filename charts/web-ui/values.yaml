@@ -56,7 +56,7 @@ ingress:
           pathType: Prefix
   tls:
   - hosts:
-    - web-ui.chorus-tre.ch
+    - web-ui.chorus-tre.local
     secretName: web-ui-tls
 
 resources: {}
