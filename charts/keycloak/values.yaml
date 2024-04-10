@@ -73,10 +73,10 @@ keycloak:
     ##   - Rely on cert-manager to create it by setting the corresponding annotations
     ##   - Rely on Helm to create self-signed certificates by setting `ingress.selfSigned=true`
     ##
-  	tls:
-  	  - hosts:
+    tls:
+      - hosts:
         - keycloak.chorus-tre.local
-        secretName: keycloak-tls
+        secretName: keycloak.chorus-tre.local-tls
 
   ## @section Database parameters
 
