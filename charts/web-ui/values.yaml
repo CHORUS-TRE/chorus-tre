@@ -46,17 +46,18 @@ service:
 ingress:
   enabled: true
   className: ""
+  ingressClassName: "nginx"
   annotations:
-    kubernetes.io/ingress.class: caddy
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
   hosts:
     - host: web-ui.chorus-tre.local
       paths:
         - path: /
           pathType: Prefix
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  tls:
+  - hosts:
+    - web-ui.chorus-tre.ch
+    secretName: web-ui-tls
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
