@@ -13,7 +13,7 @@ fi
 # install argocd
 helm dep update charts/argo-cd
 kubectl get namespace | grep -q "^argocd " || kubectl create namespace argocd
-helm install chorus-build-argo-cd charts/argo-cd -n argocd --set argo-cd.server.ingress.hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.tls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.tls[0].secretName=argocd-ingress-http --set argo-cd.server.ingressGrpc.hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.tls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.tls[0].secretName=argocd-ingress-grpc
+helm install chorus-build-argo-cd charts/argo-cd -n argocd --set argo-cd.global.domain=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].secretName=argocd-ingress-http --set argo-cd.server.ingressGrpc.extraTls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.extraTls[0].secretName=argocd-ingress-grpc
 echo "" 
 
 # install ingress-nginx
