@@ -24,7 +24,7 @@ spec:
           - name: images
             path: /src
             git:
-              repo: https://github.com/CHUV-DIP/images.git
+              repo: https://github.com/CHORUS-TRE/images.git
               usernameSecret:
                 name: argo-workflows-github-images
                 key: username
