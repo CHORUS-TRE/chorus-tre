@@ -8,6 +8,7 @@ kind: WorkflowTemplate
 metadata:
   name: ci-test
 spec:
+  serviceAccountName: job-client
   entrypoint: pipeline
 
   #start the sequence
