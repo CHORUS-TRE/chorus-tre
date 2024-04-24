@@ -57,6 +57,11 @@ kubectl wait pod \
     --namespace=cert-manager \
     --timeout=60s
 kubectl wait pod \
+    --for=condition=Ready \
+    --namespace=kube-system \
+    --selector 'app.kubernetes.io/name=sealed-secrets' \
+    --timeout=60s
+kubectl wait pod \
 	--all \
 	--for=condition=Ready \
 	--namespace=registry \
@@ -81,3 +86,28 @@ kubectl get namespace | grep -q "^argo " || kubectl create namespace argo
 
 # deploy the ApplicationSet
 kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
+
+# argo-worflows setup
+# TODO: test this section
+kubectl wait pod \
+    --for=condition=Ready \
+    --namespace=kube-system \
+    --selector 'app.kubernetes.io/part-of=argo-workflows' \
+    --timeout=60s
+
+kubectl -n argo apply -f ci/sa_role.yaml
+kubectl -n argo create sa argo-ci
+kubectl -n argo create rolebinding argo-ci --role=argo-ci --serviceaccount=argo:argo-ci
+kubectl -n argo apply -f ci/sa_secret.yaml
+
+echo -e "Set the following environment variables to submit argo-workflows:\n"
+echo "ARGO_NAMESPACE=argo"
+echo "ARGO_TOKEN=\"Bearer $(kubectl -n argo get secret argo-ci.service-account-token -o=jsonpath='{.data.token}' | base64 --decode)\""
+
+kubectl -n argo apply -f ci/workflow.yaml
+
+#argo auth token
+#argo list
+#argo template list
+#argo submit --from WorkflowTemplate/ci-test -n argo --watch
+#argo logs -n argo @latest

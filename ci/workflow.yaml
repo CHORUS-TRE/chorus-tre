@@ -1,14 +1,9 @@
-##create a secret for git
-# kubectl create secret generic git-creds \
-#     --from-file=ssh=$HOME/.ssh/id_rsa \
-#     --from-file=known_hosts=$HOME/.ssh/known_hosts -n [NAMESPACE]
- 
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
   name: ci-test
 spec:
-  serviceAccountName: job-client
+  serviceAccountName: argo-ci
   entrypoint: pipeline
 
   #start the sequence

@@ -1,0 +1,31 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-ci
+  namespace: argo
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - list
+  - update
+  - create
+  - get
+  - watch
+  - delete
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflowtemplates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - patch
