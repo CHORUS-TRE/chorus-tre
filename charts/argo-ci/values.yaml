@@ -43,7 +43,7 @@ ingress:
   hosts:
   - host: webhook.build.chorus-tre.local
     paths:
-      - path: /
+      - path: /push
         pathType: Prefix
   tls:
   - hosts:

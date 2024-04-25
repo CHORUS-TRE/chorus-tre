@@ -3,6 +3,12 @@ kind: EventSource
 metadata:
   name: github
 spec:
+  service:
+    ports:
+      - name: ci
+        port: 12000
+        targetPort: 12000
+spec:
   github:
     ci:
       repositories:

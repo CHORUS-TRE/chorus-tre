@@ -111,3 +111,13 @@ kubectl -n argo apply -f ci/workflow.yaml
 #argo template list
 #argo submit --from WorkflowTemplate/ci-test -n argo --watch
 #argo logs -n argo @latest
+
+# argo-events setup
+# TODO: test this section
+kubectl wait pod \
+    --for=condition=Ready \
+    --namespace=argo-events \
+    --selector 'app.kubernetes.io/part-of=argo-events' \
+    --timeout=60s
+kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/eventbus/native.yaml
+
