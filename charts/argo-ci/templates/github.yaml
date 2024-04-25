@@ -6,8 +6,8 @@ spec:
   service:
     ports:
       - name: ci
-        port: 12000
-        targetPort: 12000
+        port: {{ .Values.service.port }}
+        targetPort: {{ .Values.service.targetPort }}
 spec:
   github:
     ci:
