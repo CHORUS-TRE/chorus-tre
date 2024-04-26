@@ -9,4 +9,4 @@ spec:
     targetPort: 12000
   selector:
     eventsource-name: github
-  type: ClusterIP
+  type: NodePort
