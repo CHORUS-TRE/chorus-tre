@@ -3,11 +3,11 @@ kind: EventSource
 metadata:
   name: github
 spec:
-  service:
-    ports:
-      - name: ci
-        port: {{ .Values.service.port }}
-        targetPort: {{ .Values.service.targetPort }}
+#  service:
+#    ports:
+#      - name: ci
+#        port: {{ .Values.service.port }}
+#        targetPort: {{ .Values.service.targetPort }}
   github:
     ci:
       repositories:
