@@ -4,7 +4,7 @@ metadata:
   name: github-eventsource-svc
 spec:
   ports:
-  - port: 8080
+  - port: 12000
     protocol: TCP
     targetPort: 12000
   selector:
