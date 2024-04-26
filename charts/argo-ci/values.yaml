@@ -41,7 +41,7 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/rewrite-target: "/"
-    nginx.ingress.kubernetes.io/configuration-snippeti: |
+    nginx.ingress.kubernetes.io/configuration-snippet: |
       rewrite ^(/push)$ $1/ permanent;
   hosts:
   - host: webhook.build.chorus-tre.local
