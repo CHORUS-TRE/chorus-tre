@@ -89,22 +89,22 @@ kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
 
 # argo-worflows setup
 # TODO: test this section
-kubectl wait pod \
-    --for=condition=Ready \
-    --namespace=kube-system \
-    --selector 'app.kubernetes.io/part-of=argo-workflows' \
-    --timeout=60s
+#kubectl wait pod \
+#    --for=condition=Ready \
+#    --namespace=kube-system \
+#    --selector 'app.kubernetes.io/part-of=argo-workflows' \
+#    --timeout=60s
 
-kubectl -n argo apply -f ci/sa_role.yaml
-kubectl -n argo create sa argo-ci
-kubectl -n argo create rolebinding argo-ci --role=argo-ci --serviceaccount=argo:argo-ci
-kubectl -n argo apply -f ci/sa_secret.yaml
+#kubectl -n argo apply -f ci/sa_role.yaml
+#kubectl -n argo create sa argo-ci
+#kubectl -n argo create rolebinding argo-ci --role=argo-ci --serviceaccount=argo:argo-ci
+#kubectl -n argo apply -f ci/sa_secret.yaml
 
-echo -e "Set the following environment variables to submit argo-workflows:\n"
-echo "ARGO_NAMESPACE=argo"
-echo "ARGO_TOKEN=\"Bearer $(kubectl -n argo get secret argo-ci.service-account-token -o=jsonpath='{.data.token}' | base64 --decode)\""
+#echo -e "Set the following environment variables to submit argo-workflows:\n"
+#echo "ARGO_NAMESPACE=argo"
+#echo "ARGO_TOKEN=\"Bearer $(kubectl -n argo get secret argo-ci.service-account-token -o=jsonpath='{.data.token}' | base64 --decode)\""
 
-kubectl -n argo apply -f ci/workflow.yaml
+#kubectl -n argo apply -f ci/workflow.yaml
 
 #argo auth token
 #argo list
@@ -114,10 +114,10 @@ kubectl -n argo apply -f ci/workflow.yaml
 
 # argo-events setup
 # TODO: test this section
-kubectl wait pod \
-    --for=condition=Ready \
-    --namespace=argo-events \
-    --selector 'app.kubernetes.io/part-of=argo-events' \
-    --timeout=60s
-kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/eventbus/native.yaml
+#kubectl wait pod \
+#    --for=condition=Ready \
+#    --namespace=argo-events \
+#    --selector 'app.kubernetes.io/part-of=argo-events' \
+#    --timeout=60s
+#kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/eventbus/native.yaml
 
