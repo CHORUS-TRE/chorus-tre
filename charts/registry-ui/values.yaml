@@ -6,9 +6,8 @@ docker-registry-ui:
     ingress:
       enabled: true
       host: registry-ui.build.chorus-tre.local
-      ingressClassName: ""
+      ingressClassName: "nginx"
       annotations:                                       
-        kubernetes.io/ingress.class: nginx
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
       tls:
       - hosts:
