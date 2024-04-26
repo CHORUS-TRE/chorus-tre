@@ -10,17 +10,17 @@ if [[ -z "$EMAIL" ]]; then
   EMAIL="no-reply@chorus-tre.ch"
 fi
 
-# install argocd
-helm dep update charts/argo-cd
-kubectl get namespace | grep -q "^argocd " || kubectl create namespace argocd
-helm install chorus-build-argo-cd charts/argo-cd -n argocd --set argo-cd.global.domain=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].secretName=argocd-ingress-http --set argo-cd.server.ingressGrpc.extraTls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.extraTls[0].secretName=argocd-ingress-grpc
-echo "" 
-
 # install ingress-nginx
 helm dep update charts/ingress-nginx
 kubectl get namespace | grep -q "^ingress-nginx " || kubectl create namespace ingress-nginx
 helm install chorus-build-ingress-nginx charts/ingress-nginx -n ingress-nginx
 echo ""
+echo "Waiting for ingress-nginx..."
+kubectl wait pod \
+	--all \
+	--for=condition=Ready \
+	--namespace=ingress-nginx \
+    --timeout=60s
 
 # install cert-manager
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.4/cert-manager.crds.yaml
@@ -28,46 +28,46 @@ helm dep update charts/cert-manager
 kubectl get namespace | grep -q "^cert-manager " || kubectl create namespace cert-manager
 helm install chorus-build-cert-manager charts/cert-manager -n cert-manager --set clusterissuer.email=$EMAIL
 echo "" 
-
-# install sealed-secrets
-helm dep update charts/sealed-secrets
-helm install chorus-build-sealed-secrets charts/sealed-secrets -n kube-system
-echo ""
-
-# install registry
-kubectl get namespace | grep -q "^registry " || kubectl create namespace registry
-helm install chorus-build-registry charts/registry -n registry --set ingress.hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].secretName=registry-tls
-echo "" 
-
-# wait
-echo "Waiting for pods to be ready..."
-kubectl wait pod \
-	--all \
-	--for=condition=Ready \
-	--namespace=argocd \
-    --timeout=60s
-kubectl wait pod \
-	--all \
-	--for=condition=Ready \
-	--namespace=ingress-nginx \
-    --timeout=60s
+echo "Waiting for cert-manager..."
 kubectl wait pod \
     --all \
     --for=condition=Ready \
     --namespace=cert-manager \
     --timeout=60s
+
+# install argocd
+helm dep update charts/argo-cd
+kubectl get namespace | grep -q "^argocd " || kubectl create namespace argocd
+helm install chorus-build-argo-cd charts/argo-cd -n argocd --set argo-cd.global.domain=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].secretName=argocd-ingress-http --set argo-cd.server.ingressGrpc.extraTls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.extraTls[0].secretName=argocd-ingress-grpc
+echo "" 
+echo "Waiting for argo-cd..."
 kubectl wait pod \
-    --for=condition=Ready \
-    --namespace=kube-system \
-    --selector 'app.kubernetes.io/name=sealed-secrets' \
+	--all \
+	--for=condition=Ready \
+	--namespace=argocd \
     --timeout=60s
+
+# install registry
+kubectl get namespace | grep -q "^registry " || kubectl create namespace registry
+helm install chorus-build-registry charts/registry -n registry --set ingress.hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].secretName=registry-tls
+echo "" 
+echo "Waiting for registry..."
 kubectl wait pod \
 	--all \
 	--for=condition=Ready \
 	--namespace=registry \
     --timeout=60s
-echo "" 
 
+# install sealed-secrets
+helm dep update charts/sealed-secrets
+helm install chorus-build-sealed-secrets charts/sealed-secrets -n kube-system
+echo ""
+echo "Waiting for sealed-secrets..."
+kubectl wait pod \
+    --for=condition=Ready \
+    --namespace=kube-system \
+    --selector 'app.kubernetes.io/name=sealed-secrets' \
+    --timeout=60s
 
 # get argocd initial password
 echo "ArgoCD username: admin"
