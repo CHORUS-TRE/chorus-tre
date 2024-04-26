@@ -87,7 +87,7 @@ kubectl get namespace | grep -q "^argo " || kubectl create namespace argo
 # deploy the ApplicationSet
 kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
 
-# argo-worflows setup
+# argo-workflows setup
 # TODO: test this section
 #kubectl wait pod \
 #    --for=condition=Ready \
