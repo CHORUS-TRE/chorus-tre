@@ -4,9 +4,9 @@ metadata:
   name: github-eventsource-svc
 spec:
   ports:
-  - port: 12000
+  - port: 8080
     protocol: TCP
     targetPort: 12000
   selector:
     eventsource-name: github
-  type: NodePort
+  type: ClusterIP
