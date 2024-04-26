@@ -40,11 +40,10 @@ ingress:
   ingressClassName: "nginx"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/rewrite-target: /
   hosts:
   - host: webhook.build.chorus-tre.local
     paths:
-      - path: /push
+      - path: /
         pathType: Prefix
   tls:
   - hosts:
