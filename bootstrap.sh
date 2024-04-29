@@ -95,6 +95,7 @@ kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
 #    --selector 'app.kubernetes.io/part-of=argo-workflows' \
 #    --timeout=60s
 
+#move this to argo-ci chart
 #kubectl -n argo apply -f ci/sa_role.yaml
 #kubectl -n argo create sa argo-ci
 #kubectl -n argo create rolebinding argo-ci --role=argo-ci --serviceaccount=argo:argo-ci
@@ -111,13 +112,3 @@ kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
 #argo template list
 #argo submit --from WorkflowTemplate/ci-test -n argo --watch
 #argo logs -n argo @latest
-
-# argo-events setup
-# TODO: test this section
-#kubectl wait pod \
-#    --for=condition=Ready \
-#    --namespace=argo-events \
-#    --selector 'app.kubernetes.io/part-of=argo-events' \
-#    --timeout=60s
-#kubectl apply -n argo-events -f https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/eventbus/native.yaml
-
