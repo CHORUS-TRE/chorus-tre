@@ -3,7 +3,7 @@ kind: WorkflowTemplate
 metadata:
   name: ci-test
 spec:
-  serviceAccountName: argo-ci
+  serviceAccountName: argo-ci-sa
   entrypoint: pipeline
 
   #start the sequence
