@@ -8,7 +8,7 @@ spec:
   dependencies:
     - name: test-dep
       eventSourceName: github
-      eventName: example
+      eventName: ci
       filters:
         data:
           # Type of Github event that triggered the delivery: [pull_request, push, issues, label, ...]
@@ -44,6 +44,7 @@ spec:
               metadata:
                 generateName: github-
               spec:
+                serviceAccountName: argo-ci-sa
                 entrypoint: whalesay
                 arguments:
                   parameters:
