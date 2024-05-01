@@ -4,7 +4,7 @@ metadata:
   name: github
 spec:
   template:
-    serviceAccountName: operate-workflow-sa
+    serviceAccountName: argo-ci-sa
   dependencies:
     - name: test-dep
       eventSourceName: github

@@ -45,3 +45,22 @@ rules:
   - pods
   verbs:
   - patch
+  - list
+  - get
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - watch
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  verbs:
+  - watch
+  - get
+  - list
