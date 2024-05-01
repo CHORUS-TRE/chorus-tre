@@ -38,7 +38,7 @@ spec:
       # +optional
       apiToken:
         # Name of the K8s secret that contains the access token
-        name: argo-events-github-images 
+        name: argo-ci-github-images 
         # Key within the K8s secret whose corresponding value (must be base64 encoded) is access token
         key: token
 
