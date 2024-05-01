@@ -42,17 +42,17 @@ spec:
         # Key within the K8s secret whose corresponding value (must be base64 encoded) is access token
         key: token
 
-#      # webhookSecret refers to K8s secret that stores the github hook secret
-#      # +optional
-#      webhookSecret:
-#        # Name of the K8s secret that contains the hook secret
-#        name: github-access
-#        # Key within the K8s secret whose corresponding value (must be base64 encoded) is hook secret
-#        key: secret
+      # webhookSecret refers to K8s secret that stores the github hook secret
+      # +optional
+      webhookSecret:
+        # Name of the K8s secret that contains the hook secret
+        name: argo-ci-github-images
+        # Key within the K8s secret whose corresponding value (must be base64 encoded) is hook secret
+        key: secret
 
       # type of the connection between event-source and Github.
       # You should set it to false to avoid man-in-the-middle and other attacks.
-      insecure: true
+      insecure: false
       # Determines if notifications are sent when the webhook is triggered
       active: true
       # The media type used to serialize the payloads
