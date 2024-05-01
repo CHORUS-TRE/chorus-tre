@@ -19,21 +19,8 @@ rules:
   - argoproj.io
   resources:
   - workflowtemplates
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - argoproj.io
-  resources:
+  - workfloweventbindings
   - eventsources
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - argoproj.io
-  resources:
   - sensors
   verbs:
   - get
@@ -52,13 +39,6 @@ rules:
   - ""
   resources:
   - events
-  verbs:
-  - watch
-  - get
-  - list
-- apiGroups:
-  - ""
-  resources:
   - pods/log
   verbs:
   - watch
