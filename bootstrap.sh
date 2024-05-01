@@ -105,8 +105,6 @@ kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
 #echo "ARGO_NAMESPACE=argo"
 #echo "ARGO_TOKEN=\"Bearer $(kubectl -n argo get secret argo-ci.service-account-token -o=jsonpath='{.data.token}' | base64 --decode)\""
 
-#kubectl -n argo apply -f ci/workflow.yaml
-
 #argo auth token
 #argo list
 #argo template list
