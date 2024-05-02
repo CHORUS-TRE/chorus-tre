@@ -1,0 +1,87 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: build-images
+spec:
+  template:
+    serviceAccountName: argo-ci-sa
+  dependencies:
+    - name: build-images
+      eventSourceName: github
+      eventName: ci
+      filters:
+        data:
+          - path: "[body.commits.#.modified.#()#,body.commits.#.added.#()#,body.commits.#.removed.#()#]"
+            type: string
+            value:
+              - "server/*"
+              - "apps/*/.*"
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/master"
+      
+  triggers:
+    - template:
+        name: github-workflow-trigger
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: github-
+              spec:
+                serviceAccountName: argo-ci-sa
+                entrypoint: whalesay
+                arguments:
+                  parameters:
+                    - name: commit_id
+                    - name: commit_message
+                    - name: added
+                    - name: removed
+                    - name: modified
+                templates:
+                  - name: whalesay
+                    inputs:
+                      parameters:
+                        - name: commit_id
+                        - name: commit_message
+                        - name: added
+                        - name: removed
+                        - name: modified
+                    container:
+                      image: docker/whalesay:latest
+                      command: [cowsay]
+                      args: [ "{{inputs.parameters.commit_message}}" ]
+
+          parameters:
+            - src:
+                dependencyName: build-images
+                dataTemplate: "{{ .Input.body.head_commit.id | substr 0 7 }}"
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: build-images
+                dataKey: body.head_commit.message
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: build-images
+                dataKey: body.head_commit.added
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: build-images
+                dataKey: body.head_commit.removed
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: build-images
+                dataKey: body.head_commit.modified
+              dest: spec.arguments.parameters.4.value
+            # Append text and commit id to dynamically assign workflow name <2c065a-xxx>
+            - src:
+                dependencyName: build-images
+                dataTemplate: "build-images-{{ .Input.body.head_commit.id | substr 0 7 }}"
+              dest: metadata.name
+              operation: append
+      retryStrategy:
+        steps: 3
