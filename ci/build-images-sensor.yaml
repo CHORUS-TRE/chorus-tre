@@ -20,7 +20,7 @@ spec:
             type: string
             value:
               - "refs/heads/master"
-      
+
   triggers:
     - template:
         name: github-workflow-trigger
@@ -34,7 +34,7 @@ spec:
                 generateName: github-
               spec:
                 serviceAccountName: argo-ci-sa
-                entrypoint: whalesay
+                entrypoint: build-images
                 arguments:
                   parameters:
                     - name: commit_id
@@ -43,18 +43,65 @@ spec:
                     - name: removed
                     - name: modified
                 templates:
-                  - name: whalesay
+                  - name: build-images
+                    steps:
+                      - - name: getpaths
+                          template: getpaths
+                          arguments:
+                            parameters:
+                              - name: added
+                                value: "{{workflow.parameters.added}}"
+                              - name: removed
+                                value: "{{workflow.parameters.removed}}"
+                              - name: modified
+                                value: "{{workflow.parameters.modified}}"
+
+                      - - name: whalesay
+                          template: whalesay
+                          arguments:
+                            parameters:
+                              - name: paths
+                                value: "{{item}}"
+                          withParam: "{{steps.getpaths.outputs.result}}" # The result of the script
+
+                  - name: getpaths
                     inputs:
                       parameters:
-                        - name: commit_id
-                        - name: commit_message
                         - name: added
                         - name: removed
                         - name: modified
+                    script:
+                      image: python:alpine
+                      command: [python]
+                      source: |
+                        from pathlib import Path
+                        import json
+                        import sys
+                        paths = {{inputs.parameters.added}} + {{inputs.parameters.removed}} + {{inputs.parameters.modified}}
+                        # Iterate over a copy of the list
+                        for p in paths[:]:  # paths[:] creates a shallow copy of the list
+                            path = Path(p)
+                            if path.parts[0] == 'apps' and len(path.parts) > 2:
+                                # Keep only up to the second part after 'apps/'
+                                index = paths.index(p)
+                                paths[index] = '/'.join(path.parts[:2])
+                            elif path.parts[0] == 'server' and len(path.parts) > 1:
+                                # Keep only the first part after 'server'
+                                index = paths.index(p)
+                                paths[index] = '/'.join(path.parts[:1])
+                            else:
+                                # Remove the path by deleting it if it does not match any conditions
+                                paths.remove(p)
+                        json.dump(list(set(paths)), sys.stdout)
+
+                  - name: whalesay
+                    inputs:
+                      parameters:
+                        - name: paths
                     container:
                       image: docker/whalesay:latest
                       command: [cowsay]
-                      args: [ "{{inputs.parameters.commit_message}}" ]
+                      args: ["{{inputs.parameters.paths}}"]
 
           parameters:
             - src:
