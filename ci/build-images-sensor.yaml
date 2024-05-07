@@ -45,8 +45,11 @@ spec:
                 templates:
                   - name: build-images
                     steps:
-                      - - name: getpaths
-                          template: getpaths
+                      - - name: git-clone
+                          template: git-clone
+
+                      - - name: get-paths
+                          template: get-paths
                           arguments:
                             parameters:
                               - name: added
@@ -62,9 +65,28 @@ spec:
                             parameters:
                               - name: paths
                                 value: "{{item}}"
-                          withParam: "{{steps.getpaths.outputs.result}}" # The result of the script
+                          withParam: "{{steps.get-paths.outputs.result}}" # The result of the script
 
-                  - name: getpaths
+                  - name: git-clone
+                    inputs:
+                      artifacts:
+                        - name: images
+                          path: /src
+                          git:
+                            repo: https://github.com/CHORUS-TRE/images.git
+                            usernameSecret:
+                              name: argo-workflows-github-images
+                              key: username
+                            passwordSecret:
+                              name: argo-workflows-github-images
+                              key: password
+                    container:
+                      image: golang:1.10
+                      command: [sh, -c]
+                      args: ["git status && ls"]
+                      workingDir: /src
+
+                  - name: get-paths
                     inputs:
                       parameters:
                         - name: added
