@@ -1,8 +1,8 @@
 apiVersion: v2
 description: Helm chart for the sealed-secrets controller.
 name: sealed-secrets
-version: 0.0.1
+version: 2.15.3
 dependencies:
   - name: sealed-secrets
-    version: 2.15.0
+    version: 2.15.3
     repository: https://bitnami-labs.github.io/sealed-secrets
