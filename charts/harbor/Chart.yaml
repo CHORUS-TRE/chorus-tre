@@ -1,0 +1,8 @@
+apiVersion: v2
+name: harbor
+description: Harbor container registry
+version: 1.14.2
+dependencies:
+  - name: harbor
+    version: 1.14.2
+    repository: https://helm.goharbor.io
