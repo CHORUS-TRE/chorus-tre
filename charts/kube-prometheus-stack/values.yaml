@@ -1,1 +1,48 @@
-kube-prometheus-stack: {}
+kube-prometheus-stack:
+  # CRDs should be installed beforehand such that Alertmanager can be configured with it
+  crds:
+    enabled: false
+
+  alertmanager:
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - alertmanager.build.chorus-tre.local
+      tls:
+        - secretName: alertmanager-general-tls
+          hosts:
+            - alertmanager.build.chorus-tre.local
+
+    alertmanagerSpec:
+      logFormat: json
+      retention: 120h
+
+  # Grafana can wait for now.
+  grafana:
+    enabled: false
+
+  prometheus:
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - prometheus.build.chorus-tre.local
+      tls:
+        - secretName: prometheus-general-tls
+          hosts:
+            - prometheus.build.chorus-tre.local
+
+    prometheusSpec:
+      logFormat: json
+      retention: 30d
+
+      # All pods, probes and service monitors will be used.
+      podMonitorSelectorNilUsesHelmValues: false
+      probeSelectorNilUsesHelmValues: false
+      ruleSelectorNilUsesHelmValues: false
+      serviceMonitorSelectorNilUsesHelmValues: false
