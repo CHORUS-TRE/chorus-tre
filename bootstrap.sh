@@ -103,7 +103,7 @@ kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
 
 #echo -e "Set the following environment variables to submit argo-workflows:\n"
 #echo "ARGO_NAMESPACE=argo"
-#echo "ARGO_TOKEN=\"Bearer $(kubectl -n argo get secret argo-ci.service-account-token -o=jsonpath='{.data.token}' | base64 --decode)\""
+#echo "ARGO_TOKEN=\"Bearer $(kubectl -n argo get secret argo-ci-sa.service-account-token -o=jsonpath='{.data.token}' | base64 --decode)\""
 
 #argo auth token
 #argo list
