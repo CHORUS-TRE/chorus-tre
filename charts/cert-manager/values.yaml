@@ -1,7 +1,11 @@
 cert-manager:
   installCRDs: false
+
+# A ClusterIssuer
+# See: https://cert-manager.io/docs/concepts/issuer/
 clusterissuer:
+  enabled: true
+  # By default the production environment is used.
+  # server: https://acme-staging-v02.api.letsencrypt.org/directory
   name: letsencrypt-prod
-  server: https://acme-v02.api.letsencrypt.org/directory
   email: no-reply@example.com
-  secret: letsencrypt-prod

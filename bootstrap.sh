@@ -23,7 +23,7 @@ kubectl wait pod \
     --timeout=60s
 
 # install cert-manager
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.4/cert-manager.crds.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.crds.yaml
 helm dep update charts/cert-manager
 kubectl get namespace | grep -q "^cert-manager " || kubectl create namespace cert-manager
 helm install chorus-build-cert-manager charts/cert-manager -n cert-manager --set clusterissuer.email=$EMAIL
