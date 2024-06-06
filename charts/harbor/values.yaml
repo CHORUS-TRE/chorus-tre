@@ -117,7 +117,7 @@ harbor:
   harborAdminPassword: "Sv83#kjfPDS38dhuioSj"
 
   # The secret key used for encryption. Must be a string of 16 chars.
-  secretKey: "not-a-secure-key-you-have-to-change-m3"
+  secretKey: "not-a-secure-key"
   # If using existingSecretSecretKey, the key must be secretKey
   existingSecretSecretKey: ""
 
