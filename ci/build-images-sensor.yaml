@@ -121,9 +121,8 @@ spec:
                             do sleep 3;
                           done;
 
-                          cd "{{inputs.parameters.path}}";
                           exec ./build.sh
-                      workingDir: /src
+                      workingDir: /src/{{inputs.parameters.path}}
                     sidecars:
                       - name: dind
                         image: docker:26-dind
