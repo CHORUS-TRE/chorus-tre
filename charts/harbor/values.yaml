@@ -109,17 +109,13 @@ harbor:
         size: 5Gi
         annotations: {}
 
-  # The initial password of Harbor admin. Change it from portal after launching Harbor
-  # or give an existing secret for it
   # key in secret is given via (default to HARBOR_ADMIN_PASSWORD)
   # existingSecretAdminPassword:
   existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
-  harborAdminPassword: "Sv83#kjfPDS38dhuioSj"
 
-  # The secret key used for encryption. Must be a string of 16 chars.
-  secretKey: "not-a-secure-key"
-  # If using existingSecretSecretKey, the key must be secretKey
-  existingSecretSecretKey: ""
+  # Encryption key, same principle as above.
+  # Must be 16 chars according to upstream doc
+  existingSecretSecretKey: HARBOR_SECRETKEY
 
 
   # The proxy settings for updating trivy vulnerabilities from the Internet and replicating
