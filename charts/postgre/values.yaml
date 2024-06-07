@@ -1,0 +1,17 @@
+global: 
+  postgresql:
+    auth:
+      existingSecret: "postgre-secret"
+      secretKeys:
+        adminPasswordKey: "ADMIN_PASSWORD"
+        userPasswordKey: "USER_PASSWORD"
+        replicationPasswordKey: "REPLICATION_PASSWORD"
+  tls: 
+    enabled: true
+    volumePermissions.enabled: true
+    certificatesSecret: postgre-general-tls
+    # The following files need to go into the certificatesSecret
+    # as such: 
+    # kubectl create secret generic certificates-tls-secret --from-file=./cert.crt --from-file=./cert.key --from-file=./ca.crt
+    tls.certFilename: "cert.crt"
+    tls.certKeyFilename: "cert.key"

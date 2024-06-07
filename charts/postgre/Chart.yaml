@@ -1,0 +1,7 @@
+apiVersion: v2
+name: postgre
+version: 0.0.1
+dependencies:
+  - name: postgresql
+    version: 15.5.1
+    repository: https://charts.bitnami.com/bitnami
