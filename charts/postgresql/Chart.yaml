@@ -1,5 +1,5 @@
 apiVersion: v2
-name: postgre
+name: postgresql
 version: 0.0.1
 dependencies:
   - name: postgresql
