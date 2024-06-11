@@ -15,6 +15,8 @@ spec:
         - owner: chorus-tre
           names:
             - images
+            - chorus-web-ui
+
       # Github will send events to following port and endpoint
       webhook:
         # endpoint to listen to events on
@@ -39,7 +41,7 @@ spec:
       # +optional
       apiToken:
         # Name of the K8s secret that contains the access token
-        name: argo-ci-github-images 
+        name: argo-ci-github-images
         # Key within the K8s secret whose corresponding value (must be base64 encoded) is access token
         key: token
 
