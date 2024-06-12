@@ -9,15 +9,15 @@ spec:
     groupWait: 30s
     groupInterval: 5m
     repeatInterval: 12h
-    {{- with .Values.alertmanagerConfig.webex }}
+    {{- with .Values.alertmanagerConfiguration.webex }}
       {{- if .enabled }}
     routes:
       - matchers:
           - matchType: =~
             name: severity
-            value: {{ .severity | defaults "critical" | quote }}
+            value: {{ .severity | default "critical" | quote }}
         continue: true
-        receiver: {{ .receiver | defaults "webex" | quote }}
+        receiver: {{ .receiver | default "webex" | quote }}
       {{- end }}
     {{- end }}
     receiver: "null"
@@ -25,7 +25,7 @@ spec:
     - name: "null"
     {{- with .Values.alertmanagerConfiguration.webex }}
       {{- if .enabled }}
-    - name: {{ .receiver | defaults "webex" | quote }}
+    - name: {{ .receiver | default "webex" | quote }}
       webexConfigs:
         - apiURL: https://webexapis.com/v1/messages
           sendResolved: true
