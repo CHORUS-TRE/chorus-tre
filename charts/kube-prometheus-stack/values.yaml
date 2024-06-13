@@ -5,7 +5,7 @@ kube-prometheus-stack:
 
   alertmanager:
     ingress:
-      enabled: true
+      enabled: false # What is below acts as documentation
       ingressClassName: nginx
       annotations:
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -18,7 +18,28 @@ kube-prometheus-stack:
 
     alertmanagerSpec:
       logFormat: json
-      retention: 120h
+      retention: 20h
+
+      alertmanagerConfiguration:
+        # This must match the name in the alertmanagerConfiguration.name at the bottom.
+        name: global-alertmanager-config
+
+      alertmanagerConfigSelector:
+        matchLabels:
+          alertmanagerConfig: enabled
+      alertmanagerConfigMatcherStrategy:
+        # default is OnNamespace
+        # which means we cannot have a catchall to webex.
+        type: null
+
+      storage:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 256MiB
 
   # Grafana can wait for now.
   grafana:
@@ -26,7 +47,7 @@ kube-prometheus-stack:
 
   prometheus:
     ingress:
-      enabled: true
+      enabled: false # What is below acts as documentation
       ingressClassName: nginx
       annotations:
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -39,10 +60,36 @@ kube-prometheus-stack:
 
     prometheusSpec:
       logFormat: json
-      retention: 30d
+      retention: 3d
 
       # All pods, probes and service monitors will be used.
       podMonitorSelectorNilUsesHelmValues: false
       probeSelectorNilUsesHelmValues: false
       ruleSelectorNilUsesHelmValues: false
       serviceMonitorSelectorNilUsesHelmValues: false
+
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+
+
+alertmanagerConfiguration:
+  name: global-alertmanager-config
+
+  webex:
+    enabled: true
+
+    #name: webex
+    #severity: warning|critical
+
+    credentials:
+      # The name of the secret and the key containing the access token
+      name: config-webex-secret
+      key: accessToken
+
+    roomID: 33a87080-10fa-11ef-9932-7de5d097e655 # Alerts (chorus-build)
