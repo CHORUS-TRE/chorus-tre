@@ -36,8 +36,7 @@ spec:
         - name: {{ $server.name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          #image: "{{ $server.image.repository }}:{{ $server.image.tag | default .Chart.AppVersion }}"
-          image: "{{ $server.image.repository }}:{{ $server.image.tag }}"
+          image: "{{ $server.image.repository }}:{{ $server.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ $server.image.pullPolicy }}
           ports:
             - name: http
@@ -64,8 +63,7 @@ spec:
         - name: {{ $app.name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          #image: "{{ $app.image.repository }}:{{ $app.image.tag | default .Chart.AppVersion }}"
-          image: "{{ $app.image.repository }}:{{ $app.image.tag }}"
+          image: "{{ $app.image.repository }}:{{ $app.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ $app.image.pullPolicy }}
           #ports:
           #  - name: http

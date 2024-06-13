@@ -5,9 +5,9 @@
 name: brainstorm
 image:
   repository: registry.build.chorus-tre.ch/brainstorm
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  tag: "0.0.1"
 env:
   hipUser: hipuser
   card: none
