@@ -56,9 +56,9 @@ spec:
                           arguments:
                             parameters:
                               - name: path
-                                value: "{{item}}"
+                                value: "{{`{{item}}`}}"
                           # This loop over the paths from get-paths
-                          withParam: "{{steps.get-paths.outputs.result}}"
+                          withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
 
                   - name: get-paths
                     script:
@@ -68,9 +68,9 @@ spec:
                         import json, re, sys
 
                         paths = (
-                          {{workflow.parameters.added}} +
-                          {{workflow.parameters.removed}} +
-                          {{workflow.parameters.modified}}
+                          {{`{{workflow.parameters.added}}`}} +
+                          {{`{{workflow.parameters.removed}}`}} +
+                          {{`{{workflow.parameters.modified}}`}}
                         )
 
                         # The first capturing group is kept
@@ -97,8 +97,8 @@ spec:
                         - name: images
                           path: /src
                           git:
-                            repo: "{{workflow.parameters.repo-url}}"
-                            revision: "{{workflow.parameters.revision}}"
+                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
                             usernameSecret:
                               name: argo-workflows-github-images
                               key: username
@@ -106,7 +106,7 @@ spec:
                               name: argo-workflows-github-images
                               key: password
                             depth: 1
-                            ref: "{{workflow.parameters.ref}}"
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
                       image: docker:26
                       env:
@@ -122,7 +122,7 @@ spec:
                           done;
 
                           exec ./build.sh
-                      workingDir: /src/{{inputs.parameters.path}}
+                      workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
                     sidecars:
                       - name: dind
                         image: docker:26-dind
@@ -148,7 +148,7 @@ spec:
               dest: spec.arguments.parameters.2.value
             - src:
                 dependencyName: build-images
-                dataTemplate: "{{ .Input.body.head_commit.id | substr 0 7 }}"
+                dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-images
@@ -169,7 +169,7 @@ spec:
             # Append text and commit id to dynamically assign workflow name <2c065a-xxx>
             - src:
                 dependencyName: build-images
-                dataTemplate: "build-images-{{ .Input.body.head_commit.id | substr 0 7 }}"
+                dataTemplate: "build-images-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
       retryStrategy:
