@@ -1,7 +1,10 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
 apiVersion: argoproj.io/v1alpha1
 kind: EventBus
 metadata:
-  name: default
+  name: {{ $fullName }}-default
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   nats:
     native:
