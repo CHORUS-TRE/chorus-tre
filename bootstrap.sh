@@ -84,6 +84,16 @@ echo -e "OCI Registry is available at: https://registry.build.$DOMAIN_NAME\n"
 # deploy the ApplicationSet
 kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
 
+# display DNS records
+ARGOCD_EXTERNAL_IP=$(kubectl -n argocd  get ingress chorus-build-argo-cd-argocd-server -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+GRPC_ARGOCD_EXTERNAL_IP=$(kubectl -n argocd  get ingress chorus-build-argo-cd-argocd-server-grpc -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+REGISTRY_EXTERNAL_IP=$(kubectl -n registry  get ingress chorus-build-registry -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+
+echo -e "Please set the following DNS records:\n"
+echo -e "argo-cd.build.$DOMAIN_NAME -> $ARGOCD_EXTERNAL_IP"
+echo -e "grpc.argo-cd.build.$DOMAIN_NAME -> $GRPC_ARGOCD_EXTERNAL_IP"
+echo -e "registry.build.$DOMAIN_NAME -> $REGISTRY_EXTERNAL_IP"
+
 # argo-workflows setup
 # create namespace for launching argo-workflows
 #kubectl get namespace | grep -q "^argo " || kubectl create namespace argo
