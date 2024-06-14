@@ -118,6 +118,8 @@ spec:
                           value: 127.0.0.1
                         - name: OUTPUT
                           value: registry
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
                       command: [sh, -c]
                       args:
                         - >-
