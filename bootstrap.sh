@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Exit on error
+set -e
+
 read -p "Please enter domain name of your CHORUS instance: " DOMAIN_NAME
 if [[ -z "$DOMAIN_NAME" ]]; then
   DOMAIN_NAME="chorus-tre.ch"
