@@ -1,179 +1,165 @@
+# (These comments will go away)
+#TODO here still:
+# Secrets in sealed secrets
+
+#TODO in environment dev dev values.yml 
+# database.type: external` and re-using Laure's work on the Postgres(ql) chart
+# metrics.serviceMonitor in use with prometheus
+# correct addresses
+
 harbor:
-  namespace: "harbor"
-  expose:
-    type: ingress
-    tls:
-      # Enable TLS or not.
-      # Delete the "ssl-redirect" annotations in "expose.ingress.annotations" when TLS is disabled and "expose.type" is "ingress"
-      # Note: if the "expose.type" is "ingress" and TLS is disabled,
-      # the port must be included in the command when pulling/pushing images.
-      # Refer to https://github.com/goharbor/harbor/issues/5291 for details.
-      enabled: true
-      # The source of the tls certificate. Set as "auto", "secret"
-      # or "none" and fill the information in the corresponding section
-      # 1) auto: generate the tls certificate automatically
-      # 2) secret: read the tls certificate from the specified secret.
-      # The tls certificate can be generated manually or by cert manager
-      # 3) none: configure no tls certificate for the ingress. If the default
-      # tls certificate is configured in the ingress controller, choose this option
-      certSource: auto
-      auto:
-        # The common name used to generate the certificate, it's necessary
-        # when the type isn't "ingress"
-        commonName: ""
-      secret:
-        # The name of secret which contains keys named:
-        # "tls.crt" - the certificate
-        # "tls.key" - the private key
-        secretName: ""
-    ingress:
-      hosts:
-        core: core.harbor.chorus-tre.local
-      # set to the type of ingress controller if it has specific requirements.
-      # leave as `default` for most ingress controllers.
-      # set to `gce` if using the GCE ingress controller
-      # set to `ncp` if using the NCP (NSX-T Container Plugin) ingress controller
-      # set to `alb` if using the ALB ingress controller
-      # set to `f5-bigip` if using the F5 BIG-IP ingress controller
-      controller: default
-      ## Allow .Capabilities.KubeVersion.Version to be overridden while creating ingress
-      kubeVersionOverride: ""
-      className: ""
+
+  # Find explanations and the template for the values below at https://artifacthub.io/packages/helm/bitnami/harbor?modal=values
+  
+  nameOverride: "harbor"
+
+  ## @param adminPassword The initial password of Harbor admin. Change it from portal after launching Harbor
+  ##
+  adminPassword: "Test@1234"
+
+#  externalURL: https://core.harbor.chorus-tre.local TODO: Put back after testing
+  externalURL: https://core.harbor.dev.chorus-tre.ch
+
+  logLevel: warn
+
+  exposureType: ingress
+
+  service:
+    ports:
+      http: 80
+      https: 443
+
+  ingress:
+    core:
+      ingressClassName: "nginx"
+      pathType: Prefix
+      # hostname: core.harbor.chorus-tre.local TODO: Put back after testing
+      hostname: core.harbor.dev.chorus-tre.ch
       annotations:
-        # note different ingress controllers may require a different ssl-redirect annotation
-        # for Envoy, use ingress.kubernetes.io/force-ssl-redirect: "true" and remove the nginx lines below
-        ingress.kubernetes.io/ssl-redirect: "true"
-        ingress.kubernetes.io/proxy-body-size: "0"
-        nginx.ingress.kubernetes.io/ssl-redirect: "true"
-        nginx.ingress.kubernetes.io/proxy-body-size: "0"
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      harbor:
-        # harbor ingress-specific annotations
-        annotations: {}
-        # harbor ingress-specific labels
-        labels: {}
-    
-  externalURL: https://core.harbor.chorus-tre.local
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"     
+      tls:
+        - hosts:
+          - harbor.chorus-tre.local
+          secretName: harbor.chorus-tre.local
 
   persistence:
     enabled: true
-    # Setting it to "keep" to avoid removing PVCs during a helm delete
-    # operation. Leaving it empty will delete PVCs after the chart deleted
-    # (this does not apply for PVCs that are created for internal database
-    # and redis components, i.e. they are never deleted automatically)
     resourcePolicy: "keep"
     persistentVolumeClaim:
       registry:
-        # Use the existing PVC which must be created manually before bound,
-        # and specify the "subPath" if the PVC is shared with other components
         existingClaim: ""
-        # Specify the "storageClass" used to provision the volume. Or the default
-        # StorageClass will be used (the default).
-        # Set it to "-" to disable dynamic provisioning
         storageClass: ""
         subPath: ""
-        accessMode: ReadWriteOnce
+        accessModes:
+          - ReadWriteOnce
         size: 20Gi
         annotations: {}
+        selector: {}
       jobservice:
-        jobLog:
-          existingClaim: ""
-          storageClass: ""
-          subPath: ""
-          accessMode: ReadWriteOnce
-          size: 1Gi
-          annotations: {}
-      # If external database is used, the following settings for database will
-      # be ignored
-      database:
         existingClaim: ""
         storageClass: ""
         subPath: ""
-        accessMode: ReadWriteOnce
+        accessModes:
+          - ReadWriteOnce
         size: 1Gi
         annotations: {}
-      # If external Redis is used, the following settings for Redis will
-      # be ignored
-      redis:
-        existingClaim: ""
-        storageClass: ""
-        subPath: ""
-        accessMode: ReadWriteOnce
-        size: 1Gi
-        annotations: {}
+        selector: {}
       trivy:
-        existingClaim: ""
         storageClass: ""
-        subPath: ""
-        accessMode: ReadWriteOnce
+        accessModes:
+          - ReadWriteOnce
         size: 5Gi
         annotations: {}
+        selector: {}
 
-  # key in secret is given via (default to HARBOR_ADMIN_PASSWORD)
-  # existingSecretAdminPassword:
-  existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
-
-  # Encryption key, same principle as above.
-  # Must be 16 chars according to upstream doc
-  existingSecretSecretKey: HARBOR_SECRETKEY
-
-
-  # The proxy settings for updating trivy vulnerabilities from the Internet and replicating
-  # artifacts from/to the registries that cannot be reached directly
-  proxy:
-    httpProxy:
-    httpsProxy:
-    noProxy: 127.0.0.1,localhost,.local,.internal
-    components:
-      - core
-      - jobservice
-      - trivy
+  ## PostgreSQL chart configuration
+  ## ref: https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
+  ## @param postgresql.enabled Switch to enable or disable the PostgreSQL helm chart
+  ## @param postgresql.auth.enablePostgresUser Assign a password to the "postgres" admin user. Otherwise, remote access will be blocked for this user
+  ## @param postgresql.auth.postgresPassword Password for the "postgres" admin user
+  ## @param postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials
+  ## @param postgresql.architecture PostgreSQL architecture (`standalone` or `replication`)
+  ## @param postgresql.primary.extendedConfiguration Extended PostgreSQL Primary configuration (appended to main or default configuration)
+  ## @param postgresql.primary.initdb.scripts [object] Initdb scripts to create Harbor databases
+  ##
+  postgresql:
+    enabled: true
+    ## Override PostgreSQL default image as 14.x is not supported https://goharbor.io/docs/2.4.0/install-config/
+    ## ref: https://github.com/bitnami/containers/tree/main/bitnami/postgresql
+    ## @param postgresql.image.registry [default: REGISTRY_NAME] PostgreSQL image registry
+    ## @param postgresql.image.repository [default: REPOSITORY_NAME/postgresql] PostgreSQL image repository
+    ## @skip postgresql.image.tag PostgreSQL image tag (immutable tags are recommended)
+    ## @param postgresql.image.digest PostgreSQL image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
+    ##
+    image:
+      registry: docker.io
+      repository: bitnami/postgresql
+      tag: 13.15.0-debian-12-r2
+      digest: ""
+    auth:
+      enablePostgresUser: true
+      postgresPassword: not-secure-database-password
+      existingSecret: ""
+    architecture: standalone
+    primary:
+      extendedConfiguration: |
+        max_connections = 1024
+      initdb:
+        scripts:
+          initial-registry.sql: |
+            CREATE DATABASE registry ENCODING 'UTF8';
+            \c registry;
+            CREATE TABLE schema_migrations(version bigint not null primary key, dirty boolean not null);
+      ## PostgreSQL Primary resource requests and limits
+      ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+      ## @param postgresql.primary.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, small, medium, large, xlarge, 2xlarge). This is ignored if primary.resources is set (primary.resources is recommended for production).
+      ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
+      ##
+      resourcesPreset: "nano"
+      ## @param postgresql.primary.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+      ## Example:
+      ## resources:
+      ##   requests:
+      ##     cpu: 2
+      ##     memory: 512Mi
+      ##   limits:
+      ##     cpu: 3
+      ##     memory: 1024Mi
+      ##
+      resources: {}
+  ## External PostgreSQL configuration
+  ## All of these values are only used when postgresql.enabled is set to false
+  ## @param externalDatabase.host Database host
+  ## @param externalDatabase.port Database port number
+  ## @param externalDatabase.user Non-root username for Harbor
+  ## @param externalDatabase.password Password for the non-root username for Harbor
+  ## @param externalDatabase.sslmode External database ssl mode
+  ## @param externalDatabase.coreDatabase External database name for core
+  ##
+  # externalDatabase:
+  #   host: localhost
+  #   port: 5432
+  #   user: bn_harbor
+  #   password: ""
+  #   sslmode: disable
+  #   coreDatabase: ""
 
   metrics:
     enabled: true
-    core:
-      path: /metrics
-      port: 8001
-    registry:
-      path: /metrics
-      port: 8001
-    jobservice:
-      path: /metrics
-      port: 8001
-    exporter:
-      path: /metrics
-      port: 8001
-    ## Create prometheus serviceMonitor to scrape harbor metrics.
-    ## This requires the monitoring.coreos.com/v1 CRD. Please see
-    ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/getting-started.md
-    ##
+    path: /metrics
     serviceMonitor:
       enabled: false
-      additionalLabels: {}
-      # Scrape interval. If not set, the Prometheus default scrape interval is used.
+      namespace: ""
       interval: ""
-      # Metric relabel configs to apply to samples before ingestion.
-      metricRelabelings:
-        []
-        # - action: keep
-        #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-        #   sourceLabels: [__name__]
-      # Relabel configs to apply to samples before ingestion.
-      relabelings:
-        []
-        # - sourceLabels: [__meta_kubernetes_pod_node_name]
-        #   separator: ;
-        #   regex: ^(.*)$
-        #   targetLabel: nodename
-        #   replacement: $1
-        #   action: replace
+      scrapeTimeout: ""
+      labels: {}
+      selector: {}
+      relabelings: []
+      metricRelabelings: []
+      honorLabels: false
+      jobLabel: ""
 
-  # cache layer configurations
-  # if this feature enabled, harbor will cache the resource
-  # `project/project_metadata/repository/artifact/manifest` in the redis
-  # which help to improve the performance of high concurrent pulling manifest.
-  cache:
-  # default is not enabled. We need it for performance.
+cache:
   enabled: true
-  # default keep cache for one day.
   expireHours: 24
