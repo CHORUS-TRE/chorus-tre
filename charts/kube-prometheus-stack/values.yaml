@@ -39,7 +39,7 @@ kube-prometheus-stack:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 256MiB
+                storage: 256Mi
 
   # Grafana can wait for now.
   grafana:
