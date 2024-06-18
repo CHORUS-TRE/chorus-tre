@@ -1,0 +1,13 @@
+# Default values for xpra-server.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+name: xpra-server
+image:
+  repository: registry.build.chorus-tre.ch/xpra-server
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "master-dev"
+env:
+  card: none
+  xpraKeycloakAuth: false
