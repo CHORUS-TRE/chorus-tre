@@ -11,7 +11,17 @@ image:
   tag: "0.0.1"
 env:
   card: "none"
-  xpraKeycloakAuth: false
+  xpraKeycloakAuth: "False" # True or False as a string in PascalCase
+  xpraKeycloakServerUrl: ""
+  xpraKeycloakRealmName: ""
+  xpraKeycloakClientId: ""
+  xpraKeycloakClientSecretKey: ""
+  xpraKeycloakRedirectUri: ""
+  xpraKeycloakScope: ""
+  xpraKeycloakClaimField: "roles.groups"
+  xpraKeycloakAuthGroups: ""
+  xpraKeycloakAuthCondition: "and"
+  xpraKeycloakGrantType: "authorization_code"
 
 imagePullSecrets: []
 nameOverride: ""
