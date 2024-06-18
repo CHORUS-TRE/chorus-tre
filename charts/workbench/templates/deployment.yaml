@@ -46,6 +46,31 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: CARD
+              value: "{{ .Values.env.card }}"
+            - name: XPRA_KEYCLOAK_AUTH
+              value: "{{ .Values.env.xpraKeycloakAuth }}"
+            - name: XPRA_KEYCLOAK_SERVER_URL
+              value: "{{ .Values.env.xpraKeycloakServerUrl }}"
+            - name: XPRA_KEYCLOAK_REALM_NAME
+              value: "{{ .Values.env.xpraKeycloakRealmName }}"
+            - name: XPRA_KEYCLOAK_CLIENT_ID
+              value: "{{ .Values.env.xpraKeycloakClientId }}"
+            - name: XPRA_KEYCLOAK_CLIENT_SECRET_KEY
+              value: "{{ .Values.env.xpraKeycloakClientSecretKey }}"
+            - name: XPRA_KEYCLOAK_REDIRECT_URI
+              value: "{{ .Values.env.xpraKeycloakRedirectUri }}"
+            - name: XPRA_KEYCLOAK_SCOPE
+              value: "{{ .Values.env.xpraKeycloakScope }}"
+            - name: XPRA_KEYCLOAK_CLAIM_FIELD
+              value: "{{ .Values.env.xpraKeycloakClaimField }}"
+            - name: XPRA_KEYCLOAK_AUTH_GROUPS
+              value: "{{ .Values.env.xpraKeycloakAuthGroups }}"
+            - name: XPRA_KEYCLOAK_AUTH_CONDITION
+              value: "{{ .Values.env.xpraKeycloakAuthCondition }}"
+            - name: XPRA_KEYCLOAK_GRANT_TYPE
+              value: "{{ .Values.env.xpraKeycloakGrantType }}"
           {{- with .Values.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
