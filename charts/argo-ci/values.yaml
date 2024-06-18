@@ -7,6 +7,10 @@ replicaCount: 1
 nameOverride: ""
 fullnameOverride: ""
 
+sensor:
+  # Where the OCI images built by the sensor are pushed to.
+  registry: registry.build.chorus-tre.local
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: false

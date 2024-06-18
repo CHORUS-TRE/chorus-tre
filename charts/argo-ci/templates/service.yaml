@@ -1,12 +1,15 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
 apiVersion: v1
 kind: Service
 metadata:
-  name: github-eventsource-svc
+  name: {{ $fullName }}-github-eventsource-svc
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   ports:
   - port: 8080
     protocol: TCP
     targetPort: 12000
   selector:
-    eventsource-name: github
+    eventsource-name: {{ $fullName }}-github
   type: ClusterIP

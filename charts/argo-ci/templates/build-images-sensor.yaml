@@ -1,13 +1,17 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
+{{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: build-images
+  name: {{ $fullName }}-build-images
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   template:
-    serviceAccountName: argo-ci-sa
+    serviceAccountName: {{ $serviceAccountName }}
   dependencies:
     - name: build-images
-      eventSourceName: github
+      eventSourceName: {{ $fullName }}-github
       eventName: ci
       filters:
         data:
@@ -33,7 +37,7 @@ spec:
               metadata:
                 generateName: "-"
               spec:
-                serviceAccountName: argo-ci-sa
+                serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
                 arguments:
                   parameters:
@@ -114,6 +118,8 @@ spec:
                           value: 127.0.0.1
                         - name: OUTPUT
                           value: registry
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
                       command: [sh, -c]
                       args:
                         - >-
