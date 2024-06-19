@@ -9,6 +9,7 @@ metadata:
 spec:
   template:
     serviceAccountName: {{ $serviceAccountName }}
+  eventBusName: {{ $fullName }}-default
   dependencies:
     - name: build-images
       eventSourceName: {{ $fullName }}-github
@@ -172,7 +173,7 @@ spec:
                 dependencyName: build-images
                 dataKey: body.head_commit.modified
               dest: spec.arguments.parameters.7.value
-            # Append text and commit id to dynamically assign workflow name <2c065a-xxx>
+            # Append text and commit id to dynamically assign workflow name
             - src:
                 dependencyName: build-images
                 dataTemplate: "build-images-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"

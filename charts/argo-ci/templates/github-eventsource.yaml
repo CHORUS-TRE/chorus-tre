@@ -6,6 +6,7 @@ metadata:
   labels:
     {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
+  eventBusName: {{ $fullName }}-default
 #  service:
 #    ports:
 #      - name: ci
