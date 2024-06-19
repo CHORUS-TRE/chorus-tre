@@ -13,10 +13,6 @@ harbor:
   
   nameOverride: "harbor"
 
-  ## @param adminPassword The initial password of Harbor admin. Change it from portal after launching Harbor
-  ##
-  adminPassword: "Test@1234"
-
 #  externalURL: https://core.harbor.chorus-tre.local TODO: Put back after testing
   externalURL: https://core.harbor.dev.chorus-tre.ch
 
@@ -28,6 +24,9 @@ harbor:
     ports:
       http: 80
       https: 443
+
+  core:
+    existingEnvVarsSecret: "harbor-secret-vars"
 
   ingress:
     core:
@@ -159,7 +158,3 @@ harbor:
       metricRelabelings: []
       honorLabels: false
       jobLabel: ""
-
-cache:
-  enabled: true
-  expireHours: 24
