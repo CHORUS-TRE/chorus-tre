@@ -1,3 +1,3 @@
 # Harbor
 
-Helm chart wrapping the upstream [habor](https://github.com/goharbor/harbor-helm).
+Helm chart wrapping the upstream [Bitnami habor](https://github.com/bitnami/charts/tree/main/bitnami/harbor).
