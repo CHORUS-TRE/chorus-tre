@@ -23,7 +23,7 @@ kubectl wait pod \
     --timeout=60s
 
 # install cert-manager
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.4/cert-manager.crds.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.crds.yaml
 helm dep update charts/cert-manager
 kubectl get namespace | grep -q "^cert-manager " || kubectl create namespace cert-manager
 helm install chorus-build-cert-manager charts/cert-manager -n cert-manager --set clusterissuer.email=$EMAIL
@@ -36,6 +36,7 @@ kubectl wait pod \
     --timeout=60s
 
 # install argocd
+kubectl apply -k "https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.11.2"
 helm dep update charts/argo-cd
 kubectl get namespace | grep -q "^argocd " || kubectl create namespace argocd
 helm install chorus-build-argo-cd charts/argo-cd -n argocd --set argo-cd.global.domain=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].secretName=argocd-ingress-http --set argo-cd.server.ingressGrpc.extraTls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.extraTls[0].secretName=argocd-ingress-grpc
