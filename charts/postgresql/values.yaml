@@ -2,7 +2,7 @@ global:
   postgresql:
     auth:
       username: test-user
-      existingSecret: "postgresql.secret"
+      existingSecret: "postgresql-postgresql.secret"
       secretKeys:
         adminPasswordKey: "admin-password"
         userPasswordKey: "user-password"
