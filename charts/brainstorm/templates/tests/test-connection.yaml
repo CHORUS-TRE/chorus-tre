@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "brainstorm.fullname" . }}-test-connection"
+  labels:
+    {{- include "brainstorm.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "brainstorm.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never
