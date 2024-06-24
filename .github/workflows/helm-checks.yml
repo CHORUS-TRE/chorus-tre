@@ -37,20 +37,20 @@ jobs:
           echo "No modified charts found."
         else
           echo "Modified charts: $MODIFIED_CHARTS"
-          echo "::set-output name=charts::$MODIFIED_CHARTS"
+          echo "$MODIFIED_CHARTS" > $GITHUB_ENV
         fi
 
     - name: Run helm lint
-      if: steps.modified_charts.outputs.charts != ''
+      if: env.MODIFIED_CHARTS != ''
       run: |
-        for chart in ${{ steps.modified_charts.outputs.charts }}; do
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
           helm lint $chart
         done
 
     - name: Run helm template
-      if: steps.modified_charts.outputs.charts != ''
+      if: env.MODIFIED_CHARTS != ''
       run: |
-        for chart in ${{ steps.modified_charts.outputs.charts }}; do
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
           helm template $chart --values $chart/values.yaml
         done
 
