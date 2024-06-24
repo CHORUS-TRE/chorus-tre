@@ -75,6 +75,28 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      initContainers:
+        - name: x11-socket-setup
+          image: debian:latest
+          restartPolicy: Always
+          command:
+            - sh
+            - -c
+            - |
+              apt-get update && apt-get install -y socat
+              # make the socket accessible to HIP apps
+              chmod 1777 /tmp/.X11-unix/
+              # remove a previous lock, if it exists
+              rm -f /tmp/.X80-lock
+
+              DISPLAY_NUMBER=80;
+              socat TCP-LISTEN:$((6000 + DISPLAY_NUMBER)),fork,bind=0.0.0.0 UNIX-CONNECT:/tmp/.X11-unix/X${DISPLAY_NUMBER} &
+          volumeMounts:
+            - name: x11-socket
+              mountPath: /tmp/.X11-unix
+      volumes:
+        - name: x11-socket
+          emptyDir: {}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
