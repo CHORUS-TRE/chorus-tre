@@ -1,0 +1,50 @@
+name: Helm Lint and Template Checks
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  helm-lint-template:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: 'latest'
+
+
+    - name: Identify modified charts
+      id: modified_charts
+      run: |
+        # Get the list of modified files in the PR
+        MODIFIED_FILES=$(git diff --name-only HEAD~1)
+        
+        # Extract the chart directories from the modified files
+        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u)
+        
+        # Check if any charts were modified
+        if [ -z "$MODIFIED_CHARTS" ]; then
+          echo "No modified charts found."
+        else
+          echo "Modified charts: $MODIFIED_CHARTS"
+          echo "::set-output name=charts::$MODIFIED_CHARTS"
+        fi
+
+    - name: Run helm lint
+      if: steps.modified_charts.outputs.charts != ''
+      run: |
+        for chart in ${{ steps.modified_charts.outputs.charts }}; do
+          helm lint $chart
+        done
+
+    - name: Run helm template
+      if: steps.modified_charts.outputs.charts != ''
+      run: |
+        for chart in ${{ steps.modified_charts.outputs.charts }}; do
+          helm template $chart --values $chart/values.yaml
+        done
