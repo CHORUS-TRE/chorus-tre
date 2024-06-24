@@ -4,5 +4,5 @@ description: Harbor container registry
 version: 0.0.1
 dependencies:
   - name: harbor
-    version: 21.4.4
-    repository: https://charts.bitnami.com/bitnami
+    version: 1.15.0
+    repository: https://helm.goharbor.io
