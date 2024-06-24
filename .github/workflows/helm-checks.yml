@@ -36,8 +36,7 @@ jobs:
         if [ -z "$MODIFIED_CHARTS" ]; then
           echo "No modified charts found."
         else
-          echo "Modified charts: $MODIFIED_CHARTS"
-          echo "$MODIFIED_CHARTS" > $GITHUB_ENV
+          echo "MODIFIED_CHARTS=$MODIFIED_CHARTS" >> $GITHUB_ENV
         fi
 
     - name: Run helm lint
