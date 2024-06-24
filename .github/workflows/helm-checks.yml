@@ -11,18 +11,23 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch all history for all branches and tags
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v42
 
     - name: Set up Helm
       uses: azure/setup-helm@v3
       with:
-        version: 'latest'
-
+        version: 'latest'  # Use the latest version of Helm
 
     - name: Identify modified charts
       id: modified_charts
       run: |
-        # Get the list of modified files in the PR
-        MODIFIED_FILES=$(git diff --name-only HEAD~1)
+        # Extract the list of changed files from the action output
+        MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
         
         # Extract the chart directories from the modified files
         MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u)
@@ -48,3 +53,4 @@ jobs:
         for chart in ${{ steps.modified_charts.outputs.charts }}; do
           helm template $chart --values $chart/values.yaml
         done
+
