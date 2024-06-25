@@ -16,11 +16,17 @@ spec:
       eventName: ci
       filters:
         data:
+          - path: "body.repository.name"
+            type: string
+            value:
+              - "images"
+
           - path: "[body.commits.#.modified.#()#,body.commits.#.added.#()#,body.commits.#.removed.#()#]"
             type: string
             value:
               - "server/*"
               - "apps/*/.*"
+
           - path: "body.ref"
             type: string
             value:
@@ -46,7 +52,6 @@ spec:
                     - name: revision
                     - name: ref
                     - name: commit_id
-                    - name: commit_message
                     - name: added
                     - name: removed
                     - name: modified
@@ -159,20 +164,16 @@ spec:
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-images
-                dataKey: body.head_commit.message
+                dataKey: body.head_commit.added
               dest: spec.arguments.parameters.4.value
             - src:
                 dependencyName: build-images
-                dataKey: body.head_commit.added
+                dataKey: body.head_commit.removed
               dest: spec.arguments.parameters.5.value
             - src:
                 dependencyName: build-images
-                dataKey: body.head_commit.removed
-              dest: spec.arguments.parameters.6.value
-            - src:
-                dependencyName: build-images
                 dataKey: body.head_commit.modified
-              dest: spec.arguments.parameters.7.value
+              dest: spec.arguments.parameters.6.value
             # Append text and commit id to dynamically assign workflow name
             - src:
                 dependencyName: build-images
