@@ -11,5 +11,9 @@ spec:
       targetPort: {{ .Values.service.targetPort }}
       protocol: TCP
       name: http
+    - port: {{ .Values.service.x11Port }}
+      targetPort: {{ .Values.service.x11TargetPort }}
+      protocol: TCP
+      name: socket
   selector:
     {{- include "workbench.selectorLabels" . | nindent 4 }}
