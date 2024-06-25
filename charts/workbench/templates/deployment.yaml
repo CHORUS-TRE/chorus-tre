@@ -77,13 +77,12 @@ spec:
           {{- end }}
       initContainers:
         - name: x11-socket-setup
-          image: debian:latest
+          image: alpine/socat:1.8.0.0
           restartPolicy: Always
           command:
             - sh
             - -c
             - |
-              apt-get update && apt-get install -y socat
               # make the socket accessible to HIP apps
               chmod 1777 /tmp/.X11-unix/
               # remove a previous lock, if it exists
