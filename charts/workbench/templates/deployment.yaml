@@ -90,12 +90,12 @@ spec:
 
               DISPLAY_NUMBER=80;
               socat TCP-LISTEN:$((6000 + DISPLAY_NUMBER)),fork,bind=0.0.0.0 UNIX-CONNECT:/tmp/.X11-unix/X${DISPLAY_NUMBER} &
-          volumeMounts:
-            - name: x11-socket
-              mountPath: /tmp/.X11-unix
-      volumes:
-        - name: x11-socket
-          emptyDir: {}
+      #     volumeMounts:
+      #       - name: x11-socket
+      #         mountPath: /tmp/.X11-unix
+      # volumes:
+      #   - name: x11-socket
+      #     emptyDir: {}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

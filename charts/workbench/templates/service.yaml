@@ -14,6 +14,6 @@ spec:
     - port: {{ .Values.service.x11Port }}
       targetPort: {{ .Values.service.x11TargetPort }}
       protocol: TCP
-      name: socket
+      name: x11-socket
   selector:
     {{- include "workbench.selectorLabels" . | nindent 4 }}
