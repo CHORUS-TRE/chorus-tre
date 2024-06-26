@@ -6,7 +6,7 @@ import (
 	"os/user"
 
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/kube"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // FindKubeconfig returns the path to the kubeconfig file
@@ -24,11 +24,13 @@ func FindKubeconfig(kubeconfigPath string) string {
 
 // LoadActionConfig loads the action configuration
 func LoadActionConfig(kubeconfigPath string, namespace string) (*action.Configuration, error) {
-	kubeconfig := kube.GetConfig(kubeconfigPath, "", namespace)
+	clientGetter := genericclioptions.NewConfigFlags(false)
+	clientGetter.KubeConfig = &kubeconfigPath
+	clientGetter.Namespace = &namespace
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(
-		kubeconfig,
+		clientGetter,
 		namespace,
 		os.Getenv("HELM_DRIVER"),
 		log.Printf, // TODO: replace log.Printf by a custom logger to have something less verbose
