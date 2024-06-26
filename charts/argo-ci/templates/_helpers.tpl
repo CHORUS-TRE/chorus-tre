@@ -34,7 +34,6 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "argo-ci.labels" -}}
-argocd.argoproj.io/instance: chorus-build-argo-ci
 helm.sh/chart: {{ include "argo-ci.chart" . }}
 {{ include "argo-ci.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
