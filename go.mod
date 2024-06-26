@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/urfave/cli/v2 v2.27.2
 	helm.sh/helm/v3 v3.15.2
+	k8s.io/cli-runtime v0.30.0
 )
 
 require (
@@ -131,7 +132,6 @@ require (
 	k8s.io/apiextensions-apiserver v0.30.0 // indirect
 	k8s.io/apimachinery v0.30.0 // indirect
 	k8s.io/apiserver v0.30.0 // indirect
-	k8s.io/cli-runtime v0.30.0 // indirect
 	k8s.io/client-go v0.30.0 // indirect
 	k8s.io/component-base v0.30.0 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
