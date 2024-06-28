@@ -1,9 +1,12 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
 apiVersion: argoproj.io/v1alpha1
 kind: EventSource
 metadata:
-  name: github
-  namespace: argo
+  name: {{ $fullName }}-github
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
+  eventBusName: {{ $fullName }}-default
 #  service:
 #    ports:
 #      - name: ci
@@ -29,7 +32,9 @@ spec:
         # This url must be reachable from outside the cluster.
         # The name for the service is in `<event-source-name>-eventsource-svc` format.
         # You will need to create an Ingress or Openshift Route for the event-source service so that it can be reached from GitHub.
-        url: https://webhook.build.chorus-tre.ch
+        {{- with .Values.ingress.hosts | mustFirst }}
+        url: https://{{ .host }}
+        {{- end }}
       # type of events to listen to.
       # following listens to everything, hence *
       # You can find more info on https://developer.github.com/v3/activity/events/types/

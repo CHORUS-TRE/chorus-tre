@@ -1,6 +1,7 @@
 prometheus-blackbox-exporter:
   config:
     modules:
+      # Public services
       http_2xx:
         prober: http
         timeout: 5s
@@ -10,6 +11,7 @@ prometheus-blackbox-exporter:
             - "HTTP/2.0"
           follow_redirects: true
           preferred_ip_protocol: "ip4"
+      # Services that requires authentication
       http_401:
         prober: http
         timeout: 5s
@@ -21,3 +23,11 @@ prometheus-blackbox-exporter:
             - "HTTP/2.0"
           follow_redirects: true
           preferred_ip_protocol: "ip4"
+      # Pure TCP + TLS endpoints (as in GhostFS)
+      tcp_insecure:
+        prober: tcp
+        timeout: 5s
+        tcp:
+          tls: true
+          tls_config:
+            insecure_skip_verify: true

@@ -1,0 +1,78 @@
+name: Helm Lint and Template Checks
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  helm-lint-template:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4.1.7
+      with:
+        fetch-depth: 0  # Fetch all history for all branches and tags
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v44.5.4
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v4.2.0
+      with:
+        version: 'latest'  # Use the latest version of Helm
+
+    - name: Identify modified charts
+      id: modified_charts
+      run: |
+        # Extract the list of changed files from the action output
+        MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
+        
+        # Extract the chart directories from the modified files
+        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u)
+        
+        # Check if any charts were modified
+        if [ -z "$MODIFIED_CHARTS" ]; then
+          echo "No modified charts found."
+        else
+          echo "MODIFIED_CHARTS=$MODIFIED_CHARTS" >> $GITHUB_ENV
+        fi
+
+    - name: Add Helm repositories
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          # Extract the repositories from Chart.yaml files
+          REPOS=$(grep 'repository:' $chart/Chart.yaml | awk '{print $2}' | sort -u)
+          
+          # Add each repository
+          for repo in $REPOS; do
+            helm repo add $(basename $repo) $repo
+          done
+        done
+
+        # Update Helm repositories
+        helm repo update
+
+    - name: Run helm lint
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          helm lint $chart
+        done
+
+    - name: Fetch missing dependencies
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          helm dependency build $chart
+        done
+
+    - name: Run helm template
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          helm template $chart --values $chart/values.yaml
+        done
+

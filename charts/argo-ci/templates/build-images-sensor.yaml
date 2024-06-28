@@ -1,21 +1,32 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
+{{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: build-images
+  name: {{ $fullName }}-build-images
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   template:
-    serviceAccountName: argo-ci-sa
+    serviceAccountName: {{ $serviceAccountName }}
+  eventBusName: {{ $fullName }}-default
   dependencies:
     - name: build-images
-      eventSourceName: github
+      eventSourceName: {{ $fullName }}-github
       eventName: ci
       filters:
         data:
+          - path: "body.repository.name"
+            type: string
+            value:
+              - "images"
+
           - path: "[body.commits.#.modified.#()#,body.commits.#.added.#()#,body.commits.#.removed.#()#]"
             type: string
             value:
               - "server/*"
               - "apps/*/.*"
+
           - path: "body.ref"
             type: string
             value:
@@ -33,7 +44,7 @@ spec:
               metadata:
                 generateName: "-"
               spec:
-                serviceAccountName: argo-ci-sa
+                serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
                 arguments:
                   parameters:
@@ -41,7 +52,6 @@ spec:
                     - name: revision
                     - name: ref
                     - name: commit_id
-                    - name: commit_message
                     - name: added
                     - name: removed
                     - name: modified
@@ -114,6 +124,8 @@ spec:
                           value: 127.0.0.1
                         - name: OUTPUT
                           value: registry
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
                       command: [sh, -c]
                       args:
                         - >-
@@ -152,21 +164,17 @@ spec:
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-images
-                dataKey: body.head_commit.message
+                dataKey: body.head_commit.added
               dest: spec.arguments.parameters.4.value
             - src:
                 dependencyName: build-images
-                dataKey: body.head_commit.added
+                dataKey: body.head_commit.removed
               dest: spec.arguments.parameters.5.value
             - src:
                 dependencyName: build-images
-                dataKey: body.head_commit.removed
-              dest: spec.arguments.parameters.6.value
-            - src:
-                dependencyName: build-images
                 dataKey: body.head_commit.modified
-              dest: spec.arguments.parameters.7.value
-            # Append text and commit id to dynamically assign workflow name <2c065a-xxx>
+              dest: spec.arguments.parameters.6.value
+            # Append text and commit id to dynamically assign workflow name
             - src:
                 dependencyName: build-images
                 dataTemplate: "build-images-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
