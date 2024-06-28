@@ -50,6 +50,7 @@ jobs:
           for repo in $REPOS; do
             helm repo add $(basename $repo) $repo
           done
+        done
 
         # Update Helm repositories
         helm repo update
