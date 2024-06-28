@@ -46,6 +46,13 @@ jobs:
           helm lint $chart
         done
 
+    - name: Fetch missing dependencies
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          helm dependency build $chart
+        done
+
     - name: Run helm template
       if: env.MODIFIED_CHARTS != ''
       run: |
