@@ -108,7 +108,7 @@ volumes:
     claimName: didata-user-storage-pvc
   - name: didata-env
     secret:
-      secretName: didata-env-secret
+      secretName: didata-env
       optional: false
 
 # Additional volumeMounts on the output Deployment definition.
