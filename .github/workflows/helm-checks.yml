@@ -39,6 +39,21 @@ jobs:
           echo "MODIFIED_CHARTS=$MODIFIED_CHARTS" >> $GITHUB_ENV
         fi
 
+    - name: Add Helm repositories
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          # Extract the repositories from Chart.yaml files
+          REPOS=$(grep 'repository:' $chart/Chart.yaml | awk '{print $2}' | sort -u)
+          
+          # Add each repository
+          for repo in $REPOS; do
+            helm repo add $(basename $repo) $repo
+          done
+
+        # Update Helm repositories
+        helm repo update
+
     - name: Run helm lint
       if: env.MODIFIED_CHARTS != ''
       run: |
