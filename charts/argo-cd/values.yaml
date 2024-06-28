@@ -11,7 +11,17 @@ argo-cd:
   notifications:
     enabled: false
   applicationSet:
-    enabled: true
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+  controller:
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+      rules:
+        enabled: true
   server:
     ingress:
       enabled: true
@@ -36,3 +46,7 @@ argo-cd:
         - hosts:
           - grpc.argo-cd.build.chorus-tre.local
           secretName: argocd-ingress-grpc
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
