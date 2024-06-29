@@ -75,21 +75,13 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      initContainers:
         - name: x11-socket-setup
-          image: alpine/socat:1.8.0.0
-          restartPolicy: Always
+          image: "alpine/socat:1.8.0.0"
           command:
             - sh
             - -c
             - |
-              # make the socket accessible to HIP apps
-              chmod 1777 /tmp/.X11-unix/
-              # remove a previous lock, if it exists
-              rm -f /tmp/.X80-lock
-
-              DISPLAY_NUMBER=80;
-              socat TCP-LISTEN:$((6000 + DISPLAY_NUMBER)),fork,bind=0.0.0.0 UNIX-CONNECT:/tmp/.X11-unix/X${DISPLAY_NUMBER} &
+              socat TCP-LISTEN:6080,fork,bind=0.0.0.0 UNIX-CONNECT:/tmp/.X11-unix/X80
           {{- with .Values.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
