@@ -41,3 +41,6 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
+          {{- if (.serverSideApply) }}
+          - ServerSideApply={{.serverSideApply}}
+          {{- end }}
