@@ -84,6 +84,10 @@ jobs:
       if: env.MODIFIED_CHARTS != ''
       run: |
         for chart in ${{ env.MODIFIED_CHARTS }}; do
-          helm template $chart --values $chart/values.yaml
+          if [ -f "$chart/values.yaml" ]; then
+            helm template $chart --values $chart/values.yaml
+          else
+            helm template $chart
+          fi
         done
 
