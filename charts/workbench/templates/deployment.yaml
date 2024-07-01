@@ -71,25 +71,20 @@ spec:
               value: "{{ .Values.env.xpraKeycloakAuthCondition }}"
             - name: XPRA_KEYCLOAK_GRANT_TYPE
               value: "{{ .Values.env.xpraKeycloakGrantType }}"
-          {{- with .Values.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            - name: x11-socket
+              mountPath: /tmp/.X11-unix
         - name: x11-socket-setup
           image: "alpine/socat:1.8.0.0"
-          command:
-            - sh
-            - -c
-            - |
-              socat TCP-LISTEN:6080,fork,bind=0.0.0.0 UNIX-CONNECT:/tmp/.X11-unix/X80
-          {{- with .Values.volumeMounts }}
+          args:
+            - TCP-LISTEN:6080,fork,bind=0.0.0.0
+            - UNIX-CONNECT:/tmp/.X11-unix/X80
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
+            - name: x11-socket
+              mountPath: /tmp/.X11-unix
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        - name: x11-socket
+          emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

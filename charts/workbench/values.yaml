@@ -81,14 +81,10 @@ autoscaling:
   enabled: false
 
 # Additional volumes on the output Deployment definition.
-volumes:
-  - name: x11-socket
-    emptyDir: {}
+volumes: []
 
 # Additional volumeMounts on the output Deployment definition.
-volumeMounts:
-  - name: x11-socket
-    mountPath: /tmp/.X11-unix
+volumeMounts: []
 
 nodeSelector: {}
 
