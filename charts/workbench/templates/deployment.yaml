@@ -77,7 +77,7 @@ spec:
         - name: x11-socket-setup
           image: "alpine/socat:1.8.0.0"
           args:
-            - TCP-LISTEN:6080,fork,bind=0.0.0.0
+            - TCP-LISTEN:{{ .Values.service.x11TargetPort }},fork,bind=0.0.0.0
             - UNIX-CONNECT:/tmp/.X11-unix/X80
           volumeMounts:
             - name: x11-socket
