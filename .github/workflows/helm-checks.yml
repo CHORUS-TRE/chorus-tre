@@ -39,6 +39,28 @@ jobs:
           echo "MODIFIED_CHARTS=$MODIFIED_CHARTS" >> $GITHUB_ENV
         fi
 
+    - name: Add Helm repositories
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          # Extract the repositories from Chart.yaml files
+          REPOS=$(grep 'repository:' $chart/Chart.yaml | awk '{print $2}' | sort -u || true)
+          
+          # Add each repository if REPOS is not empty
+          if [ -n "$REPOS" ]; then
+            for repo in $REPOS; do
+              helm repo add $(basename $repo) $repo
+            done
+          fi
+        done
+
+        # Update Helm repositories if any were added
+        if [ -n "$REPOS" ]; then
+          helm repo update
+        else
+          echo "No repositories to update."
+        fi
+
     - name: Run helm lint
       if: env.MODIFIED_CHARTS != ''
       run: |
@@ -46,10 +68,26 @@ jobs:
           helm lint $chart
         done
 
+    - name: Fetch missing dependencies
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          # Check if Chart.yaml has dependencies
+          if grep -q 'dependencies:' $chart/Chart.yaml; then
+            helm dependency build $chart
+          else
+            echo "No dependencies to fetch for $chart"
+          fi
+        done
+
     - name: Run helm template
       if: env.MODIFIED_CHARTS != ''
       run: |
         for chart in ${{ env.MODIFIED_CHARTS }}; do
-          helm template $chart --values $chart/values.yaml
+          if [ -f "$chart/values.yaml" ]; then
+            helm template $chart --values $chart/values.yaml
+          else
+            helm template $chart
+          fi
         done
 
