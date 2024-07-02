@@ -47,10 +47,12 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
-            {{- range .Values.env }}
-            - name: {{ .name }}
-              value: {{ .value }}
-            {{- end }}
+            - name: CARD
+              value: "{{ .Values.env.card }}"
+            - name: APP_NAME
+              value: "{{ .Values.env.app_name }}"
+            - name: DISPLAY
+              value: "{{ .Values.env.display }}"
           {{- with .Values.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
