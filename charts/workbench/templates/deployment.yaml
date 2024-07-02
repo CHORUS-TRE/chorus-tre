@@ -38,7 +38,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: 8080
               protocol: TCP
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
@@ -77,8 +77,12 @@ spec:
         - name: x11-socket-setup
           image: "alpine/socat:1.8.0.0"
           args:
-            - TCP-LISTEN:{{ .Values.service.x11TargetPort }},fork,bind=0.0.0.0
+            - TCP-LISTEN:6080,fork,bind=0.0.0.0
             - UNIX-CONNECT:/tmp/.X11-unix/X80
+          ports:
+            - name: x11-socket-port
+              containerPort: 6080
+              protocol: TCP
           volumeMounts:
             - name: x11-socket
               mountPath: /tmp/.X11-unix

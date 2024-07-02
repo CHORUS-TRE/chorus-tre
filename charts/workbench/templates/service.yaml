@@ -8,11 +8,11 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.targetPort }}
+      targetPort: http
       protocol: TCP
       name: http
     - port: {{ .Values.service.x11Port }}
-      targetPort: {{ .Values.service.x11TargetPort }}
+      targetPort: x11-socket-port
       protocol: TCP
       name: x11-socket
   selector:
