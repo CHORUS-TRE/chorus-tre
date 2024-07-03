@@ -49,14 +49,3 @@ Selector labels
 app.kubernetes.io/name: {{ include "brainstorm.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "brainstorm.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "brainstorm.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
