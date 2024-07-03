@@ -14,7 +14,6 @@ env:
   # if brainstorm is in another namespace than the workbench, use the following format
   # display: "service.namespace-of-service.svc.cluster.local:80"
 
-
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -45,15 +44,6 @@ ingress:
   enabled: false
 
 resources: {}
-
-# livenessProbe:
-#   httpGet:
-#     path: /
-#     port: http
-# readinessProbe:
-#   httpGet:
-#     path: /
-#     port: http
 
 autoscaling:
   enabled: false
