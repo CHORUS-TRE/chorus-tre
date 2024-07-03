@@ -40,20 +40,23 @@ service:
 
 ingress:
   enabled: true
-  className: ""
-  ingressClassName: "nginx"
+  className: "nginx"
   annotations:
-    kubernetes.io/ingress.class: "nginx"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/app-root: /push
   hosts:
-  - host: webhook.build.chorus-tre.local
+  - host: webhook-chorus-web-ui.build.chorus-tre.local
+    paths:
+      - path: "/"
+        pathType: Prefix
+  - host: webhook-ci.build.chorus-tre.local
     paths:
       - path: "/"
         pathType: Prefix
   tls:
   - hosts:
-    - webhook.build.chorus-tre.local
+    - webhook-chorus-web-ui.build.chorus-tre.local
+    - webhook-ci.build.chorus-tre.local
     secretName: argo-ci-tls
 
 resources: {}
