@@ -3,7 +3,7 @@ docker-registry-ui:
     image: joxit/docker-registry-ui:2.5.7
     title: "CHORUS OCI registry"
     dockerRegistryUrl: "https://registry.build.chorus-tre.local"
-    registrySecured: false
+    registrySecured: true
     ingress:
       enabled: true
       host: registry-ui.build.chorus-tre.local
