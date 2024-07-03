@@ -3,33 +3,25 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: {{ $fullName }}-build-images
-  labels:
-    {{- include "argo-ci.labels" . | nindent 4 }}
+  name: {{ $fullName }}-build-web-ui
 spec:
   eventBusName: {{ $fullName }}-default
   template:
     serviceAccountName: {{ $serviceAccountName }}
   dependencies:
-    - name: build-images
-      eventSourceName: {{ $fullName }}-github
-      eventName: ci
+    - name: build-web-ui
+      eventSourceName: github
+      eventName: chorus-web-ui
       filters:
         data:
-          - path: "[body.commits.#.modified.#()#,body.commits.#.added.#()#,body.commits.#.removed.#()#]"
-            type: string
-            value:
-              - "server/*"
-              - "apps/*/.*"
-
           - path: "body.ref"
             type: string
             value:
-              - "refs/heads/master"
+              - "refs/heads/main"
 
   triggers:
     - template:
-        name: github-workflow-trigger-images
+        name: github-workflow-trigger-web-ui
         k8s:
           operation: create
           source:
@@ -47,60 +39,17 @@ spec:
                     - name: revision
                     - name: ref
                     - name: commit_id
-                    - name: added
-                    - name: removed
-                    - name: modified
                 templates:
                   - name: build-images
                     steps:
-                      - - name: get-paths
-                          template: get-paths
-
                       - - name: docker-build
                           template: docker-build
-                          arguments:
-                            parameters:
-                              - name: path
-                                value: "{{`{{item}}`}}"
-                          # This loop over the paths from get-paths
-                          withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
-
-                  - name: get-paths
-                    script:
-                      image: python:3.12-alpine
-                      command: [python]
-                      source: |
-                        import json, re, sys
-
-                        paths = (
-                          {{`{{workflow.parameters.added}}`}} +
-                          {{`{{workflow.parameters.removed}}`}} +
-                          {{`{{workflow.parameters.modified}}`}}
-                        )
-
-                        # The first capturing group is kept
-                        patterns = (
-                          re.compile("^(server)/"),
-                          re.compile("^(apps/[^/]+)/"),
-                        )
-
-                        def keep_matching(strs: str, patterns: list):
-                          """Keep the string matching any of the patterns."""
-                          for x in strs:
-                            for p in patterns:
-                              if m := p.match(x):
-                                yield m.group(1)
-                                break
-
-                        json.dump(list(set(keep_matching(paths, patterns))), sys.stdout)
 
                   - name: docker-build
                     inputs:
-                      parameters:
-                        - name: path
                       artifacts:
                         - name: images
-                          path: /src
+                          path: "/src"
                           git:
                             repo: "{{`{{workflow.parameters.repo-url}}`}}"
                             revision: "{{`{{workflow.parameters.revision}}`}}"
@@ -117,8 +66,6 @@ spec:
                       env:
                         - name: DOCKER_HOST
                           value: 127.0.0.1
-                        - name: OUTPUT
-                          value: registry
                         - name: REGISTRY
                           value: {{ .Values.sensor.registry | quote }}
                       command: [sh, -c]
@@ -128,8 +75,14 @@ spec:
                             do sleep 3;
                           done;
 
-                          exec ./build.sh
-                      workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
+                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}"
+
+                          docker buildx build
+                          --pull
+                          --tag "${REGISTRY}/chorus-web-ui:${VERSION}"
+                          --output "type=registry"
+                          .
+                      workingDir: "/src"
                     sidecars:
                       - name: dind
                         image: docker:26-dind
@@ -157,22 +110,10 @@ spec:
                 dependencyName: build-images
                 dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: spec.arguments.parameters.3.value
+            # Append text and commit id to dynamically assign workflow name.
             - src:
                 dependencyName: build-images
-                dataKey: body.head_commit.added
-              dest: spec.arguments.parameters.4.value
-            - src:
-                dependencyName: build-images
-                dataKey: body.head_commit.removed
-              dest: spec.arguments.parameters.5.value
-            - src:
-                dependencyName: build-images
-                dataKey: body.head_commit.modified
-              dest: spec.arguments.parameters.6.value
-            # Append text and commit id to dynamically assign workflow name
-            - src:
-                dependencyName: build-images
-                dataTemplate: "build-images-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+                dataTemplate: "build-web-ui-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
       retryStrategy:

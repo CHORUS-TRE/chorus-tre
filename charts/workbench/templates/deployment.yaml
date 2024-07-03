@@ -18,7 +18,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "workbench.selectorLabels" . | nindent 8 }}
+        {{- include "workbench.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -27,72 +30,65 @@ spec:
       serviceAccountName: {{ include "workbench.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      volumes:
-        - name: x11-unix
-          emptyDir: {}
-      {{- $server := $.Files.Get "server.yaml" | fromYaml }}
-      {{- $app := $.Files.Get "app.yaml" | fromYaml }}
       containers:
-        - name: {{ $server.name }}
+        - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          #image: "{{ $server.image.repository }}:{{ $server.image.tag | default .Chart.AppVersion }}"
-          image: "{{ $server.image.repository }}:{{ $server.image.tag }}"
-          imagePullPolicy: {{ $server.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 8080 # application port inside container
+              containerPort: 8080
               protocol: TCP
-          #livenessProbe:
-          #  httpGet:
-          #    path: /
-          #    port: http
-          #readinessProbe:
-          #  httpGet:
-          #    path: /
-          #    port: http
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
             - name: CARD
-              value: "{{ $server.env.card }}"
+              value: "{{ .Values.env.card }}"
             - name: XPRA_KEYCLOAK_AUTH
-              value: "{{ $server.env.xpraKeycloakAuth }}"
+              value: "{{ .Values.env.xpraKeycloakAuth }}"
+            - name: XPRA_KEYCLOAK_SERVER_URL
+              value: "{{ .Values.env.xpraKeycloakServerUrl }}"
+            - name: XPRA_KEYCLOAK_REALM_NAME
+              value: "{{ .Values.env.xpraKeycloakRealmName }}"
+            - name: XPRA_KEYCLOAK_CLIENT_ID
+              value: "{{ .Values.env.xpraKeycloakClientId }}"
+            - name: XPRA_KEYCLOAK_CLIENT_SECRET_KEY
+              value: "{{ .Values.env.xpraKeycloakClientSecretKey }}"
+            - name: XPRA_KEYCLOAK_REDIRECT_URI
+              value: "{{ .Values.env.xpraKeycloakRedirectUri }}"
+            - name: XPRA_KEYCLOAK_SCOPE
+              value: "{{ .Values.env.xpraKeycloakScope }}"
+            - name: XPRA_KEYCLOAK_CLAIM_FIELD
+              value: "{{ .Values.env.xpraKeycloakClaimField }}"
+            - name: XPRA_KEYCLOAK_AUTH_GROUPS
+              value: "{{ .Values.env.xpraKeycloakAuthGroups }}"
+            - name: XPRA_KEYCLOAK_AUTH_CONDITION
+              value: "{{ .Values.env.xpraKeycloakAuthCondition }}"
+            - name: XPRA_KEYCLOAK_GRANT_TYPE
+              value: "{{ .Values.env.xpraKeycloakGrantType }}"
           volumeMounts:
-            - name: x11-unix
+            - name: x11-socket
               mountPath: /tmp/.X11-unix
-        - name: {{ $app.name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          #image: "{{ $app.image.repository }}:{{ $app.image.tag | default .Chart.AppVersion }}"
-          image: "{{ $app.image.repository }}:{{ $app.image.tag }}"
-          imagePullPolicy: {{ $app.image.pullPolicy }}
-          #ports:
-          #  - name: http
-          #    containerPort: 8080 # application port inside container
-          #    protocol: TCP
-          #livenessProbe:
-          #  httpGet:
-          #    path: /
-          #    port: http
-          #readinessProbe:
-          #  httpGet:
-          #    path: /
-          #    port: http
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-          env:
-            - name: APP_NAME
-              value: "{{ $app.name }}"
-            - name: HIP_USER
-              value: "{{ $app.env.hipUser }}"
-            - name: CARD
-              value: "{{ $app.env.card }}"
-            - name: DISPLAY
-              value: "{{ $app.env.display }}"
+        - name: x11-socket-setup
+          image: "alpine/socat:1.8.0.0"
+          args:
+            - TCP-LISTEN:6080,fork,bind=0.0.0.0
+            - UNIX-CONNECT:/tmp/.X11-unix/X80
+          ports:
+            - name: x11-socket-port
+              containerPort: 6080
+              protocol: TCP
           volumeMounts:
-            - name: x11-unix
+            - name: x11-socket
               mountPath: /tmp/.X11-unix
+      volumes:
+        - name: x11-socket
+          emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
