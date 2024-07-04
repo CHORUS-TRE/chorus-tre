@@ -1,6 +1,7 @@
 apiVersion: v2
+description: PostgreSQL (Postgres) is an open source object-relational database known for reliability and data integrity. ACID-compliant, it supports foreign keys, joins, views, triggers and stored procedures.
 name: postgresql
-version: 0.0.1
+version: 0.0.2
 dependencies:
   - name: postgresql
     version: 15.5.11
