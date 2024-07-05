@@ -49,11 +49,11 @@ spec:
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
-                name: github-eventsource-svc
+                name: {{ $fullName }}-github-eventsource-svc
                 port:
                   number: {{ $svcPort }}
               {{- else }}
-              serviceName: github-eventsource-svc
+              serviceName: {{ $fullName }}-github-eventsource-svc
               servicePort: {{ $svcPort }}
               {{- end }}
           {{- end }}

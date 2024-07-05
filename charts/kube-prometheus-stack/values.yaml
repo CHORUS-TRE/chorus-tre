@@ -1,0 +1,95 @@
+kube-prometheus-stack:
+  # CRDs should be installed beforehand such that Alertmanager can be configured with it
+  crds:
+    enabled: false
+
+  alertmanager:
+    ingress:
+      enabled: false  # What is below acts as documentation
+      ingressClassName: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - alertmanager.build.chorus-tre.local
+      tls:
+        - secretName: alertmanager-general-tls
+          hosts:
+            - alertmanager.build.chorus-tre.local
+
+    alertmanagerSpec:
+      logFormat: json
+      retention: 20h
+
+      alertmanagerConfiguration:
+        # This must match the name in the alertmanagerConfiguration.name at the bottom.
+        name: global-alertmanager-config
+
+      alertmanagerConfigSelector:
+        matchLabels:
+          alertmanagerConfig: enabled
+      alertmanagerConfigMatcherStrategy:
+        # default is OnNamespace
+        # which means we cannot have a catchall to webex.
+        type: null
+
+      storage:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 256Mi
+
+  # Grafana can wait for now.
+  grafana:
+    enabled: false
+
+  prometheus:
+    ingress:
+      enabled: false  # What is below acts as documentation
+      ingressClassName: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - prometheus.build.chorus-tre.local
+      tls:
+        - secretName: prometheus-general-tls
+          hosts:
+            - prometheus.build.chorus-tre.local
+
+    prometheusSpec:
+      logFormat: json
+      retention: 3d
+
+      # All pods, probes and service monitors will be used.
+      podMonitorSelectorNilUsesHelmValues: false
+      probeSelectorNilUsesHelmValues: false
+      ruleSelectorNilUsesHelmValues: false
+      serviceMonitorSelectorNilUsesHelmValues: false
+
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+
+
+alertmanagerConfiguration:
+  name: global-alertmanager-config
+
+  webex:
+    enabled: true
+
+    name: webex
+    severity: critical  # E.g. "warning|critical"
+
+    credentials:
+      # The name of the secret and the key containing the access token
+      name: config-webex-secret
+      key: accessToken
+
+    roomID: ""

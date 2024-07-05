@@ -1,0 +1,40 @@
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: {{ .Values.alertmanagerConfiguration.name | quote }}
+spec:
+  route:
+    groupBy: ["namespace", "alertname", "severity"]
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 12h
+    {{- with .Values.alertmanagerConfiguration.webex }}
+      {{- if .enabled }}
+    routes:
+      - matchers:
+          - matchType: =~
+            name: severity
+            value: {{ .severity | quote }}
+        continue: true
+        receiver: {{ .receiver | quote }}
+      {{- end }}
+    {{- end }}
+    receiver: "null"
+  receivers:
+    - name: "null"
+    {{- with .Values.alertmanagerConfiguration.webex }}
+      {{- if .enabled }}
+    - name: {{ .receiver | quote }}
+      webexConfigs:
+        - apiURL: https://webexapis.com/v1/messages
+          sendResolved: true
+          httpConfig:
+            authorization:
+              type: Bearer
+              credentials:
+                {{- .credentials | toYaml | nindent 16 }}
+          roomID: {{ .roomID }}
+          message: '{{`{{ template "webex.default.message" . }}`}}'
+      {{- end }}
+    {{- end }}

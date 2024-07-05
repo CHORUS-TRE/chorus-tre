@@ -41,3 +41,4 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
+          - 'ServerSideApply={{if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'

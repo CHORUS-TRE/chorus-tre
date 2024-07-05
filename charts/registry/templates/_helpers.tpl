@@ -30,7 +30,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
       name: {{ template "docker-registry.fullname" . }}-secret
       key: haSharedSecret
 
-{{- if .Values.secrets.htpasswd }}
+{{- if or .Values.secrets.htpasswd .Values.auth.existingSecret }}
 - name: REGISTRY_AUTH
   value: "htpasswd"
 - name: REGISTRY_AUTH_HTPASSWD_REALM
@@ -150,7 +150,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 - name: "{{ template "docker-registry.fullname" . }}-config"
   mountPath: "/etc/docker/registry"
 
-{{- if .Values.secrets.htpasswd }}
+{{- if or .Values.secrets.htpasswd .Values.auth.existingSecret }}
 - name: auth
   mountPath: /auth
   readOnly: true
@@ -178,7 +178,14 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
   configMap:
     name: {{ template "docker-registry.fullname" . }}-config
 
-{{- if .Values.secrets.htpasswd }}
+{{- if .Values.auth.existingSecret }}
+- name: auth
+  secret:
+    secretName: {{ .Values.auth.existingSecret }}
+    items:
+    - key: htpasswd
+      path: htpasswd
+{{- else if .Values.secrets.htpasswd }}
 - name: auth
   secret:
     secretName: {{ template "docker-registry.fullname" . }}-secret
