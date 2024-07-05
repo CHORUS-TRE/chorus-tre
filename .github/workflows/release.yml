@@ -27,7 +27,7 @@ jobs:
       - name: Run chart-releaser
         uses: bitdeps/helm-oci-charts-releaser@v0.1.2
         with:
-            oci_registry: registry.build.chorus-tre.ch
+            oci_registry: oci://registry.build.chorus-tre.ch/charts
             oci_username: admin
             oci_password: ${{ secrets.REGISTRY_PASSWORD }}
             github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -15,9 +15,9 @@ spec:
       - matchers:
           - matchType: =~
             name: severity
-            value: {{ .severity | default "critical" | quote }}
+            value: {{ .severity | quote }}
         continue: true
-        receiver: {{ .receiver | default "webex" | quote }}
+        receiver: {{ .receiver | quote }}
       {{- end }}
     {{- end }}
     receiver: "null"
@@ -25,7 +25,7 @@ spec:
     - name: "null"
     {{- with .Values.alertmanagerConfiguration.webex }}
       {{- if .enabled }}
-    - name: {{ .receiver | default "webex" | quote }}
+    - name: {{ .receiver | quote }}
       webexConfigs:
         - apiURL: https://webexapis.com/v1/messages
           sendResolved: true
