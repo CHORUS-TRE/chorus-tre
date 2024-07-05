@@ -9,8 +9,7 @@ harbor:
         secretName: "harbor.chorus-tre.local-tls"
     ingress:
       hosts:
-        # core: harbor.chorus-tre.local
-        core: harbor.dev.chorus-tre.ch
+        core: harbor.chorus-tre.local
       className: "nginx"
       annotations:
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -18,8 +17,7 @@ harbor:
   
   logLevel: warn
 
-  # externalURL: https://harbor.chorus-tre.local
-  externalURL: https://harbor.dev.chorus-tre.ch
+  externalURL: https://harbor.chorus-tre.local
 
   existingSecretAdminPassword: harbor-secret-vars
   existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
@@ -41,6 +39,11 @@ harbor:
       existingSecret: "harbor-secret-vars"
       username: "harbor_registry_defaultuser"
   
+  jobservice:
+    existingSecret: "harbor-secret-vars"
+    # Key within the existing secret for the job service secret
+    existingSecretKey: JOBSERVICE_SECRET
+
   persistence:
     enabled: true
     resourcePolicy: "keep"
@@ -69,9 +72,6 @@ harbor:
         accessMode: ReadWriteOnce
         size: 1Gi
         annotations: {}
-        internal:
-          # The initial superuser password for internal database TODO with external within this helm juttu
-          password: "changeit"
       # If external Redis is used, the following settings for Redis will
       # be ignored
       redis:
@@ -108,7 +108,7 @@ harbor:
     ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/getting-started.md
     ##
     serviceMonitor:
-      enabled: false
+      enabled: true
       additionalLabels: {}
       # Scrape interval. If not set, the Prometheus default scrape interval is used.
       interval: ""
