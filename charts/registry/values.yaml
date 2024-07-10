@@ -239,9 +239,5 @@ garbageCollect:
 # Use StatefulSet instead of Deployment. Default uses Deployment.
 useStatefulSet: true
 
-env:
-  - name: REGISTRY_AUTH
-    valueFrom:
-      secretKeyRef:
-        name: registry-htpasswd
-        key: htpasswd
+auth:
+  existingSecret: "registry-htpasswd"
