@@ -114,7 +114,19 @@ spec:
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
                       image: docker:26
+                      volumes:
+                        - name: docker-config
+                          secret:
+                            secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                            items:
+                              - key: .dockerconfigjson
+                                path: config.json
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker
                       env:
+                        - name: DOCKER_CONFIG
+                          value: /.docker
                         - name: DOCKER_HOST
                           value: 127.0.0.1
                         - name: OUTPUT
