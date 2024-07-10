@@ -5,6 +5,10 @@
 image:
   repository: registry.build.chorus-tre.local/brainstorm
   pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: regcred
+
 env:
   card: "none"
   app_name: "brainstorm"
