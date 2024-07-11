@@ -61,10 +61,10 @@ spec:
                             repo: "{{`{{workflow.parameters.repo-url}}`}}"
                             revision: "{{`{{workflow.parameters.revision}}`}}"
                             usernameSecret:
-                              name: argo-workflows-github-images
+                              name: argo-workflows-github-chorus-web-ui
                               key: username
                             passwordSecret:
-                              name: argo-workflows-github-images
+                              name: argo-workflows-github-chorus-web-ui
                               key: password
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
