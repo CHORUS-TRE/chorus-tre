@@ -89,7 +89,9 @@ spec:
 
                           mkdir /.docker
 
-                          ln -s /.docker-tmp/config.json /.docker/config.json
+                          cp /.docker-tmp/config.json /.docker/config.json
+
+                          docker login ${REGISTRY}
 
                           VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}"
 
