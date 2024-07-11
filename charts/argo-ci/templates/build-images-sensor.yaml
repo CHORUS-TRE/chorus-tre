@@ -124,13 +124,6 @@ spec:
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker-tmp
-                      lifecycle:
-                        postStart:
-                          exec:
-                            command:
-                              - /bin/sh
-                              - -c
-                              - cp /.docker-tmp/config.json .docker/config.json
                       env:
                         - name: DOCKER_CONFIG
                           value: /.docker
@@ -143,6 +136,8 @@ spec:
                       command: [sh, -c]
                       args:
                         - >-
+                          cp /.docker-tmp/config.json .docker/config.json
+
                           until docker ps;
                             do sleep 3;
                           done;
