@@ -83,6 +83,7 @@ spec:
                       command: [sh, -c]
                       args:
                         - >-
+                          mkdir .docker
                           cp /.docker-tmp/config.json .docker/config.json
 
                           until docker ps;
