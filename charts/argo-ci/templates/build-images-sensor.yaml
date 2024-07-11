@@ -41,6 +41,13 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
+                volumes:
+                  - name: docker-config
+                    secret:
+                      secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                      items:
+                        - key: .dockerconfigjson
+                          path: config.json
                 arguments:
                   parameters:
                     - name: repo-url
@@ -114,13 +121,6 @@ spec:
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
                       image: docker:26
-                      volumes:
-                        - name: docker-config
-                          secret:
-                            secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
-                            items:
-                              - key: .dockerconfigjson
-                                path: config.json
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
