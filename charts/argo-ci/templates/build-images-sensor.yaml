@@ -142,7 +142,9 @@ spec:
 
                           mkdir /.docker
 
-                          ln -s /.docker-tmp/config.json /.docker/config.json
+                          cp /.docker-tmp/config.json /.docker/config.json
+
+                          docker login ${REGISTRY}
 
                           exec ./build.sh
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
