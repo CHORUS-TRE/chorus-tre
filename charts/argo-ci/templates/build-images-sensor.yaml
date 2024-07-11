@@ -130,7 +130,7 @@ spec:
                             command:
                               - /bin/sh
                               - -c
-                              - cp /.docker-tmp/.dockerconfigjson .docker/config.json
+                              - cp /.docker-tmp/config.json .docker/config.json
                       env:
                         - name: DOCKER_CONFIG
                           value: /.docker
