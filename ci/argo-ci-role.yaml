@@ -8,6 +8,7 @@ rules:
   - argoproj.io
   resources:
   - workflows
+  - workflowtaskresults
   verbs:
   - list
   - update
@@ -15,12 +16,6 @@ rules:
   - get
   - watch
   - delete
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflowtaskresults
-  verbs:
-  - create
   - patch
 - apiGroups:
   - argoproj.io
