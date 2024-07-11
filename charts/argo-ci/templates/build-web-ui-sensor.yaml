@@ -72,7 +72,14 @@ spec:
                       image: docker:26
                       volumeMounts:
                         - name: docker-config
-                          mountPath: /.docker
+                          mountPath: /.docker-tmp
+                      lifecycle:
+                        postStart:
+                          exec:
+                            command:
+                              - /bin/sh
+                              - -c
+                              - cp /.docker-tmp/.dockerconfigjson .docker/config.json
                       env:
                         - name: DOCKER_CONFIG
                           value: /.docker
