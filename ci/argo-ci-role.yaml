@@ -18,6 +18,13 @@ rules:
 - apiGroups:
   - argoproj.io
   resources:
+  - workflowtaskresults
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - argoproj.io
+  resources:
   - workflowtemplates
   - workfloweventbindings
   - eventsources
@@ -35,6 +42,7 @@ rules:
   - list
   - get
   - watch
+  - delete
 - apiGroups:
   - ""
   resources:
