@@ -83,12 +83,13 @@ spec:
                       command: [sh, -c]
                       args:
                         - >-
-                          mkdir /.docker
-                          ln -s /.docker-tmp/config.json /.docker/config.json
-
                           until docker ps;
                             do sleep 3;
                           done;
+
+                          mkdir /.docker
+
+                          ln -s /.docker-tmp/config.json /.docker/config.json
 
                           VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}"
 
