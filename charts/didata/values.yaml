@@ -114,10 +114,8 @@ volumes:
 volumeMounts:
   - name: didata-logs
     mountPath: "/var/www/html/storage/logs"
-    readOnly: false
   - name: didata-user-storage
     mountPath: "/var/www/html/storage/user-storage"
-    readOnly: false
   - name: didata-env
     mountPath: "/var/didata/env"
     readOnly: true
