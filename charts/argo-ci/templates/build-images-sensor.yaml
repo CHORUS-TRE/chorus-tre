@@ -41,6 +41,13 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
+                volumes:
+                  - name: docker-config
+                    secret:
+                      secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                      items:
+                        - key: .dockerconfigjson
+                          path: config.json
                 arguments:
                   parameters:
                     - name: repo-url
@@ -114,7 +121,12 @@ spec:
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
                       image: docker:26
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker-tmp
                       env:
+                        - name: DOCKER_CONFIG
+                          value: /.docker
                         - name: DOCKER_HOST
                           value: 127.0.0.1
                         - name: OUTPUT
@@ -127,6 +139,12 @@ spec:
                           until docker ps;
                             do sleep 3;
                           done;
+
+                          mkdir /.docker
+
+                          cp /.docker-tmp/config.json /.docker/config.json
+
+                          docker login ${REGISTRY}
 
                           exec ./build.sh
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
