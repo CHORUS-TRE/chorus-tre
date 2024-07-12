@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: registry.chorus-tre.local/didata
+  repository: registry.build.chorus-tre.local/didata
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "6.2.21"
@@ -18,7 +18,8 @@ secret:
   env_path_source: "/var/didata/env/didata.env"
   env_path_dest: "/var/www/html/.env"
 
-imagePullSecrets: []
+imagePullSecrets:
+  - name: regcred
 nameOverride: ""
 fullnameOverride: ""
 
@@ -49,8 +50,7 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 80 # container port
-  targetPort: 80 # pod port
+  port: 80
 
 ingress:
   enabled: true

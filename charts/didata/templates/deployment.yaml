@@ -61,7 +61,9 @@ spec:
                 command:
                   - /bin/sh
                   - -c
-                  - cp {{ .Values.secret.env_path_source }} {{ .Values.secret.env_path_dest }}
+                  - > 
+                    cp {{ .Values.secret.env_path_source }} {{ .Values.secret.env_path_dest }};
+                    chown didata:didata {{ .Values.secret.env_path_dest }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
