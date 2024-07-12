@@ -54,8 +54,7 @@ service:
 
 ingress:
   enabled: true
-  className: ""
-  ingressClassName: "nginx"
+  className: "nginx"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   hosts:
