@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: registry.build.chorus-tre.local/xpra-server
+  repository: registry.build.chorus-tre.local/charts/xpra-server
   pullPolicy: IfNotPresent
 env:
   card: "none"
