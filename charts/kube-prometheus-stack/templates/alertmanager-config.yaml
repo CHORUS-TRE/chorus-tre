@@ -25,7 +25,7 @@ spec:
     - name: "null"
     {{- with .Values.alertmanagerConfiguration.webex }}
       {{- if .enabled }}
-    - name: {{ .receiver | quote }}
+    - name: {{ .name | quote }}
       webexConfigs:
         - apiURL: https://webexapis.com/v1/messages
           sendResolved: true
