@@ -33,6 +33,13 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
+                volumes:
+                  - name: docker-config
+                    secret:
+                      secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                      items:
+                        - key: .dockerconfigjson
+                          path: config.json
                 arguments:
                   parameters:
                     - name: repo-url
@@ -54,16 +61,21 @@ spec:
                             repo: "{{`{{workflow.parameters.repo-url}}`}}"
                             revision: "{{`{{workflow.parameters.revision}}`}}"
                             usernameSecret:
-                              name: argo-workflows-github-images
+                              name: argo-workflows-github-chorus-web-ui
                               key: username
                             passwordSecret:
-                              name: argo-workflows-github-images
+                              name: argo-workflows-github-chorus-web-ui
                               key: password
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
                       image: docker:26
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker-tmp
                       env:
+                        - name: DOCKER_CONFIG
+                          value: /.docker
                         - name: DOCKER_HOST
                           value: 127.0.0.1
                         - name: REGISTRY
@@ -74,6 +86,12 @@ spec:
                           until docker ps;
                             do sleep 3;
                           done;
+
+                          mkdir /.docker
+
+                          cp /.docker-tmp/config.json /.docker/config.json
+
+                          docker login ${REGISTRY}
 
                           VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}"
 
