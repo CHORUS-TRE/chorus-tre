@@ -21,7 +21,8 @@ env:
   xpraKeycloakAuthCondition: "and"
   xpraKeycloakGrantType: "authorization_code"
 
-imagePullSecrets: []
+imagePullSecrets:
+  - name: regcred
 nameOverride: ""
 fullnameOverride: ""
 
