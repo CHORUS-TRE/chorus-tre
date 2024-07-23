@@ -120,11 +120,14 @@ spec:
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: docker:26
+                      image: docker:27
                       volumeMounts:
                         - name: docker-config
-                          mountPath: /.docker-tmp
+                          mountPath: /.docker
                       env:
+                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
+                        - name: BUILDX_CONFIG
+                          value: /tmp/buildx
                         - name: DOCKER_CONFIG
                           value: /.docker
                         - name: DOCKER_HOST
@@ -140,17 +143,11 @@ spec:
                             do sleep 3;
                           done;
 
-                          mkdir /.docker
-
-                          cp /.docker-tmp/config.json /.docker/config.json
-
-                          docker login ${REGISTRY}
-
                           exec ./build.sh
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
                     sidecars:
                       - name: dind
-                        image: docker:26-dind
+                        image: docker:27-dind
                         env:
                           - name: DOCKER_TLS_CERTDIR
                             value: ""

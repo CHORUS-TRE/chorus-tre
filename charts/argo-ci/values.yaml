@@ -48,19 +48,14 @@ ingress:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/app-root: /push
   hosts:
-  - host: webhook-chorus-web-ui.build.chorus-tre.local
-    paths:
-      - path: "/"
-        pathType: Prefix
-  - host: webhook-ci.build.chorus-tre.local
-    paths:
-      - path: "/"
-        pathType: Prefix
+    - host: webhook-ci.build.chorus-tre.local
+      paths:
+        - path: "/"
+          pathType: Prefix
   tls:
-  - hosts:
-    - webhook-chorus-web-ui.build.chorus-tre.local
-    - webhook-ci.build.chorus-tre.local
-    secretName: argo-ci-tls
+    - hosts:
+        - webhook-ci.build.chorus-tre.local
+      secretName: argo-ci-tls
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
