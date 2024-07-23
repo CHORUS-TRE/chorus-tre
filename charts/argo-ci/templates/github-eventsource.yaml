@@ -45,7 +45,7 @@ spec:
       # +optional
       apiToken:
         # Name of the K8s secret that contains the access token
-        name: argo-ci-github-images
+        name: argo-ci-github-chorus-web-ui
         # Key within the K8s secret whose corresponding value (must be base64 encoded) is access token
         key: token
 
@@ -53,7 +53,7 @@ spec:
       # +optional
       webhookSecret:
         # Name of the K8s secret that contains the hook secret
-        name: argo-ci-github-images
+        name: argo-ci-github-chorus-web-ui
         # Key within the K8s secret whose corresponding value (must be base64 encoded) is hook secret
         key: secret
 
