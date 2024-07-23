@@ -1,7 +1,7 @@
 apiVersion: v2
 description: Keycloak is a high performance Java-based identity and access management solution. It lets developers add an authentication layer to their applications with minimum effort.
 name: keycloak
-version: 0.0.11
+version: 0.0.12
 dependencies:
   - name: keycloak
     version: 21.7.1
