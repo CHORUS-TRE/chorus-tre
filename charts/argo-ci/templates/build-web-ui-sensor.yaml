@@ -9,8 +9,8 @@ spec:
   template:
     serviceAccountName: {{ $serviceAccountName }}
   dependencies:
-    - name: build-web-ui
-      eventSourceName: github
+    - name: build-chorus-web-ui
+      eventSourceName: {{ $fullName }}-github
       eventName: chorus-web-ui
       filters:
         data:
@@ -32,7 +32,7 @@ spec:
                 generateName: "-"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
-                entrypoint: build-images
+                entrypoint: build-chorus-web-ui
                 volumes:
                   - name: docker-config
                     secret:
@@ -47,7 +47,7 @@ spec:
                     - name: ref
                     - name: commit_id
                 templates:
-                  - name: build-images
+                  - name: build-chorus-web-ui
                     steps:
                       - - name: docker-build
                           template: docker-build
@@ -69,11 +69,14 @@ spec:
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: docker:26
+                      image: docker:27
                       volumeMounts:
                         - name: docker-config
-                          mountPath: /.docker-tmp
+                          mountPath: /.docker
                       env:
+                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
+                        - name: BUILDX_CONFIG
+                          value: /tmp/buildx
                         - name: DOCKER_CONFIG
                           value: /.docker
                         - name: DOCKER_HOST
@@ -87,13 +90,7 @@ spec:
                             do sleep 3;
                           done;
 
-                          mkdir /.docker
-
-                          cp /.docker-tmp/config.json /.docker/config.json
-
-                          docker login ${REGISTRY}
-
-                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}"
+                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
 
                           docker buildx build
                           --pull
@@ -103,7 +100,7 @@ spec:
                       workingDir: "/src"
                     sidecars:
                       - name: dind
-                        image: docker:26-dind
+                        image: docker:27-dind
                         env:
                           - name: DOCKER_TLS_CERTDIR
                             value: ""
@@ -113,24 +110,24 @@ spec:
 
           parameters:
             - src:
-                dependencyName: build-images
+                dependencyName: build-chorus-web-ui
                 dataKey: body.repository.clone_url
               dest: spec.arguments.parameters.0.value
             - src:
-                dependencyName: build-images
+                dependencyName: build-chorus-web-ui
                 dataKey: body.after
               dest: spec.arguments.parameters.1.value
             - src:
-                dependencyName: build-images
+                dependencyName: build-chorus-web-ui
                 dataKey: body.ref
               dest: spec.arguments.parameters.2.value
             - src:
-                dependencyName: build-images
+                dependencyName: build-chorus-web-ui
                 dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: spec.arguments.parameters.3.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
-                dependencyName: build-images
+                dependencyName: build-chorus-web-ui
                 dataTemplate: "build-web-ui-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
