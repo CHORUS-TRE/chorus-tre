@@ -134,7 +134,7 @@ keycloak:
     adminPassword: ""
     ## @param auth.existingSecret Existing secret containing Keycloak admin password
     ##
-    existingSecret:  "keycloak-admin-postgres"
+    existingSecret: "keycloak-admin-postgres"
     ## @param auth.passwordSecretKey Key where the Keycloak admin password is being stored inside the existing secret.
     ##
     passwordSecretKey: "adminPassword"
