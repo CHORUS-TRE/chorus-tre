@@ -35,6 +35,9 @@ keycloak:
   ## @param production Run Keycloak in production mode. TLS configuration is required except when using proxy=edge.
   ##
   production: true
+  ## @param proxyHeaders Set Keycloak proxy headers
+  ##
+  proxyHeaders: "forwarded"
   ## @param httpRelativePath Set the path relative to '/' for serving resources. Useful if you are migrating from older version which were using '/auth/'
   ## ref: https://www.keycloak.org/migration/migrating-to-quarkus#_default_context_path_changed
   ##
