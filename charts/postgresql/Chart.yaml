@@ -1,8 +1,14 @@
 apiVersion: v2
 description: PostgreSQL (Postgres) is an open source object-relational database known for reliability and data integrity. ACID-compliant, it supports foreign keys, joins, views, triggers and stored procedures.
 name: postgresql
-version: 0.0.3
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: vancauwe
+    email: laure.vancauwenberghe@epfl.ch
+
+version: 0.0.4
 dependencies:
   - name: postgresql
-    version: 15.5.11
+    version: 15.5.18
     repository: https://charts.bitnami.com/bitnami
