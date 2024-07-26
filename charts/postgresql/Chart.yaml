@@ -4,8 +4,6 @@ name: postgresql
 maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch
-  - name: vancauwe
-    email: laure.vancauwenberghe@epfl.ch
 
 version: 0.0.4
 dependencies:
