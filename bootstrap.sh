@@ -90,6 +90,7 @@ ARGOCD_EXTERNAL_IP=$(kubectl -n argocd get ingress chorus-build-argo-cd-argocd-s
 GRPC_ARGOCD_EXTERNAL_IP=$(kubectl -n argocd get ingress chorus-build-argo-cd-argocd-server-grpc -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
 REGISTRY_EXTERNAL_IP=$(kubectl -n registry get ingress chorus-build-registry -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
 
+echo ""
 echo -e "Please set the following DNS records:\n"
 echo -e "argo-cd.build.$DOMAIN_NAME -> $ARGOCD_EXTERNAL_IP"
 echo -e "grpc.argo-cd.build.$DOMAIN_NAME -> $GRPC_ARGOCD_EXTERNAL_IP"
