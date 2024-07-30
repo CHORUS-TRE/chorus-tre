@@ -46,7 +46,8 @@ kubectl wait pod \
 	--all \
 	--for=condition=Ready \
 	--namespace=argocd \
-    --timeout=60s
+	--selector app.kubernetes.io/name!=argocd-redis-secret-init \
+  --timeout=60s
 
 # install registry
 helm install chorus-build-registry charts/registry -n registry --create-namespace --set ingress.hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].secretName=registry-tls
