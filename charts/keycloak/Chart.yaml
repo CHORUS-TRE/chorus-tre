@@ -4,8 +4,8 @@ name: keycloak
 maintainers:
   - name: floriansipp
     email: florian.sipp@chuv.ch
-version: 0.0.14
+version: 0.0.15
 dependencies:
   - name: keycloak
-    version: 21.7.4
+    version: 22.0.0
     repository: https://charts.bitnami.com/bitnami
