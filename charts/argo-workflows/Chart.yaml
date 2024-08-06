@@ -1,8 +1,14 @@
 apiVersion: v2
-description: A Helm chart for Argo Workflows 
+description: A Helm chart for Argo Workflows
 name: argo-workflows
-version: 0.0.9
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: greut
+    email: yoan.blanc@chuv.ch
+
+version: 0.0.10
 dependencies:
   - name: argo-workflows
-    version: 0.41.11
+    version: 0.41.14
     repository: https://argoproj.github.io/argo-helm

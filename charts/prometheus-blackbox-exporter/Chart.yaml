@@ -1,8 +1,11 @@
 apiVersion: v2
 name: prometheus-blackbox-exporter
 description: Prometheus exporter for blackbox testing
-version: 0.0.2
+maintainers:
+  - name: greut
+    email: yoan.blanc@chuv.ch
+version: 0.0.3
 dependencies:
   - name: prometheus-blackbox-exporter
-    version: 8.17.0
+    version: 9.0.0
     repository: https://prometheus-community.github.io/helm-charts
