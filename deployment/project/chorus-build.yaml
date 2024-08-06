@@ -15,11 +15,14 @@ spec:
     - name: "chorus-build"
       namespace: "*"
       server: "https://kubernetes.default.svc"
-  permitOnlyProjectScopedClusters: true
+  permitOnlyProjectScopedClusters: false
 
   clusterResourceBlacklist: []
   clusterResourceWhitelist:
     - group: "*"
       kind: "*"
+
   namespaceResourceBlacklist: []
-  namespaceResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
