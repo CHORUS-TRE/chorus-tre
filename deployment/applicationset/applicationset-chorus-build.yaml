@@ -22,7 +22,7 @@ spec:
       project: chorus-build
       sources:
       - repoURL: 'registry.build.chorus-tre.ch'
-        chart: '{{.chart}}'  # Take chart from config.json
+        chart: 'charts/{{ trimPrefix "charts/" .chart }}'
         targetRevision: '{{.version}}'  # Take version from config.json
         helm:
           valueFiles:
