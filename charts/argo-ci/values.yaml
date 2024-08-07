@@ -14,6 +14,33 @@ sensor:
   dockerConfig:
     secretName: registry-dockerconfigjson-secret
 
+# Creates the webhook and matching events on the GibHub EventSource.
+webhookEvents:
+  - name: ci
+    repositories:
+      - owner: chorus-tre
+        names:
+          - images
+
+    # That secret must contain the following keys:
+    # - token (a GitHub pat), and secret (the webhook secret).
+    secretName: argo-ci-github-images
+
+  - name: chorus-web-ui
+    repositories:
+      - owner: chorus-tre
+        names:
+          - chorus-web-ui
+    secretName: argo-ci-github-chorus-web-ui
+
+  #- name: chorus-backend
+  #  repositories:
+  #    - owner: chorus-tre
+  #      names:
+  #        - chorus-backend
+  #  secretName: argo-ci-github-chorus-backend
+
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: false
