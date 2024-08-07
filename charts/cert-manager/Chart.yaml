@@ -1,8 +1,12 @@
 apiVersion: v2
 description: A Helm chart for cert-manager
 name: cert-manager
-version: 0.0.5
+version: 0.0.6
 dependencies:
   - name: cert-manager
-    version: 1.14.5
+    version: 1.15.2
     repository: https://charts.jetstack.io
+
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
