@@ -37,7 +37,6 @@ kubectl wait pod \
 	--timeout=60s
 
 # install argocd
-kubectl apply -k "https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.12.0"
 helm dep update charts/argo-cd
 helm install chorus-build-argo-cd charts/argo-cd -n argocd --create-namespace --set argo-cd.global.domain=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].secretName=argocd-ingress-http --set argo-cd.server.ingressGrpc.extraTls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.extraTls[0].secretName=argocd-ingress-grpc
 echo ""
