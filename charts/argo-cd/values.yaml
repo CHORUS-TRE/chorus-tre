@@ -1,6 +1,4 @@
 argo-cd:
-  crds:
-    install: false
   global:
     domain: argo-cd.build.chorus-tre.local
   configs:
