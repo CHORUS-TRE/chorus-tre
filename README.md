@@ -48,3 +48,8 @@ Finally, after committing this newly created folder, the new chart will be autom
 ### Update/modify a helm chart
 
 Go ahead and modify the files that need to be updated. Bump `version` in `Chart.yaml` and commit. A new release of the chart will be released to this repository and pushed to the CHORUS helm OCI registry.
+
+## License and Usage Restrictions
+
+Any use of the software for purposes other than academic research, including for commercial purposes, shall be requested in advance from [CHUV](mailto:pactt.legal@chuv.ch).
+
