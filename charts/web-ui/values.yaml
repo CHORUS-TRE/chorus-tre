@@ -10,9 +10,8 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: registry.dip-dev.thehip.app/dip-cicd-template-frontend
+  repository: registry.build.chorus-tre.ch/chorus-web-ui
   pullPolicy: Always
-  # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
 
 serviceAccount:
@@ -41,12 +40,11 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 80  # container port
-  targetPort: 80  # pod port
+  targetPort: http  # pod port
 
 ingress:
   enabled: true
-  className: ""
-  ingressClassName: "nginx"
+  className: "nginx"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   hosts:
@@ -70,13 +68,6 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
 # Additional volumes on the output Deployment definition.
 volumes: []
