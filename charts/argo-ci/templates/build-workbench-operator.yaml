@@ -17,6 +17,7 @@ spec:
           - path: "body.ref"
             type: string
             value:
+              # The goal is to publish tagged releases.
               #- "refs/heads/main"
               - "refs/tags/v*"
 
