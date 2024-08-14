@@ -1,0 +1,146 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
+{{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: {{ $fullName }}-build-workbench-operator
+spec:
+  eventBusName: {{ $fullName }}-default
+  template:
+    serviceAccountName: {{ $serviceAccountName }}
+  dependencies:
+    - name: build-workbench-operator
+      eventSourceName: {{ $fullName }}-github
+      eventName: workbench-operator
+      filters:
+        data:
+          - path: "body.ref"
+            type: string
+            value:
+              #- "refs/heads/main"
+              - "refs/tags/v*"
+
+  triggers:
+    - template:
+        name: github-workflow-trigger-workbench-operator
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: build-workbench-operator
+                volumes:
+                  - name: docker-config
+                    secret:
+                      secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                      items:
+                        - key: .dockerconfigjson
+                          path: config.json
+                arguments:
+                  parameters:
+                    - name: repo-url
+                    - name: revision
+                    - name: ref
+                    - name: commit_id
+                    - name: tag
+                templates:
+                  - name: build-workbench-operator
+                    steps:
+                      - - name: docker-build
+                          template: docker-build
+
+                  - name: docker-build
+                    inputs:
+                      artifacts:
+                        - name: images
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
+                            usernameSecret:
+                              name: argo-workflows-github-workbench-operator
+                              key: username
+                            passwordSecret:
+                              name: argo-workflows-github-workbench-operator
+                              key: password
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: docker:27
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker
+                      env:
+                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
+                        - name: BUILDX_CONFIG
+                          value: /tmp/buildx
+                        - name: DOCKER_CONFIG
+                          value: /.docker
+                        - name: DOCKER_HOST
+                          value: 127.0.0.1
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -c]
+                      args:
+                        - >-
+                          until docker ps;
+                            do sleep 3;
+                          done;
+
+                          if [ -n "{{`{{workflow.parameters.tag}}`}}" ]; then
+                          VERSION="{{`{{workflow.parameters.tag}}`}}";
+                          else
+                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
+                          fi;
+
+
+                          docker buildx build
+                          --pull
+                          --tag "${REGISTRY}/workbench-operator:${VERSION}"
+                          --output "type=registry"
+                          .
+                      workingDir: "/src"
+                    sidecars:
+                      - name: dind
+                        image: docker:27-dind
+                        env:
+                          - name: DOCKER_TLS_CERTDIR
+                            value: ""
+                        securityContext:
+                          privileged: true
+                        mirrorVolumeMounts: true
+
+          parameters:
+            - src:
+                dependencyName: build-workbench-operator
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: build-workbench-operator
+                dataKey: body.after
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: build-workbench-operator
+                dataKey: body.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: build-workbench-operator
+                dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: build-workbench-operator
+                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ end }}`}}'
+              dest: spec.arguments.parameters.4.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: build-workbench-operator
+                dataTemplate: "build-workbench-operator-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+      retryStrategy:
+        steps: 3
