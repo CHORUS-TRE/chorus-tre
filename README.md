@@ -42,7 +42,7 @@ If the chart is internal, create a new chart in the `charts` folder using:
 helm create <helm_chart_name>
 ```
 or add your own chart. Chart numbering starts at `0.0.1` for all charts.
- 
+
 Finally, after committing this newly created folder, the new chart will be automatically released in this repository and pushed to the CHORUS helm OCI registry.
 
 ### Update/modify a helm chart
