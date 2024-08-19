@@ -19,7 +19,7 @@ spec:
       #annotations:
       #  argocd-image-updater.argoproj.io/image-list: '{{.images}}'
     spec:
-      project: chorus-dev
+      project: chorus-qa
       sources:
       - repoURL: 'registry.build.chorus-tre.ch'
         chart: 'charts/{{ trimPrefix "charts/" .chart }}'
