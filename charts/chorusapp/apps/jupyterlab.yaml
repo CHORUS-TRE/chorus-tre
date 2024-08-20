@@ -1,0 +1,18 @@
+# Default values for jupyterlab.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: registry.build.chorus-tre.local/jupyterlab
+  pullPolicy: IfNotPresent
+  tag: "4.2.1-1"
+
+# imagePullSecrets:
+#   - name: regcred
+
+env:
+  card: "none"
+  app_name: "jupyterlab"
+  display: "workbench:80"
+  # if jupyterlab is in another namespace than the workbench, use the following format
+  # display: "service.namespace-of-service.svc.cluster.local:80"

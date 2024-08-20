@@ -1,0 +1,18 @@
+# Default values for trcanonymizer.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: registry.build.chorus-tre.local/trcanonymizer
+  pullPolicy: IfNotPresent
+  tag: "1.1.0-1"
+
+# imagePullSecrets:
+#   - name: regcred
+
+env:
+  card: "none"
+  app_name: "trcanonymizer"
+  display: "workbench:80"
+  # if trcanonymizer is in another namespace than the workbench, use the following format
+  # display: "service.namespace-of-service.svc.cluster.local:80"
