@@ -1,0 +1,21 @@
+# This is a template file for being abble to launch an app
+# replace [app_name] with the name of the app you want to deploy
+
+# Default values for <app_name>.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: registry.build.chorus-tre.local/<app_name>
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+  
+# imagePullSecrets:
+#   - name: regcred
+
+env:
+  card: "none"
+  app_name: "<app_name>"
+  display: "workbench:80"
+  # if <app_name> is in another namespace than the workbench, use the following format
+  # display: "service.namespace-of-service.svc.cluster.local:80"
