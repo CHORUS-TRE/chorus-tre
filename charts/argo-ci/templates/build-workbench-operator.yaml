@@ -55,6 +55,18 @@ spec:
                       - - name: docker-build
                           template: docker-build
 
+                      - - name: oci-credentials
+                          template: oci-credentials
+
+                        - name: helm-build
+                          template: helm-build
+                          arguments:
+                            parameters:
+                              - name: oci-username
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
+                              - name: oci-password
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
+
                   - name: docker-build
                     inputs:
                       artifacts:
@@ -99,7 +111,6 @@ spec:
                           VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
                           fi;
 
-
                           docker buildx build
                           --pull
                           --tag "${REGISTRY}/workbench-operator:${VERSION}"
@@ -115,6 +126,59 @@ spec:
                         securityContext:
                           privileged: true
                         mirrorVolumeMounts: true
+
+                  - name: oci-credentials
+                    image: backplane/jq
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker
+                      env:
+                        - name: DOCKER_CONFIG
+                          value: /.docker
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                    command: [sh, -c]
+                    args:
+                      - >-
+                        auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
+                        echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
+                        echo "${auth}" | base64 -d | awk -F: '{ print $2 }' > /tmp/password;
+                    outputs:
+                      parameters:
+                        - name: username
+                          valueFrom: /tmp/username
+                        - name: password
+                          valueFrom: /tmp/password
+
+                  - name: helm-build
+                    inputs:
+                      parameters:
+                        - name: oci-username
+                        - name: oci-password
+                      artifacts:
+                        - name: images
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
+                            usernameSecret:
+                              name: argo-workflows-github-workbench-operator
+                              key: username
+                            passwordSecret:
+                              name: argo-workflows-github-workbench-operator
+                              key: password
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: alpine/helm
+
+                      command: [sh, -e, -c]
+                      args:
+                        - >-
+                          helm package charts/workbench-operator;
+                          helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" -p "{{`{{inputs.parameters.oci-password}}`}}" "${REGISTRY}";
+                          helm push workbench-operator-*.tgz " "oci://${REGISTRY}/charts";
+                      workingDir: "/src"
 
           parameters:
             - src:
