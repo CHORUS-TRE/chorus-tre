@@ -129,14 +129,14 @@ spec:
 
                   - name: oci-credentials
                     image: backplane/jq
-                      volumeMounts:
-                        - name: docker-config
-                          mountPath: /.docker
-                      env:
-                        - name: DOCKER_CONFIG
-                          value: /.docker
-                        - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
+                    volumeMounts:
+                      - name: docker-config
+                        mountPath: /.docker
+                    env:
+                      - name: DOCKER_CONFIG
+                        value: /.docker
+                      - name: REGISTRY
+                        value: {{ .Values.sensor.registry | quote }}
                     command: [sh, -c]
                     args:
                       - >-
