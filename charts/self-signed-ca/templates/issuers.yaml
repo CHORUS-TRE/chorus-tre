@@ -1,4 +1,4 @@
-{{- $fullName := include "self-signed-ca.fullname" . }}
+{{- $name := include "self-signed-ca.name" . }}
 {{- $labels := include "self-signed-ca.labels" . }}
 {{- range $i, $issuer := .Values.issuers }}
 ---
@@ -11,5 +11,5 @@ metadata:
     {{- $labels | nindent 4 }}
 spec:
   ca:
-    secretName: {{ $fullName }}-secret
+    secretName: {{ $name }}-secret
 {{- end }}
