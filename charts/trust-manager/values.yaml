@@ -1,0 +1,4 @@
+trust-manager:
+  crds:
+    enabled: true
+    keep: true
