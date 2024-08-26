@@ -1,5 +1,0 @@
-nameOverride: yoan-test
-
-issuers:
-  - name: yo-test-issuer
-    namespace: yo-test
