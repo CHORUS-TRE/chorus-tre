@@ -1,0 +1,15 @@
+{{- $name := include "self-signed-ca.name" . }}
+{{- $labels := include "self-signed-ca.labels" . }}
+{{- range $i, $issuer := .Values.issuers }}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ $issuer.name | quote }}
+  namespace: {{ $issuer.namespace | quote }}
+  labels:
+    {{- $labels | nindent 4 }}
+spec:
+  ca:
+    secretName: {{ $name }}-secret
+{{- end }}
