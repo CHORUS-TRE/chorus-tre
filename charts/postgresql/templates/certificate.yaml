@@ -4,7 +4,7 @@ kind: Certificate
 metadata:
   name: {{ .Release.Name }}-cert
 spec:
-  secretName: {{ .Values.certificate.secretName | default (printf "%s-secret" $fullName) | quote }}
+  secretName: {{ .Values.certificate.secretName | default (printf "%s-secret" .Release.Name) | quote }}
 
   privateKey:
     algorithm: ECDSA
