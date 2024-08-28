@@ -38,8 +38,10 @@ postgresql:
 
   metrics:
     enabled: true
-
     resourcesPreset: "nano"
+
+    serviceMonitor:
+      enabled: true
 
   primary:
     # See: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
