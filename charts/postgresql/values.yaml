@@ -1,18 +1,48 @@
 global:
   postgresql:
     auth:
-      username: test-user
+      # This is safe as auth.enablePostgresUser is set to false.
+      password: postgre
+
+      username: CHANGEME
+
       existingSecret: "postgresql-secret"
-      secretKeys:
-        adminPasswordKey: "admin-password"
-        userPasswordKey: "user-password"
-        replicationPasswordKey: "replication-password"
-  # tls:
-  #   enabled: true
-  #   volumePermissions.enabled: true
-  #   certificatesSecret: postgresql-general-tls
-  #   # The following files need to go into the certificatesSecret
-  #   # as such:
-  #   # kubectl create secret generic certificates-tls-secret --from-file=./cert.crt --from-file=./cert.key --from-file=./ca.crt
-  #   tls.certFilename: "cert.crt"
-  #   tls.certKeyFilename: "cert.key"
+
+      # The above secret needs to two following keys.
+      # It's important that adminPasswordKey matches with the above password.
+      #
+      # secretKeys:
+      #  adminPasswordKey: "postgres-password"
+      #  userPasswordKey: "password"
+
+auth:
+  # Disable the remote connection for the postgres (admin) user.
+  enablePostgresUser: false
+
+tls:
+  enabled: false
+
+  # Generate this secret using a cert-manager Certificate resource.
+  certificatesSecret: postgresql-general-tls
+  certFilename: "tls.crt"
+  certKeyFilename: "tls.key"
+  # Set this up to enforce the client certificate verification.
+  certCAFilename: ""
+
+volumePermissions:
+  # Required by TLS
+  enabled: true
+
+  resourcesPreset: "nano"
+
+metrics:
+  enabled: true
+
+  resourcesPreset: "nano"
+
+primary:
+  # See: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
+  resourcesPreset: "small"
+
+readReplicas:
+  resourcesPreset: "nano"
