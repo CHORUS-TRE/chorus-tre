@@ -4,7 +4,7 @@ version: 0.0.20
 description: A Helm chart for Argo CD, a declarative, GitOps continuous delivery tool for Kubernetes.
 dependencies:
   - name: argo-cd
-    version: 7.4.6
+    version: 7.5.0
     repository: https://argoproj.github.io/argo-helm
 
 maintainers:
