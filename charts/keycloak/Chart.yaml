@@ -4,7 +4,7 @@ name: keycloak
 maintainers:
   - name: floriansipp
     email: florian.sipp@chuv.ch
-version: 0.0.16
+version: 0.0.17
 dependencies:
   - name: keycloak
     version: 22.2.1
