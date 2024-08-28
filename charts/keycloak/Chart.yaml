@@ -7,5 +7,5 @@ maintainers:
 version: 0.0.16
 dependencies:
   - name: keycloak
-    version: 22.1.0
+    version: 22.2.1
     repository: https://charts.bitnami.com/bitnami
