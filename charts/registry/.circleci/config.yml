@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   lint:
     docker:
-    - image: twuni/helm:3.4.1
+    - image: twuni/helm:3.5.2
     steps:
     - checkout
     - run:
