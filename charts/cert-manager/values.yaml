@@ -1,5 +1,7 @@
 cert-manager:
-  installCRDs: false
+  crds:
+    install: true
+    keep: true
 
 # A ClusterIssuer
 # See: https://cert-manager.io/docs/concepts/issuer/

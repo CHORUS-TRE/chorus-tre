@@ -4,8 +4,8 @@ maintainers:
   - name: greut
     email: yoan.blanc@chuv.ch
 name: kube-prometheus-stack
-version: 0.0.7
+version: 0.0.9
 dependencies:
   - name: kube-prometheus-stack
-    version: 61.8.0
+    version: 62.3.0
     repository: https://prometheus-community.github.io/helm-charts
