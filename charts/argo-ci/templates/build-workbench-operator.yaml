@@ -18,7 +18,7 @@ spec:
             type: string
             value:
               # The goal is to publish tagged releases.
-              #- "refs/heads/main"
+              #- "refs/heads/master"
               - "refs/tags/v*"
 
   triggers:
@@ -58,7 +58,7 @@ spec:
                       - - name: oci-credentials
                           template: oci-credentials
 
-                        - name: helm-build
+                      - - name: helm-build
                           template: helm-build
                           arguments:
                             parameters:
@@ -105,7 +105,7 @@ spec:
                             do sleep 3;
                           done;
 
-                          if [ -n "{{`{{workflow.parameters.tag}}`}}" ]; then
+                          if [ "n/a" -ne "{{`{{workflow.parameters.tag}}`}}" ]; then
                           VERSION="{{`{{workflow.parameters.tag}}`}}";
                           else
                           VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
@@ -128,30 +128,34 @@ spec:
                         mirrorVolumeMounts: true
 
                   - name: oci-credentials
-                    image: backplane/jq
-                    volumeMounts:
-                      - name: docker-config
-                        mountPath: /.docker
-                    env:
-                      - name: DOCKER_CONFIG
-                        value: /.docker
-                      - name: REGISTRY
-                        value: {{ .Values.sensor.registry | quote }}
-                    command: [sh, -c]
-                    args:
-                      - >-
-                        auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
-                        echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
-                        echo "${auth}" | base64 -d | awk -F: '{ print $2 }' > /tmp/password;
+                    container:
+                      image: backplane/jq
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker
+                      env:
+                        - name: DOCKER_CONFIG
+                          value: /.docker
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -c]
+                      args:
+                        - >-
+                          auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
+                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
+                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' | base64 > /tmp/password
                     outputs:
                       parameters:
                         - name: username
-                          valueFrom: /tmp/username
+                          valueFrom:
+                            path: /tmp/username
                         - name: password
-                          valueFrom: /tmp/password
+                          valueFrom:
+                            path: /tmp/password
 
                   - name: helm-build
                     inputs:
+                      # FIXME: we need artifact storage to pass the password as a file.
                       parameters:
                         - name: oci-username
                         - name: oci-password
@@ -171,13 +175,16 @@ spec:
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
                       image: alpine/helm
-
+                      env:
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
                       command: [sh, -e, -c]
                       args:
                         - >-
                           helm package charts/workbench-operator;
-                          helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" -p "{{`{{inputs.parameters.oci-password}}`}}" "${REGISTRY}";
-                          helm push workbench-operator-*.tgz " "oci://${REGISTRY}/charts";
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" | tee /tmp/password
+                          cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
+                          helm push workbench-operator-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
 
           parameters:
@@ -199,7 +206,7 @@ spec:
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-workbench-operator
-                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ end }}`}}'
+                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
               dest: spec.arguments.parameters.4.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
