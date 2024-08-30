@@ -1,0 +1,8 @@
+apiVersion: v2
+name: self-signed-issuer
+description: A Self-Signed CA and cluster issuer until Vault can be used
+type: application
+version: 0.0.1
+maintainers:
+  - name: greut
+    email: yoan.blan@chuv.ch

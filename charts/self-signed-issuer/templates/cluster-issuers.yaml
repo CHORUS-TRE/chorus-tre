@@ -1,0 +1,14 @@
+{{- $name := include "self-signed-ca.name" . }}
+{{- $labels := include "self-signed-ca.labels" . }}
+{{- range $i, $clusterIssuer := .Values.clusterIssuers }}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ $clusterIssuer.name | quote }}
+  labels:
+    {{- $labels | nindent 4 }}
+spec:
+  ca:
+    secretName: {{ $name }}-secret
+{{- end }}

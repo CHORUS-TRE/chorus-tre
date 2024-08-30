@@ -1,0 +1,13 @@
+# One ROOT CA
+
+nameOverride: ""
+
+root:
+  global: yes
+
+issuers: []
+  # - name: my-ca-issuer
+  #   namespace: my-ns
+
+clusterIssuers: []
+  # - name: my-ca-cluster-issuer

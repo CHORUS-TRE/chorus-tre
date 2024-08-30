@@ -1,10 +1,16 @@
 argo-workflows:
+  crds:
+    install: true
+    keep: true
+
   workflow:
     serviceAccount:
       name: "argo-workflow"
+
   controller:
     workflowNamespaces:
       - argo
+
   server:
     authModes:
       - client
