@@ -93,6 +93,7 @@ spec:
                           VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
 
                           docker buildx build
+                          -f docker/dockerfiles/Dockerfile
                           --pull
                           --tag "${REGISTRY}/chorus-backend:${VERSION}"
                           --output "type=registry"
