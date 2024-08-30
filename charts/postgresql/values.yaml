@@ -1,48 +1,63 @@
-global:
-  postgresql:
-    auth:
-      # This is safe as auth.enablePostgresUser is set to false.
-      password: postgre
+postgresql:
+  global:
+    postgresql:
+      auth:
+        # This is safe as auth.enablePostgresUser is set to false.
+        password: postgre
 
-      username: CHANGEME
+        username: CHANGEME
 
-      existingSecret: "postgresql-secret"
+        existingSecret: "postgresql-secret"
 
-      # The above secret needs to two following keys.
-      # It's important that adminPasswordKey matches with the above password.
-      #
-      # secretKeys:
-      #  adminPasswordKey: "postgres-password"
-      #  userPasswordKey: "password"
+        # The above secret needs to two following keys.
+        # It's important that adminPasswordKey matches with the above password.
+        #
+        # secretKeys:
+        #  adminPasswordKey: "postgres-password"
+        #  userPasswordKey: "password"
 
-auth:
-  # Disable the remote connection for the postgres (admin) user.
-  enablePostgresUser: false
+  auth:
+    # Disable the remote connection for the postgres (admin) user.
+    enablePostgresUser: false
 
-tls:
+  tls:
+    enabled: false
+
+    # Generate this secret using a cert-manager Certificate resource.
+    certificatesSecret: postgresql-general-tls
+    certFilename: "tls.crt"
+    certKeyFilename: "tls.key"
+    # Set this up to enforce the client certificate verification.
+    certCAFilename: ""
+
+  volumePermissions:
+    # Required by TLS
+    enabled: true
+
+    resourcesPreset: "nano"
+
+  metrics:
+    enabled: true
+    resourcesPreset: "nano"
+
+    serviceMonitor:
+      enabled: true
+
+  primary:
+    # See: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
+    resourcesPreset: "small"
+
+  readReplicas:
+    resourcesPreset: "nano"
+
+certificate:
   enabled: false
 
-  # Generate this secret using a cert-manager Certificate resource.
-  certificatesSecret: postgresql-general-tls
-  certFilename: "tls.crt"
-  certKeyFilename: "tls.key"
-  # Set this up to enforce the client certificate verification.
-  certCAFilename: ""
+  # Same as above.
+  secretName: postgresql-general-tls
 
-volumePermissions:
-  # Required by TLS
-  enabled: true
+  duration: 2169h # 90d
+  renewBefore: 360h # 15d
 
-  resourcesPreset: "nano"
-
-metrics:
-  enabled: true
-
-  resourcesPreset: "nano"
-
-primary:
-  # See: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
-  resourcesPreset: "small"
-
-readReplicas:
-  resourcesPreset: "nano"
+  issuerRef:
+    name: CHANGEME-issuer
