@@ -28,10 +28,10 @@ jobs:
       run: |
         # Extract the list of changed files from the action output
         MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
-        
+
         # Extract the chart directories from the modified files
         MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u)
-        
+
         # Check if any charts were modified
         if [ -z "$MODIFIED_CHARTS" ]; then
           echo "No modified charts found."
@@ -45,7 +45,7 @@ jobs:
         for chart in ${{ env.MODIFIED_CHARTS }}; do
           # Extract the repositories from Chart.yaml files
           REPOS=$(grep 'repository:' $chart/Chart.yaml | awk '{print $2}' | sort -u || true)
-          
+
           # Add each repository if REPOS is not empty
           if [ -n "$REPOS" ]; then
             for repo in $REPOS; do
