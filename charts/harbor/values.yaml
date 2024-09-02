@@ -1,119 +1,55 @@
 harbor:
-  namespace: "harbor"
-  expose:
-    type: ingress
-    tls:
-      enabled: true
-      certSource: secret
-      secret:
-        secretName: "harbor.chorus-tre.local-tls"
-    ingress:
-      hosts:
-        core: harbor.chorus-tre.local
-      className: "nginx"
+  nameOverride: "harbor"
+  externalURL: https://harbor.chorus-tre.local
+  exposureType: ingress
+  logLevel: warn
+  core:
+    existingEnvVarsSecret: "harbor-secret-vars"
+  jobservice:
+    existingEnvVarsSecret: "harbor-secret-vars"
+  registry:
+    existingSecret: "harbor-secret-vars"
+  postgresql:
+    auth:
+      existingSecret: "harbor-secret-vars"
+  ingress:
+    core:
+      ingressClassName: "nginx"
+      pathType: Prefix
+      hostname: harbor.chorus-tre.local
       annotations:
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
-        nginx.ingress.kubernetes.io/proxy-body-size: "0"     
-  
-  logLevel: warn
-
-  externalURL: https://harbor.chorus-tre.local
-
-  existingSecretAdminPassword: harbor-secret-vars
-  existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
- 
-  existingSecretSecretKey: harbor-secret-vars
-
-  # Secret is used when core server communicates with other components.
-  # If a secret key is not specified, Helm will generate one. Alternatively set existingSecret to use an existing secret
-  # We generate our own because the default generated at 
-  # https://github.com/goharbor/harbor-helm/blob/15695360541841fe07b7293a66d8495d6ff95ec5/templates/core/core-secret.yaml#L14C61-L14C76 
-  # is too short
-  #key must be secret
-  # TESTING THAT WE CAN PUT A BIGGER ONE THAN the default insecure 16
-  core:
-    existingSecret: "harbor-secret-vars"
-
-  registry:
-    credentials:
-      existingSecret: "harbor-secret-vars"
-      username: "harbor_registry_defaultuser"
-  
-  jobservice:
-    existingSecret: "harbor-secret-vars"
-    # Key within the existing secret for the job service secret
-    existingSecretKey: JOBSERVICE_SECRET
-
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  tls:
+    - hosts:
+      - harbor.chorus-tre.local
+      secretName: harbor.chorus-tre.local-tls
   persistence:
     enabled: true
     resourcePolicy: "keep"
     persistentVolumeClaim:
       registry:
-        existingClaim: ""
-        storageClass: ""
-        subPath: ""
-        accessMode: ReadWriteOnce
+        accessModes:
+          - ReadWriteOnce
         size: 20Gi
-        annotations: {}
       jobservice:
-        jobLog:
-          existingClaim: ""
-          storageClass: ""
-          subPath: ""
-          accessMode: ReadWriteOnce
-          size: 1Gi
-          annotations: {}
-      # If external database is used, the following settings for database will
-      # be ignored
-      database:
-        existingClaim: ""
-        storageClass: ""
-        subPath: ""
-        accessMode: ReadWriteOnce
+        accessModes:
+          - ReadWriteOnce
         size: 1Gi
-        annotations: {}
-      # If external Redis is used, the following settings for Redis will
-      # be ignored
-      redis:
-        existingClaim: ""
-        storageClass: ""
-        subPath: ""
-        accessMode: ReadWriteOnce
-        size: 1Gi
-        annotations: {}
       trivy:
-        existingClaim: ""
-        storageClass: ""
-        subPath: ""
-        accessMode: ReadWriteOnce
-        size: 5Gi
-        annotations: {}
-
+        accessModes:
+          - ReadWriteOnce
   metrics:
     enabled: true
-    core:
-      path: /metrics
-      port: 8001
-    registry:
-      path: /metrics
-      port: 8001
-    jobservice:
-      path: /metrics
-      port: 8001
-    exporter:
-      path: /metrics
-      port: 8001
-    ## Create prometheus serviceMonitor to scrape harbor metrics.
-    ## This requires the monitoring.coreos.com/v1 CRD. Please see
-    ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/getting-started.md
-    ##
+    path: /metrics
     serviceMonitor:
       enabled: true
-      additionalLabels: {}
-      # Scrape interval. If not set, the Prometheus default scrape interval is used.
+      namespace: ""
       interval: ""
-      # Metric relabel configs to apply to samples before ingestion.
-
-  cache:
-    enabled: true
-    expireHours: 24
+      scrapeTimeout: ""
+      labels: {}
+      selector: {}
+      relabelings: []
+      metricRelabelings: []
+      honorLabels: false
+      jobLabel: ""

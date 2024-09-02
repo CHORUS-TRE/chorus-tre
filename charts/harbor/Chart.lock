@@ -1,6 +1,1 @@
-dependencies:
-- name: harbor
-  repository: https://helm.goharbor.io
-  version: 1.15.0
-digest: sha256:125811453b9719a29ce7d63861e28ca7b1484f8f035f43b61bfe0300d8c5be44
-generated: "2024-07-02T13:29:33.550229+02:00"
+# generate me when it's time

@@ -4,5 +4,5 @@ description: Harbor container registry
 version: 0.0.1
 dependencies:
   - name: harbor
-    version: 1.15.0
-    repository: https://helm.goharbor.io
+    version: 23.0.2 # if we get a merge to this version
+    repository: https://charts.bitnami.com/bitnami
