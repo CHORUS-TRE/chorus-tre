@@ -1,7 +1,7 @@
 keycloak:
   ## @param namespaceOverride String to fully override common.names.namespace
   ##
-  namespaceOverride: "keycloak"
+  namespaceOverride: ""
   ## Keycloak authentication parameters
   ## ref: https://github.com/bitnami/containers/tree/main/bitnami/keycloak#admin-credentials
   ##
@@ -42,12 +42,7 @@ keycloak:
   ## ref: https://www.keycloak.org/migration/migrating-to-quarkus#_default_context_path_changed
   ##
   httpRelativePath: "/"
-  ## @param containerPorts.http Keycloak HTTP container port
-  ## @param containerPorts.https Keycloak HTTPS container port
-  ##
-  containerPorts:
-    http: 8080
-    https: 8443
+
   ## Keycloak resource requests and limits
   ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if resources is set (resources is recommended for production).
@@ -64,12 +59,7 @@ keycloak:
     ##
     http:
       enabled: true
-    ## @param service.ports.http Keycloak service HTTP port
-    ## @param service.ports.https Keycloak service HTTPS port
-    ##
-    ports:
-      http: 8080
-      https: 8443
+
   ## Keycloak ingress parameters
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
   ##
@@ -94,7 +84,7 @@ keycloak:
     ## @param ingress.servicePort Backend service port to use
     ## Default is http. Alternative is https.
     ##
-    servicePort: 8080
+    servicePort: http
     ## @param ingress.annotations [object] Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
     ## Use this parameter to set the required annotations for cert-manager, see
     ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
@@ -140,7 +130,7 @@ keycloak:
     ## @param adminIngress.servicePort Backend service port to use
     ## Default is http. Alternative is https.
     ##
-    servicePort: 8080
+    servicePort: http
     ## @param adminIngress.annotations [object] Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
     ## Use this parameter to set the required annotations for cert-manager, see
     ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
@@ -176,3 +166,16 @@ keycloak:
     enabled: true
     auth:
       existingSecret: "keycloak-admin-postgres"
+
+
+certificate:
+  enabled: false
+
+  # Same as above.
+  secretName: postgresql-general-tls
+
+  duration: 2169h # 90d
+  renewBefore: 360h # 15d
+
+  issuerRef:
+    name: CHANGEME-issuer
