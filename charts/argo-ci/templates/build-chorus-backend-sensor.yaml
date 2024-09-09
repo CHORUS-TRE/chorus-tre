@@ -48,6 +48,7 @@ spec:
                     - name: revision
                     - name: ref
                     - name: commit_id
+                    - name: tag
                 templates:
                   - name: build-chorus-backend
                     steps:
@@ -104,7 +105,11 @@ spec:
                             do sleep 3;
                           done;
 
+                          if [ "n/a" -ne "{{`{{workflow.parameters.tag}}`}}" ]; then
+                          VERSION="{{`{{workflow.parameters.tag}}`}}";
+                          else
                           VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
+                          fi;
 
                           docker buildx build
                           -f docker/dockerfiles/Dockerfile
@@ -201,6 +206,10 @@ spec:
                 dependencyName: build-chorus-backend
                 dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
+              dest: spec.arguments.parameters.4.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
                 dependencyName: build-chorus-backend
