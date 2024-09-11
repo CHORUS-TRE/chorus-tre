@@ -1,0 +1,136 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
+{{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: {{ $fullName }}-build-chorus-backend
+spec:
+  eventBusName: {{ $fullName }}-default
+  template:
+    serviceAccountName: {{ $serviceAccountName }}
+  dependencies:
+    - name: build-chorus-backend
+      eventSourceName: {{ $fullName }}-github
+      eventName: chorus-backend
+      filters:
+        data:
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/main"
+
+  triggers:
+    - template:
+        name: github-workflow-trigger-chorus-backend
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: build-chorus-backend
+                volumes:
+                  - name: docker-config
+                    secret:
+                      secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                      items:
+                        - key: .dockerconfigjson
+                          path: config.json
+                arguments:
+                  parameters:
+                    - name: repo-url
+                    - name: revision
+                    - name: ref
+                    - name: commit_id
+                templates:
+                  - name: build-chorus-backend
+                    steps:
+                      - - name: docker-build
+                          template: docker-build
+
+                  - name: docker-build
+                    inputs:
+                      artifacts:
+                        - name: images
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
+                            usernameSecret:
+                              name: argo-workflows-github-chorus-backend
+                              key: username
+                            passwordSecret:
+                              name: argo-workflows-github-chorus-backend
+                              key: password
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: docker:27
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker
+                      env:
+                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
+                        - name: BUILDX_CONFIG
+                          value: /tmp/buildx
+                        - name: DOCKER_CONFIG
+                          value: /.docker
+                        - name: DOCKER_HOST
+                          value: 127.0.0.1
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -c]
+                      args:
+                        - >-
+                          until docker ps;
+                            do sleep 3;
+                          done;
+
+                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
+
+                          docker buildx build
+                          -f docker/dockerfiles/Dockerfile
+                          --pull
+                          --tag "${REGISTRY}/chorus-backend:${VERSION}"
+                          --output "type=registry"
+                          .
+                      workingDir: "/src"
+                    sidecars:
+                      - name: dind
+                        image: docker:27-dind
+                        env:
+                          - name: DOCKER_TLS_CERTDIR
+                            value: ""
+                        securityContext:
+                          privileged: true
+                        mirrorVolumeMounts: true
+
+          parameters:
+            - src:
+                dependencyName: build-chorus-backend
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: build-chorus-backend
+                dataKey: body.after
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: build-chorus-backend
+                dataKey: body.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: spec.arguments.parameters.3.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: "build-chorus-backend-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+      retryStrategy:
+        steps: 3
