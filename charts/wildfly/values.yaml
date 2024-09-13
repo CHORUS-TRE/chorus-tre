@@ -110,7 +110,7 @@ wildfly:
   ## @param wildflyPassword WildFly user password
   ## Defaults to a random 10-character alphanumeric string if not set
   ##
-  wildflyPassword: "test"
+  wildflyPassword: "mestest1234"
   ## @param exposeManagementConsole Allows exposing the WildFly Management console outside the cluster
   ##
   exposeManagementConsole: false

@@ -8,7 +8,7 @@ image:
   repository: i2b2/i2b2-web
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "v1.8.0.0002"
+  # tag: "v1.8.0.0002"
 
 env:
   url: "https://i2b2.chorus-tre.local"
@@ -74,13 +74,6 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
 
