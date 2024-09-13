@@ -1,0 +1,19 @@
+valkey:
+  architecture: standalone
+
+  master:
+    resourcesPreset: micro
+
+    persistence:
+      size: 2Gi
+
+  replica:
+    replicaCount: 0
+
+  metrics:
+    enabled: true
+
+    serviceMonitor:
+      enabled: true
+    podMonitor:
+      enabled: true
