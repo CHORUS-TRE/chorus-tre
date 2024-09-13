@@ -11,8 +11,7 @@ fullnameOverride: ""
 
 image:
   repository: registry.build.chorus-tre.ch/chorus-web-ui
-  pullPolicy: Always
-  tag: "latest"
+  tag: ""
 
 serviceAccount:
   # Specifies whether a service account should be created
