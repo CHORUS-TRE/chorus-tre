@@ -4,7 +4,7 @@ maintainers:
   - name: greut
     email: yoan.blanc@chuv.ch
 name: kube-prometheus-stack
-version: 0.0.10
+version: 0.0.11
 dependencies:
   - name: kube-prometheus-stack
     version: 62.7.0
