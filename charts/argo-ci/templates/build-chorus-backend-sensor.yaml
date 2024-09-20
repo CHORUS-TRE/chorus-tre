@@ -18,7 +18,7 @@ spec:
             type: string
             value:
               # The goal is to publish tagged releases.
-              - "refs/heads/main"
+              - "refs/heads/master"
               #- "refs/tags/v*"
 
   triggers:
