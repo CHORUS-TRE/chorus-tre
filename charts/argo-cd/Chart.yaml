@@ -4,7 +4,7 @@ description: A Helm chart for Argo CD, a declarative, GitOps continuous delivery
 version: 0.0.21
 dependencies:
   - name: argo-cd
-    version: 7.5.0
+    version: 7.5.2
     repository: https://argoproj.github.io/argo-helm
 
 maintainers:
