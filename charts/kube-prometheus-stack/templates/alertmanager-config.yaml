@@ -17,7 +17,7 @@ spec:
             name: severity
             value: {{ .severity | quote }}
         continue: true
-        receiver: {{ .receiver | quote }}
+        receiver: {{ .name | quote }}
       {{- end }}
     {{- end }}
     receiver: "null"
