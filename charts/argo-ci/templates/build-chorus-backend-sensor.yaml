@@ -180,13 +180,12 @@ spec:
                         - name: REGISTRY
                           value: {{ .Values.sensor.registry | quote }}
                       command: [sh, -e, -c]
-                      # FIXME: the name of the chart is still a little too generic
                       args:
                         - >-
-                          helm package deploy/chart;
+                          helm package deploy/backend;
                           echo -n "{{`{{inputs.parameters.oci-password}}`}}" | tee /tmp/password
                           cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
-                          helm push chart-*.tgz "oci://${REGISTRY}/charts";
+                          helm push backend-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
 
           parameters:
