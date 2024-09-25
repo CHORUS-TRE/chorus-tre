@@ -56,27 +56,29 @@ spec:
                           templateRef:
                             name: docker-build-template
                             template: docker-build
-                            arguments:
-                              parameters:
-                                - name: registry
-                                  value: {{ .Values.sensor.registry | quote }}
-                                - name: tag
-                                  value: "{{`{{workflow.parameters.tag}}`}}"
-                                - name: commitId
-                                  value: "{{`{{workflow.parameters.commitId}}`}}"
-                              artifacts:
-                                - name: source
-                                  git:
-                                    repo: "{{`{{workflow.parameters.repo-url}}`}}"
-                                    revision: "{{`{{workflow.parameters.revision}}`}}"
-                                    usernameSecret:
-                                      name: argo-workflows-github-workbench-operator
-                                      key: username
-                                    passwordSecret:
-                                      name: argo-workflows-github-workbench-operator
-                                      key: password
-                                    depth: 1
-                                    ref: "{{`{{workflow.parameters.ref}}`}}"
+                          arguments:
+                            parameters:
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: commitId
+                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: dockerfile
+                                value: "Dockerfile"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: argo-workflows-github-workbench-operator
+                                    key: username
+                                  passwordSecret:
+                                    name: argo-workflows-github-workbench-operator
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
                       - - name: oci-credentials
                           template: oci-credentials
