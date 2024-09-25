@@ -89,8 +89,6 @@ harbor:
       # See: https://github.com/goharbor/harbor-helm/issues/1641
       password: ""
 
-certificate:
-
 
 certificate:
   enabled: false
