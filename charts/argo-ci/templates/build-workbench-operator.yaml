@@ -60,6 +60,8 @@ spec:
                             parameters:
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
+                              - name: image
+                                value: "workbench-operator"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
                               - name: commitId
