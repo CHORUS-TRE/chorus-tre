@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: chorus
+  name: chorus-sck
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
@@ -12,17 +12,17 @@ spec:
       repoURL: 'https://github.com/CHORUS-TRE/environments.git'
       revision: HEAD
       files:
-      - path: "chorus-tds/*/config.json"
+      - path: "chorus-sck/*/config.json"
   template:
     metadata:
       name: '{{index .path.segments 0}}-{{.path.basename}}'
       #annotations:
       #  argocd-image-updater.argoproj.io/image-list: '{{.images}}'
     spec:
-      project: default
+      project: chorus-sck
       sources:
       - repoURL: 'registry.build.chorus-tre.ch'
-        chart: '{{.chart}}'  # Take chart from config.json
+        chart: 'charts/{{ trimPrefix "charts/" .chart }}'
         targetRevision: '{{.version}}'  # Take version from config.json
         helm:
           valueFiles:
@@ -32,7 +32,7 @@ spec:
         ref: values
 
       destination:
-        name: '{{.cluster}}'
+        name: chorus-qa
         namespace: '{{.namespace}}'  # Take namespace from config.json
       syncPolicy:
         automated:

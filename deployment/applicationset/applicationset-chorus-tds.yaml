@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: chorus-tds
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - git:
+      repoURL: 'https://github.com/CHORUS-TRE/environments.git'
+      revision: HEAD
+      files:
+      - path: "chorus-tds/*/config.json"
+  template:
+    metadata:
+      name: '{{index .path.segments 0}}-{{.path.basename}}'
+      #annotations:
+      #  argocd-image-updater.argoproj.io/image-list: '{{.images}}'
+    spec:
+      project: chorus-tds
+      sources:
+      - repoURL: 'registry.build.chorus-tre.ch'
+        chart: 'charts/{{ trimPrefix "charts/" .chart }}'
+        targetRevision: '{{.version}}'  # Take version from config.json
+        helm:
+          valueFiles:
+          - $values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml
+      - repoURL: 'https://github.com/CHORUS-TRE/environments.git'
+        targetRevision: HEAD
+        ref: values
+
+      destination:
+        name: chorus-qa
+        namespace: '{{.namespace}}'  # Take namespace from config.json
+      syncPolicy:
+        automated:
+          prune: true  # Optionally enable pruning for resources not defined in Git
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - preserveResourcesOnDeletion=true
+          - 'ServerSideApply={{if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'
