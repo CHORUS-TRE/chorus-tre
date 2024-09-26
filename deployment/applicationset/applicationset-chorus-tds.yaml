@@ -32,7 +32,7 @@ spec:
         ref: values
 
       destination:
-        name: chorus-qa
+        name: chorus-tds
         namespace: '{{.namespace}}'  # Take namespace from config.json
       syncPolicy:
         automated:
