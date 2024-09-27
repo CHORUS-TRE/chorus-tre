@@ -4,6 +4,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
   name: {{ $fullName }}-build-web-ui
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   eventBusName: {{ $fullName }}-default
   template:

@@ -1,0 +1,103 @@
+harbor:
+  expose:
+    type: ingress
+    tls:
+      enabled: true
+      # Is done by the Ingress Controller
+      certSource: secret
+      secret:
+        secretName: harbor.build.chorus-tre.local-tls
+    ingress:
+      hosts:
+        core: harbor.build.chorus-tre.local
+      className: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+
+  externalURL: https://harbor.build.chorus-tre.local
+
+  persistence:
+    persistentVolumeClaim:
+      registry:
+        size: 500Gi
+      jobService:
+        size: 2Gi
+
+  updateStrategy:
+    type: Recreate # as RWM is not supported.
+
+  imageChartStorage:
+    type: filesystem # Using the above PVC
+
+  existingSecretAdminPassword: harbor-secret
+  existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
+
+  # Key is:
+  #  - secretKey # 16 charts
+  existingSecretSecretKey: harbor-secret
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+  core:
+    # Key is:
+    # - secret # 16 chars
+    existingSecret: harbor-secret
+    existingXsrfSecret: harbor-secret
+    existingXsrfSecretKey: CSRF_KEY # 32 chars
+
+    secretName: harbor-tls-secret
+
+  jobservice:
+    existingSecret: harbor-secret
+    existingSecretKey: JOBSERVICE_SECRET
+    jobLoggers:
+      - database
+
+  registry:
+    existingSecret: harbor-secret
+    existingSecretKey: REGISTRY_HTTP_SECRET # string of 16 chars
+    credentials:
+      username: "admin"
+      password: ""
+      # Keys are:
+      #  - REGISTRY_PASSWD
+      #  - REGISTRY_HTPASSWD
+      existingSecret: harbor-secret
+
+  database:
+    type: external
+    external:
+      host: "chorus-local-harbor-db-postgresql"
+      port: "5432"
+      username: "harbor"
+      password: ""
+      # Key is:
+      # - password
+      existingSecret: harbor-db-secret
+      sslmode: require
+
+  redis:
+    type: external
+    external:
+      addr: "chorus-local-harbor-cache-valkey-master:6379"
+      # Auth will not work with helm template,
+      # See: https://github.com/goharbor/harbor-helm/issues/1641
+      password: ""
+
+
+certificate:
+  enabled: false
+
+  # Same as above: harbor.core.secretName
+  secretName: harbor-tls-secret
+
+  duration: 2169h # 90d
+  renewBefore: 360h # 15d
+
+  issuerRef:
+    name: CHANGEME-issuer
