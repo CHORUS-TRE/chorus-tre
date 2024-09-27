@@ -19,7 +19,9 @@ spec:
           - path: "body.ref"
             type: string
             value:
-              - "refs/heads/main"
+              # The goal is to publish tagged releases.
+              - "refs/heads/master"
+              #- "refs/tags/v*"
 
   triggers:
     - template:
@@ -48,11 +50,24 @@ spec:
                     - name: revision
                     - name: ref
                     - name: commit_id
+                    - name: tag
                 templates:
                   - name: build-chorus-backend
                     steps:
                       - - name: docker-build
                           template: docker-build
+
+                      - - name: oci-credentials
+                          template: oci-credentials
+
+                      - - name: helm-build
+                          template: helm-build
+                          arguments:
+                            parameters:
+                              - name: oci-username
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
+                              - name: oci-password
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
 
                   - name: docker-build
                     inputs:
@@ -92,7 +107,11 @@ spec:
                             do sleep 3;
                           done;
 
+                          if [ "n/a" != "{{`{{workflow.parameters.tag}}`}}" ]; then
+                          VERSION="{{`{{workflow.parameters.tag}}`}}";
+                          else
                           VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
+                          fi;
 
                           docker buildx build
                           -f docker/dockerfiles/Dockerfile
@@ -111,6 +130,66 @@ spec:
                           privileged: true
                         mirrorVolumeMounts: true
 
+                  - name: oci-credentials
+                    container:
+                      image: backplane/jq
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker
+                      env:
+                        - name: DOCKER_CONFIG
+                          value: /.docker
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -c]
+                      args:
+                        - >-
+                          auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
+                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
+                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' | base64 > /tmp/password
+                    outputs:
+                      parameters:
+                        - name: username
+                          valueFrom:
+                            path: /tmp/username
+                        - name: password
+                          valueFrom:
+                            path: /tmp/password
+
+                  - name: helm-build
+                    inputs:
+                      # FIXME: we need artifact storage to pass the password as a file.
+                      parameters:
+                        - name: oci-username
+                        - name: oci-password
+                      artifacts:
+                        - name: images
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
+                            usernameSecret:
+                              name: argo-workflows-github-chorus-backend
+                              key: username
+                            passwordSecret:
+                              name: argo-workflows-github-chorus-backend
+                              key: password
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: alpine/helm
+                      env:
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -e, -c]
+                      args:
+                        - >-
+                          helm package deploy/backend;
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" | tee /tmp/password
+                          cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
+                          helm push backend-*.tgz "oci://${REGISTRY}/charts";
+                      workingDir: "/src"
+
           parameters:
             - src:
                 dependencyName: build-chorus-backend
@@ -128,6 +207,10 @@ spec:
                 dependencyName: build-chorus-backend
                 dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
+              dest: spec.arguments.parameters.4.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
                 dependencyName: build-chorus-backend
