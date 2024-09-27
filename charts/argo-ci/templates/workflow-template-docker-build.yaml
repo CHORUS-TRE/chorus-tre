@@ -1,7 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: docker-build-template
+  name: {{ $fullName }}-docker-build-template
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   arguments:
     artifacts:
