@@ -1,6 +1,6 @@
 dependencies:
 - name: cluster-secret
   repository: https://charts.clustersecret.com/
-  version: 0.4.2
-digest: sha256:67896b6a5f0886c281e9934eab57edd7418f10da34951a20a25ed9196e6bc837
-generated: "2024-09-25T15:23:25.652135+02:00"
+  version: 0.4.3
+digest: sha256:27047c3178d3400f2c08e7b73a726b18d353677ced0087e35ba7af23ff9820c9
+generated: "2024-09-27T06:24:54.270620113Z"
