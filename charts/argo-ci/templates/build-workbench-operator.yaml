@@ -1,5 +1,6 @@
 {{- $fullName := include "argo-ci.fullname" . -}}
 {{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
