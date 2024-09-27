@@ -5,8 +5,8 @@ maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch
 
-version: 0.0.1
+version: 0.0.2
 dependencies:
   - name: matomo
-    version: 8.0.10
+    version: 8.0.13
     repository: https://charts.bitnami.com/bitnami
