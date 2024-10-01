@@ -1,9 +1,0 @@
-apiVersion: v2
-name: i2b2
-description: I2B2 is a self-service Patient Cohort Discovery Tool that allows you to explore and query clinical data that has been deidentified and aggregated
-maintainers:
-  - name: yvesjaggi
-    email: yves.jaggi@chuv.ch
-type: application
-version: 0.0.1
-appVersion: "v1.8.0.0002"
