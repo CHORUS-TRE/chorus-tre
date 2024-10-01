@@ -53,6 +53,7 @@ ingress:
   className: "nginx"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/app-root: /webclient
   hosts:
     - host: i2b2.chorus-tre.local
       paths:
