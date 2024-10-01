@@ -21,6 +21,7 @@ spec:
             value:
               - "server/*"
               - "apps/*/.*"
+              - "services/*/.*"
 
           - path: "body.ref"
             type: string
