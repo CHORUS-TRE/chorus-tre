@@ -11,12 +11,17 @@ spec:
   eventBusName: {{ $fullName }}-default
   template:
     serviceAccountName: {{ $serviceAccountName }}
+
   dependencies:
     - name: build-workbench-operator
       eventSourceName: {{ $fullName }}-github
       eventName: workbench-operator
       filters:
         data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - push
           - path: "body.ref"
             type: string
             value:
@@ -24,9 +29,81 @@ spec:
               #- "refs/heads/master"
               - "refs/tags/v*"
 
+    - name: ci-workbench-operator
+      eventSourceName: {{ $fullName }}-github
+      eventName: workbench-operator
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - pull_request
+          - path: "body.action"
+            type: string
+            value:
+              - "synchronize"
+
   triggers:
     - template:
-        name: github-workflow-trigger-workbench-operator
+        conditions: ci-workbench-operator
+        name: github-workflow-trigger-ci-workbench-operator
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: build-workbench-operator
+                arguments:
+                  parameters:
+                    - name: repo-url
+                    - name: revision
+                    - name: ref
+                    - name: commitId
+                templates:
+                  - name: ci-workbench-operator
+                    steps:
+                      - - name: ci
+                          template: ci
+
+                  - name: ci
+                    container:
+                      image: golang:1.23.1
+                      command: [sh, -e, -c]
+                      args:
+                        - make test
+
+          parameters:
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.after
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.head.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.head.sha
+              dest: spec.arguments.parameters.3.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "ci-workbench-operator-{{`{{ .Input.body.head.sha | substr 0 7 }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+
+    - template:
+        conditions: build-workbench-operator
+        name: github-workflow-trigger-build-workbench-operator
         k8s:
           operation: create
           source:
@@ -184,5 +261,6 @@ spec:
                 dataTemplate: "build-workbench-operator-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
+
       retryStrategy:
         steps: 3
