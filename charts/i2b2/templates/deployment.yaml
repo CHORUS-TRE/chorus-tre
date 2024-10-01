@@ -5,9 +5,6 @@ metadata:
   labels:
     {{- include "i2b2.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "i2b2.selectorLabels" . | nindent 6 }}
