@@ -1,9 +1,12 @@
 {{- $fullName := include "argo-ci.fullname" . -}}
 {{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
   name: {{ $fullName }}-build-workbench-operator
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   eventBusName: {{ $fullName }}-default
   template:
@@ -18,7 +21,7 @@ spec:
             type: string
             value:
               # The goal is to publish tagged releases.
-              #- "refs/heads/main"
+              #- "refs/heads/master"
               - "refs/tags/v*"
 
   triggers:
@@ -47,16 +50,85 @@ spec:
                     - name: repo-url
                     - name: revision
                     - name: ref
-                    - name: commit_id
+                    - name: commitId
                     - name: tag
                 templates:
                   - name: build-workbench-operator
                     steps:
                       - - name: docker-build
-                          template: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: image
+                                value: "workbench-operator"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: commitId
+                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: dockerfile
+                                value: "Dockerfile"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: argo-workflows-github-workbench-operator
+                                    key: username
+                                  passwordSecret:
+                                    name: argo-workflows-github-workbench-operator
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
-                  - name: docker-build
+                      - - name: oci-credentials
+                          template: oci-credentials
+
+                      - - name: helm-build
+                          template: helm-build
+                          arguments:
+                            parameters:
+                              - name: oci-username
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
+                              - name: oci-password
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
+
+                  - name: oci-credentials
+                    container:
+                      image: backplane/jq
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker
+                      env:
+                        - name: DOCKER_CONFIG
+                          value: /.docker
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -c]
+                      args:
+                        - >-
+                          auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
+                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
+                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' | base64 > /tmp/password
+                    outputs:
+                      parameters:
+                        - name: username
+                          valueFrom:
+                            path: /tmp/username
+                        - name: password
+                          valueFrom:
+                            path: /tmp/password
+
+                  - name: helm-build
                     inputs:
+                      # FIXME: we need artifact storage to pass the password as a file.
+                      parameters:
+                        - name: oci-username
+                        - name: oci-password
                       artifacts:
                         - name: images
                           path: "/src"
@@ -72,49 +144,18 @@ spec:
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: docker:27
-                      volumeMounts:
-                        - name: docker-config
-                          mountPath: /.docker
+                      image: alpine/helm
                       env:
-                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
-                        - name: BUILDX_CONFIG
-                          value: /tmp/buildx
-                        - name: DOCKER_CONFIG
-                          value: /.docker
-                        - name: DOCKER_HOST
-                          value: 127.0.0.1
                         - name: REGISTRY
                           value: {{ .Values.sensor.registry | quote }}
-                      command: [sh, -c]
+                      command: [sh, -e, -c]
                       args:
                         - >-
-                          until docker ps;
-                            do sleep 3;
-                          done;
-
-                          if [ -n "{{`{{workflow.parameters.tag}}`}}" ]; then
-                          VERSION="{{`{{workflow.parameters.tag}}`}}";
-                          else
-                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
-                          fi;
-
-
-                          docker buildx build
-                          --pull
-                          --tag "${REGISTRY}/workbench-operator:${VERSION}"
-                          --output "type=registry"
-                          .
+                          helm package charts/workbench-operator;
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" | tee /tmp/password
+                          cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
+                          helm push workbench-operator-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
-                    sidecars:
-                      - name: dind
-                        image: docker:27-dind
-                        env:
-                          - name: DOCKER_TLS_CERTDIR
-                            value: ""
-                        securityContext:
-                          privileged: true
-                        mirrorVolumeMounts: true
 
           parameters:
             - src:
@@ -135,7 +176,7 @@ spec:
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-workbench-operator
-                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ end }}`}}'
+                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
               dest: spec.arguments.parameters.4.value
             # Append text and commit id to dynamically assign workflow name.
             - src:

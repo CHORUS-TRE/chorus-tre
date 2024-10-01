@@ -24,11 +24,19 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 
 {{- define "docker-registry.envs" -}}
+{{- if .Values.auth.existingSecret }}
+- name: REGISTRY_HTTP_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.auth.existingSecret }}
+      key: haSharedSecret
+{{- else if .Values.secrets.haSharedSecret }}
 - name: REGISTRY_HTTP_SECRET
   valueFrom:
     secretKeyRef:
       name: {{ template "docker-registry.fullname" . }}-secret
       key: haSharedSecret
+{{- end -}}
 
 {{- if or .Values.secrets.htpasswd .Values.auth.existingSecret }}
 - name: REGISTRY_AUTH

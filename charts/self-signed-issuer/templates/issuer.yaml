@@ -1,0 +1,11 @@
+{{- $name := include "self-signed-ca.name" . }}
+{{- if not .Values.root.global }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ $name }}-issuer
+  labels:
+    {{- include "self-signed-ca.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+{{- end }}

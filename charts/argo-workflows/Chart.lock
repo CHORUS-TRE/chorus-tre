@@ -1,6 +1,6 @@
 dependencies:
 - name: argo-workflows
   repository: https://argoproj.github.io/argo-helm
-  version: 0.42.0
-digest: sha256:ba31bb35ff9d84e26c007c64f21b47f3bb547bde9dd30e055210463dd6a223ac
-generated: "2024-08-21T13:34:12.239503+02:00"
+  version: 0.42.3
+digest: sha256:6faf6728b3593744d167ec95ecf9fa99900833f2347994eb6edbbb22e8ce538e
+generated: "2024-09-25T12:27:46.842783484Z"
