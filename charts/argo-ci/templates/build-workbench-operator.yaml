@@ -119,7 +119,7 @@ spec:
                             "Running")
                             state=pending
                             ;;
-                            "Success")
+                            "Succeeded")
                             state=success
                             ;;
                             "Failed")
