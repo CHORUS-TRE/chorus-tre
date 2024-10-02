@@ -136,7 +136,7 @@ spec:
                           -f "state=$state"
                           -f "description=make test: {{`{{workflow.status}}`}}"
                           -f "target_url=https://argo-workflows.build.chorus-tre.ch/workflows/{{`{{workflow.namespace}}`}}/{{`{{workflow.name}}`}}"
-                          -f "context=argo-workflow"
+                          -f "context=argo-ci"
 
           parameters:
             - src:
