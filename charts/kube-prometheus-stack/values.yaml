@@ -63,16 +63,10 @@ kube-prometheus-stack:
       retention: 3d
 
       # All pods, probes and service monitors will be used.
-      podMonitorSelector:
-        matchLabels: null
-      probeSelector:
-        matchLabels: null
-      ruleSelector:
-        matchLabels: null
-      scrapeConfigSelector:
-        matchLabels: null
-      serviceMonitorSelector:
-        matchLabels: null
+      podMonitorSelectorNilUsesHelmValues: false
+      probeSelectorNilUsesHelmValues: false
+      ruleSelectorNilUsesHelmValues: false
+      serviceMonitorSelectorNilUsesHelmValues: false
 
       storageSpec:
         volumeClaimTemplate:
