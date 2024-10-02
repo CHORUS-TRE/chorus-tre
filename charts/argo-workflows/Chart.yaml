@@ -7,8 +7,8 @@ maintainers:
   - name: greut
     email: yoan.blanc@chuv.ch
 
-version: 0.0.13
+version: 0.0.14
 dependencies:
   - name: argo-workflows
-    version: 0.42.3
+    version: 0.42.5
     repository: https://argoproj.github.io/argo-helm
