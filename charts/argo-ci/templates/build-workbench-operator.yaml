@@ -57,25 +57,39 @@ spec:
                 generateName: "-"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
-                entrypoint: build-workbench-operator
+                entrypoint: ci
                 arguments:
                   parameters:
                     - name: repo-url
-                    - name: revision
                     - name: ref
-                    - name: commitId
+                    - name: sha
                 templates:
-                  - name: ci-workbench-operator
-                    steps:
-                      - - name: ci
-                          template: ci
-
                   - name: ci
+                    steps:
+                      - - name: run-tests
+                          template: test
+
+                  - name: test
+                    inputs:
+                      artifacts:
+                        - name: git
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: argo-workflows-github-workbench-operator
+                              key: username
+                            passwordSecret:
+                              name: argo-workflows-github-workbench-operator
+                              key: password
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: golang:1.23.1
+                      image: "golang:1.23.2"
                       command: [sh, -e, -c]
                       args:
                         - make test
+                      workingDir: "/src"
 
           parameters:
             - src:
@@ -84,20 +98,16 @@ spec:
               dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: ci-workbench-operator
-                dataKey: body.after
+                dataKey: body.pull_request.head.ref
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: ci-workbench-operator
-                dataKey: body.head.ref
+                dataKey: body.pull_request.head.sha
               dest: spec.arguments.parameters.2.value
-            - src:
-                dependencyName: ci-workbench-operator
-                dataKey: body.head.sha
-              dest: spec.arguments.parameters.3.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
                 dependencyName: ci-workbench-operator
-                dataTemplate: "ci-workbench-operator-{{`{{ .Input.body.head.sha | substr 0 7 }}`}}"
+                dataTemplate: "ci-workbench-operator-pr{{`{{ .Input.body.pull_request.number }}`}}"
               dest: metadata.generateName
               operation: prepend
 
