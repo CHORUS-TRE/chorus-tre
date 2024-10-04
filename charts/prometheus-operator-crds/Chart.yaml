@@ -6,7 +6,7 @@ maintainers:
   - name: greut
     email: yoan.blanc@chuv.ch
 name: prometheus-operator-crds
-version: 0.0.4
+version: 0.0.5
 dependencies:
   - name: prometheus-operator-crds
     version: 15.0.0
