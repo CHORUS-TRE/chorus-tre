@@ -42,6 +42,7 @@ spec:
           - path: "body.action"
             type: string
             value:
+              - "opened"
               - "synchronize"
 
   triggers:
