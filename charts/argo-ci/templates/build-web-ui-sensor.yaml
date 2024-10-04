@@ -1,5 +1,7 @@
 {{- $fullName := include "argo-ci.fullname" . -}}
 {{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+{{- $githubSecretName := index .Values.githubSecrets "chorus-web-ui" }}
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
@@ -16,6 +18,10 @@ spec:
       eventName: chorus-web-ui
       filters:
         data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - push
           - path: "body.ref"
             type: string
             value:
@@ -25,7 +31,7 @@ spec:
 
   triggers:
     - template:
-        name: github-workflow-trigger-web-ui
+        name: github-workflow-trigger-build-chorus-web-ui
         k8s:
           operation: create
           source:
@@ -44,78 +50,107 @@ spec:
                       items:
                         - key: .dockerconfigjson
                           path: config.json
+
                 arguments:
                   parameters:
-                    - name: repo-url
+                    - name: repoUrl
                     - name: revision
                     - name: ref
-                    - name: commit_id
+                    - name: commitId
                     - name: tag
+
                 templates:
                   - name: build-chorus-web-ui
                     steps:
                       - - name: docker-build
-                          template: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: image
+                                value: "chorus/web-ui"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: commitId
+                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: dockerfile
+                                value: "Dockerfile"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
-                  - name: docker-build
-                    inputs:
-                      artifacts:
-                        - name: images
-                          path: "/src"
-                          git:
-                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
-                            revision: "{{`{{workflow.parameters.revision}}`}}"
-                            usernameSecret:
-                              name: argo-workflows-github-chorus-web-ui
-                              key: username
-                            passwordSecret:
-                              name: argo-workflows-github-chorus-web-ui
-                              key: password
-                            depth: 1
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                  - name: oci-credentials
                     container:
-                      image: docker:27
+                      image: backplane/jq
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
                       env:
-                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
-                        - name: BUILDX_CONFIG
-                          value: /tmp/buildx
                         - name: DOCKER_CONFIG
                           value: /.docker
-                        - name: DOCKER_HOST
-                          value: 127.0.0.1
                         - name: REGISTRY
                           value: {{ .Values.sensor.registry | quote }}
                       command: [sh, -c]
                       args:
                         - >-
-                          until docker ps;
-                            do sleep 3;
-                          done;
+                          auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
+                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
+                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' | base64 > /tmp/password
+                    outputs:
+                      parameters:
+                        - name: username
+                          valueFrom:
+                            path: /tmp/username
+                        - name: password
+                          valueFrom:
+                            path: /tmp/password
 
-                          if [ "n/a" != "{{`{{workflow.parameters.tag}}`}}" ]; then
-                          VERSION="{{`{{workflow.parameters.tag}}`}}";
-                          else
-                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
-                          fi;
-
-                          docker buildx build
-                          --pull
-                          --tag "${REGISTRY}/chorus-web-ui:${VERSION}"
-                          --output "type=registry"
-                          .
+                  - name: helm-build
+                    inputs:
+                      # FIXME: we need artifact storage to pass the password as a file.
+                      parameters:
+                        - name: oci-username
+                        - name: oci-password
+                      artifacts:
+                        - name: images
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: alpine/helm
+                      env:
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -e, -c]
+                      args:
+                        - >-
+                          helm package charts/web-ui;
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > /tmp/password
+                          cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
+                          helm push web-ui-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
-                    sidecars:
-                      - name: dind
-                        image: docker:27-dind
-                        env:
-                          - name: DOCKER_TLS_CERTDIR
-                            value: ""
-                        securityContext:
-                          privileged: true
-                        mirrorVolumeMounts: true
 
           parameters:
             - src:

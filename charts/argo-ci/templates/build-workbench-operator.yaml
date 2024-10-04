@@ -1,5 +1,6 @@
 {{- $fullName := include "argo-ci.fullname" . -}}
 {{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+{{- $githubSecretName := index .Values.githubSecrets "workbench-operator" }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
@@ -76,7 +77,7 @@ spec:
                 volumes:
                   - name: github-secret
                     secret:
-                      secretName: argo-workflows-github-workbench-operator
+                      secretName: {{ $githubSecretName }}
 
                 templates:
                   - name: ci
@@ -93,10 +94,10 @@ spec:
                             repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                             revision: "{{`{{workflow.parameters.sha}}`}}"
                             usernameSecret:
-                              name: argo-workflows-github-workbench-operator
+                              name: {{ $githubSecretName }}
                               key: username
                             passwordSecret:
-                              name: argo-workflows-github-workbench-operator
+                              name: {{ $githubSecretName }}
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
@@ -202,7 +203,7 @@ spec:
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: image
-                                value: "workbench-operator"
+                                value: "core/workbench-operator"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
                               - name: commitId
@@ -215,10 +216,10 @@ spec:
                                   repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                                   revision: "{{`{{workflow.parameters.revision}}`}}"
                                   usernameSecret:
-                                    name: argo-workflows-github-workbench-operator
+                                    name: {{ $githubSecretName }}
                                     key: username
                                   passwordSecret:
-                                    name: argo-workflows-github-workbench-operator
+                                    name: {{ $githubSecretName }}
                                     key: password
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
@@ -274,10 +275,10 @@ spec:
                             repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                             revision: "{{`{{workflow.parameters.revision}}`}}"
                             usernameSecret:
-                              name: argo-workflows-github-workbench-operator
+                              name: {{ $githubSecretName }}
                               key: username
                             passwordSecret:
-                              name: argo-workflows-github-workbench-operator
+                              name: {{ $githubSecretName }}
                               key: password
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
@@ -290,7 +291,7 @@ spec:
                       args:
                         - >-
                           helm package charts/workbench-operator;
-                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" | tee /tmp/password
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > tee /tmp/password
                           cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
                           helm push workbench-operator-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
