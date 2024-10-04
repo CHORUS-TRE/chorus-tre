@@ -8,5 +8,5 @@ maintainers:
 version: 0.0.10
 dependencies:
   - name: postgresql
-    version: 15.5.32
+    version: 15.5.38
     repository: https://charts.bitnami.com/bitnami
