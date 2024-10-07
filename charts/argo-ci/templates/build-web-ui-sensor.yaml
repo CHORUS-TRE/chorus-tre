@@ -92,6 +92,18 @@ spec:
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
+                      - - name: oci-credentials
+                          template: oci-credentials
+
+                      - - name: helm-build
+                          template: helm-build
+                          arguments:
+                            parameters:
+                              - name: oci-username
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
+                              - name: oci-password
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
+
                   - name: oci-credentials
                     container:
                       image: backplane/jq
@@ -147,7 +159,7 @@ spec:
                       args:
                         - >-
                           helm package charts/web-ui;
-                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > /tmp/password
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > /tmp/password;
                           cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
                           helm push web-ui-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
