@@ -46,16 +46,44 @@ spec:
                           path: config.json
                 arguments:
                   parameters:
-                    - name: repo-url
+                    - name: repoUrl
                     - name: revision
                     - name: ref
-                    - name: commit_id
+                    - name: commitId
                     - name: tag
                 templates:
                   - name: build-chorus-backend
                     steps:
                       - - name: docker-build
-                          template: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: image
+                                value: "chorus/backend"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: commitId
+                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: dockerfile
+                                value: "docker/dockerfiles/Dockerfile"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
+
 
                       - - name: oci-credentials
                           template: oci-credentials
@@ -68,67 +96,6 @@ spec:
                                 value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
                               - name: oci-password
                                 value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
-
-                  - name: docker-build
-                    inputs:
-                      artifacts:
-                        - name: images
-                          path: "/src"
-                          git:
-                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
-                            revision: "{{`{{workflow.parameters.revision}}`}}"
-                            usernameSecret:
-                              name: argo-workflows-github-chorus-backend
-                              key: username
-                            passwordSecret:
-                              name: argo-workflows-github-chorus-backend
-                              key: password
-                            depth: 1
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
-                    container:
-                      image: docker:27
-                      volumeMounts:
-                        - name: docker-config
-                          mountPath: /.docker
-                      env:
-                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
-                        - name: BUILDX_CONFIG
-                          value: /tmp/buildx
-                        - name: DOCKER_CONFIG
-                          value: /.docker
-                        - name: DOCKER_HOST
-                          value: 127.0.0.1
-                        - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
-                      command: [sh, -c]
-                      args:
-                        - >-
-                          until docker ps;
-                            do sleep 3;
-                          done;
-
-                          if [ "n/a" != "{{`{{workflow.parameters.tag}}`}}" ]; then
-                          VERSION="{{`{{workflow.parameters.tag}}`}}";
-                          else
-                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
-                          fi;
-
-                          docker buildx build
-                          -f docker/dockerfiles/Dockerfile
-                          --pull
-                          --tag "${REGISTRY}/chorus-backend:${VERSION}"
-                          --output "type=registry"
-                          .
-                      workingDir: "/src"
-                    sidecars:
-                      - name: dind
-                        image: docker:27-dind
-                        env:
-                          - name: DOCKER_TLS_CERTDIR
-                            value: ""
-                        securityContext:
-                          privileged: true
-                        mirrorVolumeMounts: true
 
                   - name: oci-credentials
                     container:
@@ -166,7 +133,7 @@ spec:
                         - name: images
                           path: "/src"
                           git:
-                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                             revision: "{{`{{workflow.parameters.revision}}`}}"
                             usernameSecret:
                               name: argo-workflows-github-chorus-backend
@@ -185,7 +152,7 @@ spec:
                       args:
                         - >-
                           helm package deploy/backend;
-                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" | tee /tmp/password
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > /tmp/password;
                           cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
                           helm push backend-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
