@@ -1,5 +1,7 @@
 {{- $fullName := include "argo-ci.fullname" . -}}
 {{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+{{- $githubSecretName := index .Values.githubSecrets "chorus-backend" }}
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
@@ -136,10 +138,10 @@ spec:
                             repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                             revision: "{{`{{workflow.parameters.revision}}`}}"
                             usernameSecret:
-                              name: argo-workflows-github-chorus-backend
+                              name: {{ $githubSecretName }}
                               key: username
                             passwordSecret:
-                              name: argo-workflows-github-chorus-backend
+                              name: {{ $githubSecretName }}
                               key: password
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
