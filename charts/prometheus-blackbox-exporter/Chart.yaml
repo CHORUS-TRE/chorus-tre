@@ -4,7 +4,7 @@ description: Prometheus exporter for blackbox testing
 maintainers:
   - name: greut
     email: yoan.blanc@chuv.ch
-version: 0.0.3
+version: 0.0.4
 dependencies:
   - name: prometheus-blackbox-exporter
     version: 9.0.1
