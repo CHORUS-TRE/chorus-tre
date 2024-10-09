@@ -44,15 +44,34 @@ spec:
     spec:
       project: chorus-dev
       sources:
+        {{- if hasKey . "chart" }}
         - repoURL: "registry.build.chorus-tre.ch"
           chart: 'charts/{{ trimPrefix "charts/" .chart }}'
           targetRevision: "{{.version}}" # Take version from config.json
           helm:
             valueFiles:
               - $values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml
+        {{- end }}
         - repoURL: "https://github.com/CHORUS-TRE/environments.git"
           targetRevision: HEAD
           ref: values
+        {{- if hasKey . "source" }}
+        - repoURL: '{{ .source.repoURL }}'
+          path: '{{ .source.path }}'
+          targetRevision: '{{ .source.targetRevision }}'
+          helm:
+            valueFiles:
+            {{- range .source.helm.valueFiles }}
+            - '{{ . }}'
+            {{- end }}
+            {{- if .source.helm.fileParameters }}
+            fileParameters:
+            {{- range .source.helm.fileParameters }}
+            - name: '{{ .name }}'
+              path: '{{ .path }}'
+            {{- end }}
+            {{- end }}
+        {{- end }}
 
       destination:
         name: chorus-dev
