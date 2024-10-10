@@ -44,6 +44,24 @@ spec:
     spec:
       project: chorus-dev
       sources:
+        - repoURL: "https://github.com/CHORUS-TRE/environments.git"
+          targetRevision: HEAD
+          ref: values
+
+      destination:
+        name: chorus-dev
+        namespace: "{{.namespace}}" # Take namespace from config.json
+      syncPolicy:
+        automated:
+          prune: true # Optionally enable pruning for resources not defined in Git
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - preserveResourcesOnDeletion=true
+          - 'ServerSideApply={{ if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'
+  templatePatch: |
+    spec:
+      sources:
         {{- if hasKey . "chart" }}
         - repoURL: "registry.build.chorus-tre.ch"
           chart: 'charts/{{ trimPrefix "charts/" .chart }}'
@@ -52,9 +70,6 @@ spec:
             valueFiles:
               - $values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml
         {{- end }}
-        - repoURL: "https://github.com/CHORUS-TRE/environments.git"
-          targetRevision: HEAD
-          ref: values
         {{- if hasKey . "source" }}
         - repoURL: '{{ .source.repoURL }}'
           path: '{{ .source.path }}'
@@ -72,15 +87,3 @@ spec:
             {{- end }}
             {{- end }}
         {{- end }}
-
-      destination:
-        name: chorus-dev
-        namespace: "{{.namespace}}" # Take namespace from config.json
-      syncPolicy:
-        automated:
-          prune: true # Optionally enable pruning for resources not defined in Git
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
-          - preserveResourcesOnDeletion=true
-          - 'ServerSideApply={{ if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'
