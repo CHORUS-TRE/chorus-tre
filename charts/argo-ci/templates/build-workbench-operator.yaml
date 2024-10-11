@@ -1,19 +1,28 @@
 {{- $fullName := include "argo-ci.fullname" . -}}
 {{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+{{- $githubSecretName := index .Values.githubSecrets "workbench-operator" }}
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
   name: {{ $fullName }}-build-workbench-operator
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   eventBusName: {{ $fullName }}-default
   template:
     serviceAccountName: {{ $serviceAccountName }}
+
   dependencies:
     - name: build-workbench-operator
       eventSourceName: {{ $fullName }}-github
       eventName: workbench-operator
       filters:
         data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - push
           - path: "body.ref"
             type: string
             value:
@@ -21,9 +30,143 @@ spec:
               #- "refs/heads/master"
               - "refs/tags/v*"
 
+    - name: ci-workbench-operator
+      eventSourceName: {{ $fullName }}-github
+      eventName: workbench-operator
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - pull_request
+          - path: "body.action"
+            type: string
+            value:
+              - "opened"
+              - "synchronize"
+
   triggers:
     - template:
-        name: github-workflow-trigger-workbench-operator
+        conditions: ci-workbench-operator
+        name: github-workflow-trigger-ci-workbench-operator
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: ci
+
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: ref
+                    - name: sha
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    template: notify
+                  exit:
+                    template: notify
+
+                volumes:
+                  - name: github-secret
+                    secret:
+                      secretName: {{ $githubSecretName }}
+
+                templates:
+                  - name: ci
+                    steps:
+                      - - name: run-tests
+                          template: test
+
+                  - name: test
+                    inputs:
+                      artifacts:
+                        - name: git
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: "golang:1.23.2"
+                      command: [sh, -e, -c]
+                      args:
+                        - make test
+                      workingDir: "/src"
+
+                  - name: notify
+                    container:
+                      image: "ghcr.io/supportpal/github-gh-cli"
+                      command: [sh, -e, -c]
+                      volumeMounts:
+                        - name: github-secret
+                          mountPath: /secret/github
+                      args:
+                        - >-
+                          case "{{`{{workflow.status}}`}}" in
+                            "Running")
+                            state=pending
+                            ;;
+                            "Succeeded")
+                            state=success
+                            ;;
+                            "Failed")
+                            state=failure
+                            ;;
+                            *)
+                            state=error
+                            ;;
+                          esac;
+                          echo $state;
+                          gh auth login --with-token < /secret/github/password;
+                          gh api --method POST
+                          /repos/{{`{{workflow.parameters.repoFullName}}`}}/statuses/{{`{{workflow.parameters.sha}}`}}
+                          -f "state=$state"
+                          -f "description=make test: {{`{{workflow.status}}`}}"
+                          -f "target_url=https://argo-workflows.build.chorus-tre.ch/workflows/{{`{{workflow.namespace}}`}}/{{`{{workflow.name}}`}}"
+                          -f "context=argo-ci"
+
+          parameters:
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.pull_request.head.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.pull_request.head.sha
+              dest: spec.arguments.parameters.3.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "ci-workbench-operator-pr{{`{{ .Input.body.pull_request.number }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+
+    - template:
+        conditions: build-workbench-operator
+        name: github-workflow-trigger-build-workbench-operator
         k8s:
           operation: create
           source:
@@ -44,16 +187,43 @@ spec:
                           path: config.json
                 arguments:
                   parameters:
-                    - name: repo-url
+                    - name: repoUrl
                     - name: revision
                     - name: ref
-                    - name: commit_id
+                    - name: commitId
                     - name: tag
                 templates:
                   - name: build-workbench-operator
                     steps:
                       - - name: docker-build
-                          template: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: image
+                                value: "chorus/workbench-operator"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: commitId
+                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: dockerfile
+                                value: "Dockerfile"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
                       - - name: oci-credentials
                           template: oci-credentials
@@ -66,66 +236,6 @@ spec:
                                 value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
                               - name: oci-password
                                 value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
-
-                  - name: docker-build
-                    inputs:
-                      artifacts:
-                        - name: images
-                          path: "/src"
-                          git:
-                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
-                            revision: "{{`{{workflow.parameters.revision}}`}}"
-                            usernameSecret:
-                              name: argo-workflows-github-workbench-operator
-                              key: username
-                            passwordSecret:
-                              name: argo-workflows-github-workbench-operator
-                              key: password
-                            depth: 1
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
-                    container:
-                      image: docker:27
-                      volumeMounts:
-                        - name: docker-config
-                          mountPath: /.docker
-                      env:
-                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
-                        - name: BUILDX_CONFIG
-                          value: /tmp/buildx
-                        - name: DOCKER_CONFIG
-                          value: /.docker
-                        - name: DOCKER_HOST
-                          value: 127.0.0.1
-                        - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
-                      command: [sh, -c]
-                      args:
-                        - >-
-                          until docker ps;
-                            do sleep 3;
-                          done;
-
-                          if [ "n/a" != "{{`{{workflow.parameters.tag}}`}}" ]; then
-                          VERSION="{{`{{workflow.parameters.tag}}`}}";
-                          else
-                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
-                          fi;
-
-                          docker buildx build
-                          --pull
-                          --tag "${REGISTRY}/workbench-operator:${VERSION}"
-                          --output "type=registry"
-                          .
-                      workingDir: "/src"
-                    sidecars:
-                      - name: dind
-                        image: docker:27-dind
-                        env:
-                          - name: DOCKER_TLS_CERTDIR
-                            value: ""
-                        securityContext:
-                          privileged: true
-                        mirrorVolumeMounts: true
 
                   - name: oci-credentials
                     container:
@@ -163,13 +273,13 @@ spec:
                         - name: images
                           path: "/src"
                           git:
-                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                             revision: "{{`{{workflow.parameters.revision}}`}}"
                             usernameSecret:
-                              name: argo-workflows-github-workbench-operator
+                              name: {{ $githubSecretName }}
                               key: username
                             passwordSecret:
-                              name: argo-workflows-github-workbench-operator
+                              name: {{ $githubSecretName }}
                               key: password
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
@@ -182,7 +292,7 @@ spec:
                       args:
                         - >-
                           helm package charts/workbench-operator;
-                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" | tee /tmp/password
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > /tmp/password;
                           cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
                           helm push workbench-operator-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
@@ -214,5 +324,6 @@ spec:
                 dataTemplate: "build-workbench-operator-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
+
       retryStrategy:
         steps: 3
