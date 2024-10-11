@@ -29,8 +29,147 @@ spec:
               #- "refs/heads/main"
               - "refs/tags/v*"
 
+    - name: ci-chorus-web-ui
+      eventSourceName: {{ $fullName }}-github
+      eventName: chorus-web-ui
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - pull_request
+          - path: "body.action"
+            type: string
+            value:
+              - "opened"
+              - "synchronize"
+
   triggers:
     - template:
+        conditions: ci-chorus-web-ui
+        name: github-workflow-trigger-ci-chorus-web-ui
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: ci
+
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: ref
+                    - name: sha
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    template: notify
+                  exit:
+                    template: notify
+
+                volumes:
+                  - name: github-secret
+                    secret:
+                      secretName: {{ $githubSecretName }}
+
+                templates:
+                  - name: ci
+                    steps:
+                      - - name: run-tests
+                          template: test
+
+                  - name: test
+                    inputs:
+                      artifacts:
+                        - name: git
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: "node:20-bookworm"
+                      command: [sh, -e, -c]
+                      args:
+                        - >-
+                          corepack enable pnpm;
+                          pnpm i --frozen-lockfile;
+                          pnpm build;
+                          pnpm test:run
+
+                      workingDir: "/src"
+
+                  - name: notify
+                    container:
+                      image: "ghcr.io/supportpal/github-gh-cli"
+                      command: [sh, -e, -c]
+                      volumeMounts:
+                        - name: github-secret
+                          mountPath: /secret/github
+                      args:
+                        - >-
+                          case "{{`{{workflow.status}}`}}" in
+                            "Running")
+                            state=pending
+                            ;;
+                            "Succeeded")
+                            state=success
+                            ;;
+                            "Failed")
+                            state=failure
+                            ;;
+                            *)
+                            state=error
+                            ;;
+                          esac;
+                          echo $state;
+                          gh auth login --with-token < /secret/github/password;
+                          gh api --method POST
+                          /repos/{{`{{workflow.parameters.repoFullName}}`}}/statuses/{{`{{workflow.parameters.sha}}`}}
+                          -f "state=$state"
+                          -f "description=pnpm test:run {{`{{workflow.status}}`}}"
+                          -f "target_url=https://argo-workflows.build.chorus-tre.ch/workflows/{{`{{workflow.namespace}}`}}/{{`{{workflow.name}}`}}"
+                          -f "context=argo-ci"
+
+          parameters:
+            - src:
+                dependencyName: ci-chorus-web-ui
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: ci-chorus-web-ui
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: ci-chorus-web-ui
+                dataKey: body.pull_request.head.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: ci-chorus-web-ui
+                dataKey: body.pull_request.head.sha
+              dest: spec.arguments.parameters.3.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: ci-chorus-web-ui
+                dataTemplate: "ci-chorus-web-ui-pr{{`{{ .Input.body.pull_request.number }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+
+    - template:
+        conditions: build-chorus-web-ui
         name: github-workflow-trigger-build-chorus-web-ui
         k8s:
           operation: create
@@ -191,5 +330,6 @@ spec:
                 dataTemplate: "build-web-ui-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
+
       retryStrategy:
         steps: 3
