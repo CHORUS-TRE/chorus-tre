@@ -80,8 +80,11 @@ echo -e "ArgoCD is available at: https://argo-cd.build.$DOMAIN_NAME\n"
 # display OCI Registry URL
 echo -e "OCI Registry is available at: https://registry.build.$DOMAIN_NAME\n"
 
-# deploy the ApplicationSet
-kubectl -n argocd apply -f deployment/applicationset/applicationset-chorus.yaml
+# deploy the ApplicationSets
+ls deployment/applicationset/applicationset-chorus-*.yaml | xargs -n 1 kubectl -n argocd apply -f
+
+deploy the Projects
+ls deployment/project/chorus-*.yaml | xargs -n 1 kubectl -n argocd apply -f
 
 # display DNS records
 ARGOCD_EXTERNAL_IP=$(kubectl -n argocd get ingress chorus-build-argo-cd-argocd-server -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
