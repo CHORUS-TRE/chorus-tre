@@ -1,5 +1,7 @@
 {{- $fullName := include "argo-ci.fullname" . -}}
 {{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+{{- $githubSecretName := index .Values.githubSecrets "chorus-backend" }}
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
@@ -16,6 +18,10 @@ spec:
       eventName: chorus-backend
       filters:
         data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - push
           - path: "body.ref"
             type: string
             value:
@@ -23,8 +29,136 @@ spec:
               - "refs/heads/master"
               #- "refs/tags/v*"
 
+    - name: ci-chorus-backend
+      eventSourceName: {{ $fullName }}-github
+      eventName: chorus-backend
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - pull_request
+          - path: "body.action"
+            type: string
+            value:
+              - "opened"
+              - "synchronize"
+
   triggers:
     - template:
+        conditions: ci-chorus-backend
+        name: github-workflow-trigger-ci-chorus-backend
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: go-test
+
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: ref
+                    - name: sha
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                  exit:
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+
+                templates:
+                  - name: go-test
+                    steps:
+                      - - name: run-tests
+                          template: test
+
+                  - name: test
+                    inputs:
+                      artifacts:
+                        - name: git
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: "golang:1.22-bookworm"
+                      command: [sh, -e, -c]
+                      args:
+                        - >-
+                          go test -v ./...
+
+                      workingDir: "/src"
+
+          parameters:
+            - src:
+                dependencyName: ci-chorus-backend
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: ci-chorus-backend
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: ci-chorus-backend
+                dataKey: body.pull_request.head.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: ci-chorus-backend
+                dataKey: body.pull_request.head.sha
+              dest: spec.arguments.parameters.3.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: ci-chorus-backend
+                dataTemplate: "ci-chorus-backend-pr{{`{{ .Input.body.pull_request.number }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: ci-chorus-backend
+                dataTemplate: "CI {{`{{ .Input.body.repository.name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: ci-chorus-backend
+                dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
+
+    - template:
+        conditions: build-chorus-backend
         name: github-workflow-trigger-chorus-backend
         k8s:
           operation: create
@@ -46,16 +180,44 @@ spec:
                           path: config.json
                 arguments:
                   parameters:
-                    - name: repo-url
+                    - name: repoUrl
                     - name: revision
                     - name: ref
-                    - name: commit_id
+                    - name: commitId
                     - name: tag
                 templates:
                   - name: build-chorus-backend
                     steps:
                       - - name: docker-build
-                          template: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: image
+                                value: "chorus/backend"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: commitId
+                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: dockerfile
+                                value: "docker/dockerfiles/Dockerfile"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
+
 
                       - - name: oci-credentials
                           template: oci-credentials
@@ -68,67 +230,6 @@ spec:
                                 value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
                               - name: oci-password
                                 value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
-
-                  - name: docker-build
-                    inputs:
-                      artifacts:
-                        - name: images
-                          path: "/src"
-                          git:
-                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
-                            revision: "{{`{{workflow.parameters.revision}}`}}"
-                            usernameSecret:
-                              name: argo-workflows-github-chorus-backend
-                              key: username
-                            passwordSecret:
-                              name: argo-workflows-github-chorus-backend
-                              key: password
-                            depth: 1
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
-                    container:
-                      image: docker:27
-                      volumeMounts:
-                        - name: docker-config
-                          mountPath: /.docker
-                      env:
-                          # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
-                        - name: BUILDX_CONFIG
-                          value: /tmp/buildx
-                        - name: DOCKER_CONFIG
-                          value: /.docker
-                        - name: DOCKER_HOST
-                          value: 127.0.0.1
-                        - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
-                      command: [sh, -c]
-                      args:
-                        - >-
-                          until docker ps;
-                            do sleep 3;
-                          done;
-
-                          if [ "n/a" != "{{`{{workflow.parameters.tag}}`}}" ]; then
-                          VERSION="{{`{{workflow.parameters.tag}}`}}";
-                          else
-                          VERSION="$(date +%Y%m%d)-{{`{{workflow.parameters.commit_id}}`}}";
-                          fi;
-
-                          docker buildx build
-                          -f docker/dockerfiles/Dockerfile
-                          --pull
-                          --tag "${REGISTRY}/chorus-backend:${VERSION}"
-                          --output "type=registry"
-                          .
-                      workingDir: "/src"
-                    sidecars:
-                      - name: dind
-                        image: docker:27-dind
-                        env:
-                          - name: DOCKER_TLS_CERTDIR
-                            value: ""
-                        securityContext:
-                          privileged: true
-                        mirrorVolumeMounts: true
 
                   - name: oci-credentials
                     container:
@@ -166,13 +267,13 @@ spec:
                         - name: images
                           path: "/src"
                           git:
-                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                             revision: "{{`{{workflow.parameters.revision}}`}}"
                             usernameSecret:
-                              name: argo-workflows-github-chorus-backend
+                              name: {{ $githubSecretName }}
                               key: username
                             passwordSecret:
-                              name: argo-workflows-github-chorus-backend
+                              name: {{ $githubSecretName }}
                               key: password
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
@@ -185,7 +286,7 @@ spec:
                       args:
                         - >-
                           helm package deploy/backend;
-                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" | tee /tmp/password
+                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > /tmp/password;
                           cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
                           helm push backend-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"

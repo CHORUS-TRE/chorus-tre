@@ -1,0 +1,63 @@
+{{- $name := include "argo-ci.name" . -}}
+{{- $fullName := include "argo-ci.fullname" . -}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: {{ $fullName }}-github-notify-template
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
+spec:
+  arguments:
+    parameters:
+      - name: repoFullName
+      - name: sha
+      - name: githubSecret
+
+  templates:
+  - name: github-notify
+    inputs:
+      parameters:
+        - name: repoFullName
+        - name: sha
+        - name: githubSecret
+
+    volumes:
+      - name: github-secret
+        secret:
+          secretName: "{{`{{inputs.parameters.githubSecret}}`}}"
+
+    container:
+      image: "ghcr.io/supportpal/github-gh-cli"
+      command: [sh, -e, -c]
+      volumeMounts:
+        - name: github-secret
+          mountPath: /secret/github
+      args:
+        - >-
+          case "{{`{{workflow.status}}`}}" in
+            "Running")
+            state=pending
+            verb=is
+            ;;
+            "Succeeded")
+            state=success
+            verb=has
+            ;;
+            "Failed")
+            state=failure
+            verb=has
+            ;;
+            *)
+            state=error
+            verb="got unexpected"
+            ;;
+          esac;
+          echo $state;
+          gh auth login --with-token < /secret/github/password;
+          gh api --method POST
+          /repos/{{`{{inputs.parameters.repoFullName}}`}}/statuses/{{`{{inputs.parameters.sha}}`}}
+          -f "state=$state"
+          -f "description={{`{{workflow.mainEntrypoint}}`}} $verb {{`{{workflow.status}}`}}"
+          -f "target_url=https://argo-workflows.build.chorus-tre.ch/workflows/{{`{{workflow.namespace}}`}}/{{`{{workflow.name}}`}}"
+          -f "context={{ $name }}"

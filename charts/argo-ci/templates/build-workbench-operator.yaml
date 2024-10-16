@@ -59,7 +59,7 @@ spec:
                 generateName: "-"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
-                entrypoint: ci
+                entrypoint: make-test
 
                 arguments:
                   parameters:
@@ -71,22 +71,37 @@ spec:
                 hooks:
                   running:
                     expression: workflow.status == "Running"
-                    template: notify
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
                   exit:
-                    template: notify
-
-                volumes:
-                  - name: github-secret
-                    secret:
-                      secretName: {{ $githubSecretName }}
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
 
                 templates:
-                  - name: ci
+                  - name: make-test
                     steps:
-                      - - name: run-tests
-                          template: test
+                      - - name: ci
+                          template: ci
 
-                  - name: test
+                  - name: ci
                     inputs:
                       artifacts:
                         - name: git
@@ -107,38 +122,6 @@ spec:
                       args:
                         - make test
                       workingDir: "/src"
-
-                  - name: notify
-                    container:
-                      image: "ghcr.io/supportpal/github-gh-cli"
-                      command: [sh, -e, -c]
-                      volumeMounts:
-                        - name: github-secret
-                          mountPath: /secret/github
-                      args:
-                        - >-
-                          case "{{`{{workflow.status}}`}}" in
-                            "Running")
-                            state=pending
-                            ;;
-                            "Succeeded")
-                            state=success
-                            ;;
-                            "Failed")
-                            state=failure
-                            ;;
-                            *)
-                            state=error
-                            ;;
-                          esac;
-                          echo $state;
-                          gh auth login --with-token < /secret/github/password;
-                          gh api --method POST
-                          /repos/{{`{{workflow.parameters.repoFullName}}`}}/statuses/{{`{{workflow.parameters.sha}}`}}
-                          -f "state=$state"
-                          -f "description=make test: {{`{{workflow.status}}`}}"
-                          -f "target_url=https://argo-workflows.build.chorus-tre.ch/workflows/{{`{{workflow.namespace}}`}}/{{`{{workflow.name}}`}}"
-                          -f "context=argo-ci"
 
           parameters:
             - src:
@@ -163,6 +146,15 @@ spec:
                 dataTemplate: "ci-workbench-operator-pr{{`{{ .Input.body.pull_request.number }}`}}"
               dest: metadata.generateName
               operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "**CI** {{`{{ .Input.body.repository.full_name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
 
     - template:
         conditions: build-workbench-operator
@@ -204,7 +196,7 @@ spec:
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: image
-                                value: "core/workbench-operator"
+                                value: "chorus/workbench-operator"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
                               - name: commitId
