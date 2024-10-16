@@ -150,6 +150,15 @@ spec:
                 dataTemplate: "ci-chorus-web-ui-pr{{`{{ .Input.body.pull_request.number }}`}}"
               dest: metadata.generateName
               operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "**CI** {{`{{ .Input.body.repository.full_name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
 
     - template:
         conditions: build-chorus-web-ui

@@ -29,7 +29,7 @@ spec:
 
     container:
       image: "ghcr.io/supportpal/github-gh-cli"
-      command: [sh, -xe, -c]
+      command: [sh, -e, -c]
       volumeMounts:
         - name: github-secret
           mountPath: /secret/github
