@@ -4,6 +4,12 @@ valkey:
   master:
     resourcesPreset: micro
 
+    # See: https://github.com/bitnami/charts/blob/main/bitnami/valkey/README.md#host-kernel-settings
+    podSecurityContext:
+      sysctls:
+        - name: net.core.somaxconn
+          value: "10000"
+
     persistence:
       size: 2Gi
 
