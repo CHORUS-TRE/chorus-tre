@@ -61,3 +61,12 @@ certificate:
 
   issuerRef:
     name: CHANGEME-issuer
+
+  probe:
+    enabled: false
+
+    labels:
+      environment: production
+
+    prober:
+      url: prometheus-blackbox-exporter.prometheus.svc:9115
