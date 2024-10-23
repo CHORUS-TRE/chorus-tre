@@ -153,7 +153,7 @@ spec:
             # Generate a nice title and description
             - src:
                 dependencyName: ci-workbench-operator
-                dataTemplate: "**CI** {{`{{ .Input.body.repository.full_name }}`}}"
+                dataTemplate: "CI {{`{{ .Input.body.repository.full_name }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/title
             - src:
                 dependencyName: ci-workbench-operator
