@@ -56,6 +56,16 @@ spec:
           value: /.docker
         - name: DOCKER_HOST
           value: 127.0.0.1
+        - name: DOCKERFILE
+          value: "{{`{{inputs.parameters.dockerfile}}`}}"
+        - name: REGISTRY
+          value: "{{`{{inputs.parameters.registry}}`}}"
+        - name: REVISION
+          value: "{{`{{inputs.parameters.commitId}}`}}"
+        - name: IMAGE
+          value: "{{`{{inputs.parameters.image}}`}}"
+        - name: TAG
+          value: "{{`{{inputs.parameters.tag}}`}}"
       command: [sh, -e, -c]
       args:
         - >-
@@ -63,21 +73,19 @@ spec:
             do sleep 3;
           done;
 
-          REVISION="{{`{{inputs.parameters.commitId}}`}}";
-
-          if [ "n/a" != "{{`{{inputs.parameters.tag}}`}}" ]; then
-          VERSION="{{`{{inputs.parameters.tag}}`}}";
+          if [ -n "${TAG}" ] && [ "n/a" != "${TAG}" ]; then
+            version="${TAG}";
           else
-          VERSION="$(date +%Y%m%d)-${REVISION}";
+            version="$(date +%Y%m%d)-${REVISION}";
           fi;
 
-          TAG="{{`{{inputs.parameters.registry}}`}}/{{`{{inputs.parameters.image}}`}}:${VERSION}";
+          tag="${REGISTRY}/${IMAGE}:${version}";
 
           docker buildx build
           --pull
-          --file "{{`{{inputs.parameters.dockerfile}}`}}"
+          --file "${DOCKERFILE}"
           --label "org.opencontainers.image.revision=${REVISION}"
-          --tag "${TAG}"
+          --tag "${tag}"
           --output "type=registry"
           .
       workingDir: "/src"
