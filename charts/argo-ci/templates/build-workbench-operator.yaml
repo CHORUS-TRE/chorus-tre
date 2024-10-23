@@ -149,7 +149,7 @@ spec:
             # Generate a nice title and description
             - src:
                 dependencyName: ci-workbench-operator
-                dataTemplate: "**CI** {{`{{ .Input.body.repository.full_name }}`}}"
+                dataTemplate: "CI {{`{{ .Input.body.repository.full_name }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/title
             - src:
                 dependencyName: ci-workbench-operator
@@ -193,8 +193,6 @@ spec:
                             template: docker-build
                           arguments:
                             parameters:
-                              - name: registry
-                                value: {{ .Values.sensor.registry | quote }}
                               - name: image
                                 value: "chorus/workbench-operator"
                               - name: tag
@@ -203,6 +201,11 @@ spec:
                                 value: "{{`{{workflow.parameters.commitId}}`}}"
                               - name: dockerfile
                                 value: "Dockerfile"
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+
                             artifacts:
                               - name: source
                                 git:
@@ -284,8 +287,8 @@ spec:
                       args:
                         - >-
                           helm package charts/workbench-operator;
-                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > /tmp/password;
-                          cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
+                          echo -n '{{`{{inputs.parameters.oci-password}}`}}' > /tmp/password;
+                          cat /tmp/password | base64 -d | helm registry login -u '{{`{{inputs.parameters.oci-username}}`}}' --password-stdin  "${REGISTRY}";
                           helm push workbench-operator-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
 
