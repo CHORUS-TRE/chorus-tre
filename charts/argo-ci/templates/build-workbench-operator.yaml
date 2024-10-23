@@ -287,8 +287,8 @@ spec:
                       args:
                         - >-
                           helm package charts/workbench-operator;
-                          echo -n "{{`{{inputs.parameters.oci-password}}`}}" > /tmp/password;
-                          cat /tmp/password | base64 -d | helm registry login -u "{{`{{inputs.parameters.oci-username}}`}}" --password-stdin  "${REGISTRY}";
+                          echo -n '{{`{{inputs.parameters.oci-password}}`}}' > /tmp/password;
+                          cat /tmp/password | base64 -d | helm registry login -u '{{`{{inputs.parameters.oci-username}}`}}' --password-stdin  "${REGISTRY}";
                           helm push workbench-operator-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
 
