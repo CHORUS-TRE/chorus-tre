@@ -71,7 +71,7 @@ spec:
           VERSION="$(date +%Y%m%d)-${REVISION}";
           fi;
 
-          TAG="{{`{{inputs.parameters.registry}}`}}/{{`inputs.parameters.image`}}:${VERSION}";
+          TAG="{{`{{inputs.parameters.registry}}`}}/{{`{{inputs.parameters.image}}`}}:${VERSION}";
 
           docker buildx build
           --pull
