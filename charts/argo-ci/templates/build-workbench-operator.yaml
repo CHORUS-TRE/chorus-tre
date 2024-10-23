@@ -193,8 +193,6 @@ spec:
                             template: docker-build
                           arguments:
                             parameters:
-                              - name: registry
-                                value: {{ .Values.sensor.registry | quote }}
                               - name: image
                                 value: "chorus/workbench-operator"
                               - name: tag
@@ -203,6 +201,11 @@ spec:
                                 value: "{{`{{workflow.parameters.commitId}}`}}"
                               - name: dockerfile
                                 value: "Dockerfile"
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+
                             artifacts:
                               - name: source
                                 git:

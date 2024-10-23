@@ -17,17 +17,13 @@ spec:
         value: ""
       - name: dockerfile
         value: "Dockerfile"
-      - name: registry
-        value: "registry.build.chorus-tre.local"
       - name: image
         value: ""
-  volumes:
-    - name: docker-config
-      secret:
-        secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
-        items:
-          - key: .dockerconfigjson
-            path: config.json
+      - name: registry
+        value: "registry.build.chorus-tre.ch"
+      - name: dockerConfigSecret
+        value: ""
+
   templates:
   - name: docker-build
     inputs:
@@ -35,13 +31,21 @@ spec:
         - name: tag
         - name: commitId
         - name: dockerfile
-        - name: registry
         - name: image
+        - name: registry
+        - name: dockerConfigSecret
       artifacts:
         - name: source
           path: "/src"
+    volumes:
+      - name: docker-config
+        secret:
+          secretName: {{`{{inputs.parameters.dockerConfigSecret}}`}}
+          items:
+            - key: .dockerconfigjson
+              path: config.json
     container:
-      image: docker:27
+      image: "docker:27"
       volumeMounts:
         - name: docker-config
           mountPath: /.docker
@@ -53,33 +57,34 @@ spec:
           value: /.docker
         - name: DOCKER_HOST
           value: 127.0.0.1
-        - name: REGISTRY
-          value: "{{`{{inputs.parameters.registry}}`}}"
-        - name: IMAGE
-          value: "{{`{{inputs.parameters.image}}`}}"
-      command: [sh, -c]
+      command: [sh, -e, -c]
       args:
         - >-
           until docker ps;
             do sleep 3;
           done;
 
+          REVISION="{{`{{inputs.parameters.commitId}}`}}";
+
           if [ "n/a" != "{{`{{inputs.parameters.tag}}`}}" ]; then
           VERSION="{{`{{inputs.parameters.tag}}`}}";
           else
-          VERSION="$(date +%Y%m%d)-{{`{{inputs.parameters.commitId}}`}}";
+          VERSION="$(date +%Y%m%d)-${REVISION}";
           fi;
+
+          TAG="{{`{{inputs.parameters.registry}}`}}/{{`inputs.parameters.image`}}:${VERSION}";
 
           docker buildx build
           --pull
-          --file {{`{{inputs.parameters.dockerfile}}`}}
-          --tag "${REGISTRY}/${IMAGE}:${VERSION}"
+          --file "{{`{{inputs.parameters.dockerfile}}`}}"
+          --label "org.opencontainers.image.revision=${REVISION}"
+          --tag "${TAG}"
           --output "type=registry"
           .
       workingDir: "/src"
     sidecars:
       - name: dind
-        image: docker:27-dind
+        image: "docker:27-dind"
         env:
           - name: DOCKER_TLS_CERTDIR
             value: ""

@@ -9,10 +9,10 @@ fullnameOverride: ""
 
 sensor:
   # Where the OCI images built by the sensor are pushed to.
-  registry: registry.build.chorus-tre.local
+  registry: harbor.build.chorus-tre.local
   # This secret shall be of type kubernetes.io/dockerconfigjson
   dockerConfig:
-    secretName: registry-dockerconfigjson-secret
+    secretName: harbor-dockerconfigjson-secret
 
 # Creates the webhook and matching events on the GibHub EventSource.
 webhookEvents:

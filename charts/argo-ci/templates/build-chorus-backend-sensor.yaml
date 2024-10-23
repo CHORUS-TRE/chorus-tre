@@ -194,8 +194,6 @@ spec:
                             template: docker-build
                           arguments:
                             parameters:
-                              - name: registry
-                                value: {{ .Values.sensor.registry | quote }}
                               - name: image
                                 value: "chorus/backend"
                               - name: tag
@@ -204,6 +202,10 @@ spec:
                                 value: "{{`{{workflow.parameters.commitId}}`}}"
                               - name: dockerfile
                                 value: "docker/dockerfiles/Dockerfile"
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
                             artifacts:
                               - name: source
                                 git:
@@ -217,7 +219,6 @@ spec:
                                     key: password
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
-
 
                       - - name: oci-credentials
                           template: oci-credentials
