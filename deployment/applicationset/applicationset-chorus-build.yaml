@@ -44,7 +44,7 @@ spec:
     spec:
       project: chorus-build
       sources:
-        - repoURL: "registry.build.chorus-tre.ch"
+        - repoURL: "harbor.build.chorus-tre.ch"
           chart: 'charts/{{ trimPrefix "charts/" .chart }}'
           targetRevision: "{{.version}}" # Take version from config.json
           helm:
