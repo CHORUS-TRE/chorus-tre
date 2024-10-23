@@ -14,15 +14,12 @@ spec:
       - name: tag
         value: "n/a"
       - name: commitId
-        value: ""
       - name: dockerfile
         value: "Dockerfile"
       - name: image
-        value: ""
       - name: registry
-        value: "registry.build.chorus-tre.ch"
+        value: "registry.build.chorus-tre.local"
       - name: dockerConfigSecret
-        value: ""
 
   templates:
   - name: docker-build
@@ -37,13 +34,15 @@ spec:
       artifacts:
         - name: source
           path: "/src"
+
     volumes:
       - name: docker-config
         secret:
-          secretName: {{`{{inputs.parameters.dockerConfigSecret}}`}}
+          secretName: "{{`{{inputs.parameters.dockerConfigSecret}}`}}"
           items:
             - key: .dockerconfigjson
               path: config.json
+
     container:
       image: "docker:27"
       volumeMounts:
