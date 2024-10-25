@@ -8,11 +8,7 @@ managedSecrets: []
   #  matchNamespace:
   #    - ".*"
   #  avoidNamespaces:
-  #    - cloud-init-settings
-  #    - clustersecret
   #    - default
-  #    - kube-node-lease
-  #    - kube-public
   #    - kube-system
   #  type: kubernetes.io/dockerconfigjson
   #  data:
