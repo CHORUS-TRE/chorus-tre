@@ -1,1 +1,22 @@
 cluster-secret: {}
+
+managedSecrets: []
+  # Just like in the documentation: https://clustersecret.com/
+  #- metadata:
+  #    name: regcred
+  #    namespace: default
+  #  matchNamespace:
+  #    - ".*"
+  #  avoidNamespaces:
+  #    - cloud-init-settings
+  #    - clustersecret
+  #    - default
+  #    - kube-node-lease
+  #    - kube-public
+  #    - kube-system
+  #  type: kubernetes.io/dockerconfigjson
+  #  data:
+  #    valueFrom:
+  #      secretKeyRef:
+  #        name: regcred
+  #        namespace: default
