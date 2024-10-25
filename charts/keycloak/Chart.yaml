@@ -1,10 +1,10 @@
 apiVersion: v2
 description: Keycloak is a high performance Java-based identity and access management solution. It lets developers add an authentication layer to their applications with minimum effort.
 name: keycloak
-version: 0.0.24
+version: 0.0.25
 dependencies:
   - name: keycloak
-    version: 24.0.1
+    version: 24.0.2
     repository: https://charts.bitnami.com/bitnami
 
 maintainers:
