@@ -70,5 +70,5 @@ spec:
           | helm registry login -u "${username}" --password-stdin "${REGISTRY}";
 
           helm package "${CHARTS_DIR}/${CHART_NAME}";
-          helm push "${CHART_NAME}-*.tgz" "oci://${REGISTRY}/charts"
+          helm push ${CHART_NAME}-*.tgz "oci://${REGISTRY}/charts"
       workingDir: "/src"

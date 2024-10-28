@@ -209,7 +209,7 @@ spec:
                         - name: repoFullName
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
-                          value: "{{`{{workflow.parameters.commitId}}`}}"
+                          value: "{{`{{workflow.parameters.sha}}`}}"
                         - name: githubSecret
                           value: {{ $githubSecretName }}
 
