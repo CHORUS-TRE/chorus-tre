@@ -1,0 +1,87 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: {{ $fullName }}-helm-publish-template
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
+spec:
+  arguments:
+    artifacts:
+      - name: source
+    parameters:
+      - name: chartsDir
+        value: "charts"
+      - name: chartName
+        value: "my-chart"
+      - name: registry
+        value: "registry.build.chorus-tre.local"
+      - name: dockerConfigSecret
+
+  templates:
+  - name: helm-publish
+    steps:
+      - - name: credentials
+          template: credentials
+
+      - - name: helm
+          template: helm
+          arguments:
+            parameters:
+              - name: credentials
+                value: "{{`{{steps.credentials.outputs.parameters.credentials}}`}}"
+
+  - name: credentials
+    container:
+      image: backplane/jq
+      volumeMounts:
+        - name: docker-config
+          mountPath: /.docker
+      env:
+        - name: DOCKER_CONFIG
+          value: /.docker
+        - name: REGISTRY
+          value: "{{`{{inputs.parameters.registry}}`}}"
+      command: [sh, -x, -c]
+      args:
+        - >-
+          cat $"{DOCKER_CONFIG}/config.json"
+          | jq -r ".auths.\"${REGISTRY}\".auth")"
+          > /tmp/credentials
+    outputs:
+      parameters:
+        - name: credentials
+          valueFrom:
+            path: /tmp/credentials
+
+  - name: helm
+    inputs:
+      # FIXME: we need artifact storage to pass the credentials as a file.
+      parameters:
+        name: credentials
+      artifacts:
+        name: source
+    container:
+      image: alpine/helm
+      env:
+        - name: REGISTRY
+          value: "{{`{{inputs.parameters.registry}}`}}"
+        - name: CHARTS_DIR
+          value: "{{`{{inputs.paramters.chartsDir}}`}}"
+        - name: CHART_NAME
+          value: "{{`{{inputs.paramters.chartName}}`}}"
+      command: [sh, -e, -c]
+      args: 
+        - >-
+          rm -f *.tgz;
+
+          helm package "${CHARTS_DIR}/${CHART_NAME}";
+
+          username='$(echo -n "{{`{{inputs.parameters.credentials}}`}}"
+          | base64 -d | awk -F: '{ print $1 }')';
+
+          echo -n "{{`{{inputs.parameters.credentials}}`}}"
+          | base64 -d | awk -F: '{ print $2 }')
+          | helm registry login -u "$username}" --password-stdin "${REGISTRY}";
+          helm push "${CHART_NAME}-*.tgz" "oci://${REGISTRY}/charts"
