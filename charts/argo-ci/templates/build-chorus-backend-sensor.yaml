@@ -183,7 +183,7 @@ spec:
                     - name: repoUrl
                     - name: revision
                     - name: ref
-                    - name: commitId
+                    - name: sha
                     - name: tag
                 templates:
                   - name: build-chorus-backend
@@ -198,8 +198,8 @@ spec:
                                 value: "chorus/backend"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
-                              - name: commitId
-                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: sha
+                                value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
                                 value: "docker/dockerfiles/Dockerfile"
                               - name: registry
@@ -307,7 +307,7 @@ spec:
               dest: spec.arguments.parameters.2.value
             - src:
                 dependencyName: build-chorus-backend
-                dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+                dataKey: body.head_commit.id
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-chorus-backend

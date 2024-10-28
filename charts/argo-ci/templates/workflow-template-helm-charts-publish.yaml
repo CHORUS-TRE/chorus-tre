@@ -21,20 +21,27 @@ spec:
 
   templates:
   - name: helm-publish
-    steps:
-      - - name: credentials
-          template: credentials
+    inputs:
+      parameters:
+        - name: chartsDir
+        - name: chartName
+        - name: registry
+        - name: dockerConfigSecret
+      artifacts:
+        - name: source
+          path: "/src"
 
-      - - name: helm
-          template: helm
-          arguments:
-            parameters:
-              - name: credentials
-                value: "{{`{{steps.credentials.outputs.parameters.credentials}}`}}"
+    volumes:
+      - name: docker-config
+        secret:
+          secretName: "{{`{{inputs.parameters.dockerConfigSecret}}`}}"
+          items:
+            - key: .dockerconfigjson
+              path: config.json
 
-  - name: credentials
     container:
-      image: backplane/jq
+      # This image comes with yq (rather than jq)
+      image: alpine/helm:3
       volumeMounts:
         - name: docker-config
           mountPath: /.docker
@@ -43,45 +50,24 @@ spec:
           value: /.docker
         - name: REGISTRY
           value: "{{`{{inputs.parameters.registry}}`}}"
-      command: [sh, -x, -c]
-      args:
-        - >-
-          cat $"{DOCKER_CONFIG}/config.json"
-          | jq -r ".auths.\"${REGISTRY}\".auth")"
-          > /tmp/credentials
-    outputs:
-      parameters:
-        - name: credentials
-          valueFrom:
-            path: /tmp/credentials
-
-  - name: helm
-    inputs:
-      # FIXME: we need artifact storage to pass the credentials as a file.
-      parameters:
-        name: credentials
-      artifacts:
-        name: source
-    container:
-      image: alpine/helm
-      env:
-        - name: REGISTRY
-          value: "{{`{{inputs.parameters.registry}}`}}"
         - name: CHARTS_DIR
-          value: "{{`{{inputs.paramters.chartsDir}}`}}"
+          value: "{{`{{inputs.parameters.chartsDir}}`}}"
         - name: CHART_NAME
-          value: "{{`{{inputs.paramters.chartName}}`}}"
+          value: "{{`{{inputs.parameters.chartName}}`}}"
       command: [sh, -e, -c]
       args: 
         - >-
-          rm -f *.tgz;
+          cat "${DOCKER_CONFIG}/config.json"
+          | yq -r ".auths.\"${REGISTRY}\".auth"
+          | base64 -d
+          > /tmp/credentials;
+
+          username="$(cat /tmp/credentials
+          | awk -F: '{ print $1 }')";
+
+          cat /tmp/credentials
+          | awk -F: '{ print $2 }')
+          | helm registry login -u "${username}" --password-stdin "${REGISTRY}";
 
           helm package "${CHARTS_DIR}/${CHART_NAME}";
-
-          username='$(echo -n "{{`{{inputs.parameters.credentials}}`}}"
-          | base64 -d | awk -F: '{ print $1 }')';
-
-          echo -n "{{`{{inputs.parameters.credentials}}`}}"
-          | base64 -d | awk -F: '{ print $2 }')
-          | helm registry login -u "$username}" --password-stdin "${REGISTRY}";
           helm push "${CHART_NAME}-*.tgz" "oci://${REGISTRY}/charts"

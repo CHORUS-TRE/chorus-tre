@@ -183,7 +183,7 @@ spec:
                     - name: repoFullName
                     - name: revision
                     - name: ref
-                    - name: commitId
+                    - name: sha
                     - name: tag
 
                 hooks:
@@ -197,7 +197,7 @@ spec:
                         - name: repoFullName
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
-                          value: "{{`{{workflow.parameters.commitId}}`}}"
+                          value: "{{`{{workflow.parameters.sha}}`}}"
                         - name: githubSecret
                           value: {{ $githubSecretName }}
                   exit:
@@ -226,15 +226,14 @@ spec:
                                 value: "chorus/workbench-operator"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
-                              - name: commitId
-                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: sha
+                                value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
                                 value: "Dockerfile"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
-
                             artifacts:
                               - name: source
                                 git:
@@ -253,7 +252,7 @@ spec:
                           templateRef:
                             name: {{ $fullName }}-helm-publish-template
                             template: helm-publish
-                          argumentes:
+                          arguments:
                             parameters:
                               - name: chartsDir
                                 value: "charts"
@@ -296,7 +295,7 @@ spec:
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-workbench-operator
-                dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+                dataKey: body.head_commit.id
               dest: spec.arguments.parameters.4.value
             - src:
                 dependencyName: build-workbench-operator
@@ -308,6 +307,11 @@ spec:
                 dataTemplate: "build-workbench-operator-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: 'Release {{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ end }}`}}'
+              dest: metadata.annotations.workflows\.argoproj\.io/title
 
       retryStrategy:
         steps: 3
