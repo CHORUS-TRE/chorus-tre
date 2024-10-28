@@ -309,9 +309,13 @@ spec:
               operation: prepend
             # Generate a nice title and description
             - src:
-                dependencyName: ci-workbench-operator
+                dependencyName: build-workbench-operator
                 dataTemplate: 'Release {{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ end }}`}}'
               dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: build-workbench-operator
+                dataTemplate: '{{`{{ .Input.body.repository.full_name }}`}}'
+              dest: metadata.annotations.workflows\.argoproj\.io/description
 
       retryStrategy:
         steps: 3
