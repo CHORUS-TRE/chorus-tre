@@ -180,10 +180,39 @@ spec:
                 arguments:
                   parameters:
                     - name: repoUrl
+                    - name: repoFullName
                     - name: revision
                     - name: ref
-                    - name: commitId
+                    - name: sha
                     - name: tag
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                  exit:
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+
                 templates:
                   - name: build-workbench-operator
                     steps:
@@ -197,15 +226,14 @@ spec:
                                 value: "chorus/workbench-operator"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
-                              - name: commitId
-                                value: "{{`{{workflow.parameters.commitId}}`}}"
+                              - name: sha
+                                value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
                                 value: "Dockerfile"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
-
                             artifacts:
                               - name: source
                                 git:
@@ -220,77 +248,33 @@ spec:
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
-                      - - name: oci-credentials
-                          template: oci-credentials
-
-                      - - name: helm-build
-                          template: helm-build
+                      - - name: helm-publish
+                          templateRef:
+                            name: {{ $fullName }}-helm-publish-template
+                            template: helm-publish
                           arguments:
                             parameters:
-                              - name: oci-username
-                                value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
-                              - name: oci-password
-                                value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
-
-                  - name: oci-credentials
-                    container:
-                      image: backplane/jq
-                      volumeMounts:
-                        - name: docker-config
-                          mountPath: /.docker
-                      env:
-                        - name: DOCKER_CONFIG
-                          value: /.docker
-                        - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
-                      command: [sh, -c]
-                      args:
-                        - >-
-                          auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
-                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
-                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' | base64 > /tmp/password
-                    outputs:
-                      parameters:
-                        - name: username
-                          valueFrom:
-                            path: /tmp/username
-                        - name: password
-                          valueFrom:
-                            path: /tmp/password
-
-                  - name: helm-build
-                    inputs:
-                      # FIXME: we need artifact storage to pass the password as a file.
-                      parameters:
-                        - name: oci-username
-                        - name: oci-password
-                      artifacts:
-                        - name: images
-                          path: "/src"
-                          git:
-                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
-                            revision: "{{`{{workflow.parameters.revision}}`}}"
-                            usernameSecret:
-                              name: {{ $githubSecretName }}
-                              key: username
-                            passwordSecret:
-                              name: {{ $githubSecretName }}
-                              key: password
-                            depth: 1
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
-                    container:
-                      image: alpine/helm
-                      env:
-                        - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
-                      command: [sh, -e, -c]
-                      args:
-                        - >-
-                          helm package charts/workbench-operator;
-                          echo -n '{{`{{inputs.parameters.oci-password}}`}}' > /tmp/password;
-                          cat /tmp/password | base64 -d | helm registry login -u '{{`{{inputs.parameters.oci-username}}`}}' --password-stdin  "${REGISTRY}";
-                          helm push workbench-operator-*.tgz "oci://${REGISTRY}/charts";
-                      workingDir: "/src"
+                              - name: chartsDir
+                                value: "charts"
+                              - name: chartName
+                                value: "workbench-operator"
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
           parameters:
             - src:
@@ -299,26 +283,39 @@ spec:
               dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: build-workbench-operator
-                dataKey: body.after
+                dataKey: body.repository.full_name
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: build-workbench-operator
-                dataKey: body.ref
+                dataKey: body.after
               dest: spec.arguments.parameters.2.value
             - src:
                 dependencyName: build-workbench-operator
-                dataTemplate: "{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+                dataKey: body.ref
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-workbench-operator
-                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
+                dataKey: body.head_commit.id
               dest: spec.arguments.parameters.4.value
+            - src:
+                dependencyName: build-workbench-operator
+                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
+              dest: spec.arguments.parameters.5.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
                 dependencyName: build-workbench-operator
                 dataTemplate: "build-workbench-operator-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: build-workbench-operator
+                dataTemplate: 'Release {{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ end }}`}}'
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: build-workbench-operator
+                dataTemplate: '{{`{{ .Input.body.repository.full_name }}`}}'
+              dest: metadata.annotations.workflows\.argoproj\.io/description
 
       retryStrategy:
         steps: 3
