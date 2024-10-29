@@ -72,6 +72,11 @@ kube-prometheus-stack:
         check_for_updates: false
         check_for_plugin_updates: false
         feedback_links_enabled: false
+      # https://grafana.com/docs/grafana/latest/administration/configuration/#server
+      server:
+        enable_gzip: true
+        domain: grafana.dev.chorus-tre.ch
+        root_url: https://grafana.dev.chorus-tre.ch/
 
   prometheus:
     ingress:
