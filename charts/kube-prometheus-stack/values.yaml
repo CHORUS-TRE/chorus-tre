@@ -75,8 +75,8 @@ kube-prometheus-stack:
       # https://grafana.com/docs/grafana/latest/administration/configuration/#server
       server:
         enable_gzip: true
-        domain: grafana.dev.chorus-tre.ch
-        root_url: https://grafana.dev.chorus-tre.ch/
+        domain: grafana.build.chorus-tre.local
+        root_url: https://grafana.build.chorus-tre.local/
 
   prometheus:
     ingress:
