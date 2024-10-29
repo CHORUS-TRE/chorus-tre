@@ -13,7 +13,7 @@ spec:
     parameters:
       - name: tag
         value: "n/a"
-      - name: commitId
+      - name: sha
       - name: dockerfile
         value: "Dockerfile"
       - name: image
@@ -26,7 +26,7 @@ spec:
     inputs:
       parameters:
         - name: tag
-        - name: commitId
+        - name: sha
         - name: dockerfile
         - name: image
         - name: registry
@@ -60,8 +60,8 @@ spec:
           value: "{{`{{inputs.parameters.dockerfile}}`}}"
         - name: REGISTRY
           value: "{{`{{inputs.parameters.registry}}`}}"
-        - name: REVISION
-          value: "{{`{{inputs.parameters.commitId}}`}}"
+        - name: SHA
+          value: "{{`{{inputs.parameters.sha}}`}}"
         - name: IMAGE
           value: "{{`{{inputs.parameters.image}}`}}"
         - name: TAG
@@ -76,7 +76,7 @@ spec:
           if [ -n "${TAG}" ] && [ "n/a" != "${TAG}" ]; then
             version="${TAG}";
           else
-            version="$(date +%Y%m%d)-${REVISION}";
+            version="$(date +%Y%m%d)-$(echo -n ${SHA} | cut -c 1-8)";
           fi;
 
           tag="${REGISTRY}/${IMAGE}:${version}";
@@ -84,7 +84,7 @@ spec:
           docker buildx build
           --pull
           --file "${DOCKERFILE}"
-          --label "org.opencontainers.image.revision=${REVISION}"
+          --label "org.opencontainers.image.revision=${SHA}"
           --tag "${tag}"
           --output "type=registry"
           .
