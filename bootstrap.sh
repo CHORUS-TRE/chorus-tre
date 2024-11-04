@@ -2,71 +2,110 @@
 
 # Exit on error
 set -e
+set -o pipefail
 
 read -p "Please enter domain name of your CHORUS instance: " DOMAIN_NAME
-if [[ -z "$DOMAIN_NAME" ]]; then
-	DOMAIN_NAME="chorus-tre.ch"
+if [ -z "$DOMAIN_NAME" ]; then
+    DOMAIN_NAME="chorus-tre.ch"
 fi
 
 read -p "Please enter your Let's Encrypt email: " EMAIL
-if [[ -z "$EMAIL" ]]; then
-	EMAIL="no-reply@chorus-tre.ch"
+if [ -z "$EMAIL" ]; then
+    EMAIL="no-reply@chorus-tre.ch"
 fi
 
-# install ingress-nginx
+CLUSTER_NAME=chorus-build
+
+# Namespaces
+NS_INGRESS=ingress-nginx
+NS_CERTMANAGER=cert-manager
+NS_ARGOCD=argocd
+
+# Secrets
+SECRET_ARGOCD_CACHE=argo-cd-cache-secret
+
+# Install Ingress-NGINX
 helm dep update charts/ingress-nginx
-helm install chorus-build-ingress-nginx charts/ingress-nginx -n ingress-nginx --create-namespace
-echo ""
-echo "Waiting for ingress-nginx..."
-kubectl wait pod \
-	--all \
-	--for=condition=Ready \
-	--namespace=ingress-nginx \
-	--timeout=60s
+helm upgrade --install ${CLUSTER_NAME}-ingress-nginx charts/ingress-nginx \
+    -n "${NS_INGRESS}" \
+    --create-namespace \
+    --wait\
 
-# install cert-manager
+# install Cert-Manager
 helm dep update charts/cert-manager
-helm install chorus-build-cert-manager charts/cert-manager -n cert-manager --create-namespace --set clusterissuer.email=$EMAIL
-echo ""
-echo "Waiting for cert-manager..."
-kubectl wait pod \
-	--all \
-	--for=condition=Ready \
-	--namespace=cert-manager \
-	--timeout=60s
+helm upgrade --install ${CLUSTER_NAME}-cert-manager charts/cert-manager \
+    -n "${NS_CERTMANAGER}" \
+    --create-namespace \
+    --set "clusterissuer.email=$EMAIL" \
+    --wait
 
-# install argocd
+# install Valkey/Redis for ArgoCD
+if [ -e "$(kubectl get secret "${SECRET_ARGOCD_CACHE}" --ignore-not-found)" ]
+then
+    if [ -e "$(kubectl get ns "${NS_ARGOCD}" --ignore-not-found)" ]
+    then
+        kubectl create ns "${NS_ARGOCD}"
+    fi
+
+    redis_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+    kubectl create secret generic \
+        "${SECRET_ARGOCD_CACHE}" \
+        -n "${NS_ARGOCD}" \
+        --from-literal "redis-username=admin" \
+        --from-literal "redis-password=${redis_password}"
+fi
+
+helm dep udpate charts/valkey
+helm upgrade --install ${CLUSTER_NAME}-argo-cd-cache charts/valkey \
+    -n "${NS_ARGOCD}" \
+    --create-namespace \
+    --set valkey.auth.enabled=true \
+    --set valkey.auth.sentinel=false \
+    --set "valkey.auth.existingSecret=${SECRET_ARGOCD_CACHE}" \
+    --set valkey.auth.existingSecretPasswordKey=redis-password \
+    --wait
+
+# install Argo CD
+# it's using the above Valkey server (aka Redis).
+# FIXME: in environments, we've got many annotations here.
 helm dep update charts/argo-cd
-helm install chorus-build-argo-cd charts/argo-cd -n argocd --create-namespace --set argo-cd.global.domain=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingress.extraTls[0].secretName=argocd-ingress-http --set argo-cd.server.ingressGrpc.extraTls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME --set argo-cd.server.ingressGrpc.extraTls[0].secretName=argocd-ingress-grpc
-echo ""
-echo "Waiting for argo-cd..."
-kubectl wait pod \
-	--all \
-	--for=condition=Ready \
-	--namespace=argocd \
-	--selector app.kubernetes.io/name!=argocd-redis-secret-init \
-	--timeout=60s
+helm upgrade --install ${CLUSTER_NAME}-argo-cd charts/argo-cd \
+    -n "${NS_ARGOCD}" \
+    --set argo-cd.enabled=false \
+    --set argo-cd.redisSecretInit.enabled=false \
+    --set argo-cd.externalRedis.host=${CLUSTER_NAME}-argo-cd-cache-valkey-primary \
+    --set argo-cd.externalRedis.existingSecret=${SECRET_ARGOCD_CACHE} \
+    --set argo-cd.global.domain=argo-cd.build.$DOMAIN_NAME \
+    --set argo-cd.server.ingress.extraTls[0].hosts[0]=argo-cd.build.$DOMAIN_NAME \
+    --set argo-cd.server.ingress.extraTls[0].secretName=argocd-ingress-http \
+    --set argo-cd.server.ingressGrpc.extraTls[0].hosts[0]=grpc.argo-cd.build.$DOMAIN_NAME \
+    --set argo-cd.server.ingressGrpc.extraTls[0].secretName=argocd-ingress-grpc \
+    --wait
+
+# TODO:  move to harbor
+# which needs postgres *and* valkey (same as above);
+# and a bunch of secrets of its own, obviously.
 
 # install registry
-helm install chorus-build-registry charts/registry -n registry --create-namespace --set ingress.hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].secretName=registry-tls
+helm upgrade --install chorus-build-registry charts/registry -n registry --create-namespace --set ingress.hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].hosts[0]=registry.build.$DOMAIN_NAME --set ingress.tls[0].secretName=registry-tls
 echo ""
 echo "Waiting for registry..."
 kubectl wait pod \
-	--all \
-	--for=condition=Ready \
-	--namespace=registry \
-	--timeout=60s
+    --all \
+    --for=condition=Ready \
+    --namespace=registry \
+    --timeout=60s
 
 # install sealed-secrets
 helm dep update charts/sealed-secrets
-helm install chorus-build-sealed-secrets charts/sealed-secrets -n kube-system
+helm upgrade --install chorus-build-sealed-secrets charts/sealed-secrets -n kube-system
 echo ""
 echo "Waiting for sealed-secrets..."
 kubectl wait pod \
-	--for=condition=Ready \
-	--namespace=kube-system \
-	--selector 'app.kubernetes.io/name=sealed-secrets' \
-	--timeout=60s
+    --for=condition=Ready \
+    --namespace=kube-system \
+    --selector 'app.kubernetes.io/name=sealed-secrets' \
+    --timeout=60s
 
 # get argocd initial password
 echo "ArgoCD username: admin"
