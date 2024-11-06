@@ -5,10 +5,10 @@
 replicaCount: 1
 
 image:
-  repository: registry.build.chorus-tre.local/didata
+  repository: harbor.build.chorus-tre.local/apps/didata
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "6.2.21"
+  tag: ""
 
 env:
   url: "https://didata.chorus-tre.local"
