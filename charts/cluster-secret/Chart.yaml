@@ -1,10 +1,10 @@
 apiVersion: v2
 description: ClusterSecret Operator
 name: cluster-secret
-version: 0.0.2
+version: 0.0.4
 dependencies:
   - name: cluster-secret
-    version: 0.4.3
+    version: 0.4.4
     repository: https://charts.clustersecret.com/
 
 maintainers:

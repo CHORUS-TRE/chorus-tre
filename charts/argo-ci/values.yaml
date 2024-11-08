@@ -33,13 +33,17 @@ webhookEvents:
           - chorus-web-ui
     secretName: argo-ci-github-chorus-web-ui
 
-  #- name: chorus-backend
-  #  repositories:
-  #    - owner: chorus-tre
-  #      names:
-  #        - chorus-backend
-  #  secretName: argo-ci-github-chorus-backend
+  - name: chorus-backend
+    repositories:
+      - owner: chorus-tre
+        names:
+          - chorus-backend
+    secretName: argo-ci-github-chorus-backend
 
+githubSecrets:
+  chorus-backend: argo-workflows-github-chorus-backend
+  chorus-web-ui: argo-workflows-github-chorus-web-ui
+  workbench-operator: argo-workflows-github-workbench-operator
 
 serviceAccount:
   # Specifies whether a service account should be created

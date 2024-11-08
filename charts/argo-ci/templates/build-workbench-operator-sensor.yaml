@@ -1,21 +1,22 @@
 {{- $fullName := include "argo-ci.fullname" . -}}
 {{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
-{{- $githubSecretName := index .Values.githubSecrets "chorus-web-ui" }}
+{{- $githubSecretName := index .Values.githubSecrets "workbench-operator" }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: {{ $fullName }}-build-web-ui
+  name: {{ $fullName }}-build-workbench-operator
   labels:
     {{- include "argo-ci.labels" . | nindent 4 }}
 spec:
   eventBusName: {{ $fullName }}-default
   template:
     serviceAccountName: {{ $serviceAccountName }}
+
   dependencies:
-    - name: build-chorus-web-ui
+    - name: build-workbench-operator
       eventSourceName: {{ $fullName }}-github
-      eventName: chorus-web-ui
+      eventName: workbench-operator
       filters:
         data:
           - path: headers.X-Github-Event
@@ -26,12 +27,12 @@ spec:
             type: string
             value:
               # The goal is to publish tagged releases.
-              #- "refs/heads/main"
+              #- "refs/heads/master"
               - "refs/tags/v*"
 
-    - name: ci-chorus-web-ui
+    - name: ci-workbench-operator
       eventSourceName: {{ $fullName }}-github
-      eventName: chorus-web-ui
+      eventName: workbench-operator
       filters:
         data:
           - path: headers.X-Github-Event
@@ -46,8 +47,8 @@ spec:
 
   triggers:
     - template:
-        conditions: ci-chorus-web-ui
-        name: github-workflow-trigger-ci-chorus-web-ui
+        conditions: ci-workbench-operator
+        name: github-workflow-trigger-ci-workbench-operator
         k8s:
           operation: create
           source:
@@ -58,7 +59,7 @@ spec:
                 generateName: "-"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
-                entrypoint: pnpm-test
+                entrypoint: make-test
 
                 arguments:
                   parameters:
@@ -95,12 +96,12 @@ spec:
                           value: {{ $githubSecretName }}
 
                 templates:
-                  - name: pnpm-test
+                  - name: make-test
                     steps:
-                      - - name: run-tests
-                          template: test
+                      - - name: ci
+                          template: ci
 
-                  - name: test
+                  - name: ci
                     inputs:
                       artifacts:
                         - name: git
@@ -116,38 +117,33 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: "node:20-bookworm"
+                      image: "golang:1.23-bookworm"
                       command: [sh, -e, -c]
                       args:
-                        - >-
-                          corepack enable pnpm;
-                          pnpm i --frozen-lockfile;
-                          pnpm build;
-                          pnpm test:run
-
+                        - make test
                       workingDir: "/src"
 
           parameters:
             - src:
-                dependencyName: ci-chorus-web-ui
+                dependencyName: ci-workbench-operator
                 dataKey: body.repository.clone_url
               dest: spec.arguments.parameters.0.value
             - src:
-                dependencyName: ci-chorus-web-ui
+                dependencyName: ci-workbench-operator
                 dataKey: body.repository.full_name
               dest: spec.arguments.parameters.1.value
             - src:
-                dependencyName: ci-chorus-web-ui
+                dependencyName: ci-workbench-operator
                 dataKey: body.pull_request.head.ref
               dest: spec.arguments.parameters.2.value
             - src:
-                dependencyName: ci-chorus-web-ui
+                dependencyName: ci-workbench-operator
                 dataKey: body.pull_request.head.sha
               dest: spec.arguments.parameters.3.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
-                dependencyName: ci-chorus-web-ui
-                dataTemplate: "ci-chorus-web-ui-pr{{`{{ .Input.body.pull_request.number }}`}}"
+                dependencyName: ci-workbench-operator
+                dataTemplate: "ci-workbench-operator-pr{{`{{ .Input.body.pull_request.number }}`}}"
               dest: metadata.generateName
               operation: prepend
             # Generate a nice title and description
@@ -161,8 +157,8 @@ spec:
               dest: metadata.annotations.workflows\.argoproj\.io/description
 
     - template:
-        conditions: build-chorus-web-ui
-        name: github-workflow-trigger-build-chorus-web-ui
+        conditions: build-workbench-operator
+        name: github-workflow-trigger-build-workbench-operator
         k8s:
           operation: create
           source:
@@ -173,7 +169,7 @@ spec:
                 generateName: "-"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
-                entrypoint: build-chorus-web-ui
+                entrypoint: build-workbench-operator
                 volumes:
                   - name: docker-config
                     secret:
@@ -181,7 +177,6 @@ spec:
                       items:
                         - key: .dockerconfigjson
                           path: config.json
-
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -205,7 +200,6 @@ spec:
                           value: "{{`{{workflow.parameters.sha}}`}}"
                         - name: githubSecret
                           value: {{ $githubSecretName }}
-
                   exit:
                     templateRef:
                       name: {{ $fullName }}-github-notify-template
@@ -220,7 +214,7 @@ spec:
                           value: {{ $githubSecretName }}
 
                 templates:
-                  - name: build-chorus-web-ui
+                  - name: build-workbench-operator
                     steps:
                       - - name: docker-build
                           templateRef:
@@ -229,7 +223,7 @@ spec:
                           arguments:
                             parameters:
                               - name: image
-                                value: "chorus/web-ui"
+                                value: "chorus/workbench-operator"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
                               - name: sha
@@ -263,7 +257,7 @@ spec:
                               - name: chartsDir
                                 value: "charts"
                               - name: chartName
-                                value: "web-ui"
+                                value: "workbench-operator"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
@@ -284,42 +278,42 @@ spec:
 
           parameters:
             - src:
-                dependencyName: build-chorus-web-ui
+                dependencyName: build-workbench-operator
                 dataKey: body.repository.clone_url
               dest: spec.arguments.parameters.0.value
             - src:
-                dependencyName: build-chorus-web-ui
+                dependencyName: build-workbench-operator
                 dataKey: body.repository.full_name
               dest: spec.arguments.parameters.1.value
             - src:
-                dependencyName: build-chorus-web-ui
+                dependencyName: build-workbench-operator
                 dataKey: body.after
               dest: spec.arguments.parameters.2.value
             - src:
-                dependencyName: build-chorus-web-ui
+                dependencyName: build-workbench-operator
                 dataKey: body.ref
               dest: spec.arguments.parameters.3.value
             - src:
-                dependencyName: build-chorus-web-ui
+                dependencyName: build-workbench-operator
                 dataKey: body.head_commit.id
               dest: spec.arguments.parameters.4.value
             - src:
-                dependencyName: build-chorus-web-ui
+                dependencyName: build-workbench-operator
                 dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
               dest: spec.arguments.parameters.5.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
-                dependencyName: build-chorus-web-ui
-                dataTemplate: "build-web-ui-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+                dependencyName: build-workbench-operator
+                dataTemplate: "build-workbench-operator-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
             # Generate a nice title and description
             - src:
-                dependencyName: build-chorus-web-ui
+                dependencyName: build-workbench-operator
                 dataTemplate: 'Release {{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ end }}`}}'
               dest: metadata.annotations.workflows\.argoproj\.io/title
             - src:
-                dependencyName: build-chorus-web-ui
+                dependencyName: build-workbench-operator
                 dataTemplate: '{{`{{ .Input.body.repository.full_name }}`}}'
               dest: metadata.annotations.workflows\.argoproj\.io/description
 

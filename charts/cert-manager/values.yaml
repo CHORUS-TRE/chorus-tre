@@ -1,6 +1,6 @@
 cert-manager:
   crds:
-    install: true
+    enabled: true
     keep: true
 
 # A ClusterIssuer

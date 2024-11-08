@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: chorus-qa
+  name: chorus
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
@@ -9,30 +9,30 @@ spec:
   goTemplateOptions: ["missingkey=error"]
   generators:
     - git:
-        repoURL: "https://github.com/CHORUS-TRE/environments.git"
+        repoURL: "https://github.com/<YOUR-ORG>/environments-template.git"
         revision: HEAD
         files:
-          - path: "chorus-qa/*/config.json"
+          - path: "*/*/config.json"
   template:
     metadata:
       name: "{{index .path.segments 0}}-{{.path.basename}}"
       #annotations:
       #  argocd-image-updater.argoproj.io/image-list: '{{.images}}'
     spec:
-      project: chorus-qa
+      project: default
       sources:
-        - repoURL: "harbor.build.chorus-tre.ch"
-          chart: 'charts/{{ trimPrefix "charts/" .chart }}'
+        - repoURL: "harbor.build.chorus-tre.local"
+          chart: "{{.chart}}" # Take chart from config.json
           targetRevision: "{{.version}}" # Take version from config.json
           helm:
             valueFiles:
               - $values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml
-        - repoURL: "https://github.com/CHORUS-TRE/environments.git"
+        - repoURL: "https://github.com/<YOUR-ORG>/environments-template.git"
           targetRevision: HEAD
           ref: values
 
       destination:
-        name: chorus-qa
+        name: "{{.cluster}}"
         namespace: "{{.namespace}}" # Take namespace from config.json
       syncPolicy:
         automated:
@@ -41,4 +41,3 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
-          - 'ServerSideApply={{if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'

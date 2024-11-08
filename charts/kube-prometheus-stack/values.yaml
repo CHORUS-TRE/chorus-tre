@@ -5,7 +5,7 @@ kube-prometheus-stack:
 
   alertmanager:
     ingress:
-      enabled: false  # What is below acts as documentation
+      enabled: false # What is below acts as documentation
       ingressClassName: nginx
       annotations:
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -41,13 +41,46 @@ kube-prometheus-stack:
               requests:
                 storage: 256Mi
 
-  # Grafana can wait for now.
   grafana:
-    enabled: false
+    enabled: true
+
+    admin:
+      existingSecret: "grafana-secret"
+      #userKey: admin-user
+      #passwordKey: admin-password
+
+    ingress:
+      enabled: false # What is below acts as documentation
+      ingressClassName: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - grafana.build.chorus-tre.local
+      tls:
+        - secretName: grafana-general-tls
+          hosts:
+            - grafana.build.chorus-tre.local
+
+    persistence:
+      enabled: true
+
+      size: 1Gi
+
+    grafana.ini:
+      # https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#analytics
+      analytics:
+        check_for_updates: false
+        check_for_plugin_updates: false
+        feedback_links_enabled: false
+      # https://grafana.com/docs/grafana/latest/administration/configuration/#server
+      server:
+        enable_gzip: true
+        domain: grafana.build.chorus-tre.local
+        root_url: https://grafana.build.chorus-tre.local/
 
   prometheus:
     ingress:
-      enabled: false  # What is below acts as documentation
+      enabled: false # What is below acts as documentation
       ingressClassName: nginx
       annotations:
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -63,16 +96,10 @@ kube-prometheus-stack:
       retention: 3d
 
       # All pods, probes and service monitors will be used.
-      podMonitorSelector:
-        matchLabels: null
-      probeSelector:
-        matchLabels: null
-      ruleSelector:
-        matchLabels: null
-      scrapeConfigSelector:
-        matchLabels: null
-      serviceMonitorSelector:
-        matchLabels: null
+      podMonitorSelectorNilUsesHelmValues: false
+      probeSelectorNilUsesHelmValues: false
+      ruleSelectorNilUsesHelmValues: false
+      serviceMonitorSelectorNilUsesHelmValues: false
 
       storageSpec:
         volumeClaimTemplate:
@@ -83,7 +110,6 @@ kube-prometheus-stack:
               requests:
                 storage: 1Gi
 
-
 alertmanagerConfiguration:
   name: global-alertmanager-config
 
@@ -91,7 +117,7 @@ alertmanagerConfiguration:
     enabled: true
 
     name: webex
-    severity: critical  # E.g. "warning|critical"
+    severity: critical # E.g. "warning|critical"
 
     credentials:
       # The name of the secret and the key containing the access token

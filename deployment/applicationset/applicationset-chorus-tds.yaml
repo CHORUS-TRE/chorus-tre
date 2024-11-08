@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: chorus-dev
+  name: chorus-tds
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
@@ -12,37 +12,14 @@ spec:
         repoURL: "https://github.com/CHORUS-TRE/environments.git"
         revision: HEAD
         files:
-          - path: "chorus-dev/*/config.json"
-  strategy:
-    type: RollingSync
-    rollingSync:
-      steps:
-        - matchExpressions:
-            - key: stepName
-              operator: In
-              values:
-                - infrastructure
-        - matchExpressions:
-            - key: stepName
-              operator: In
-              values:
-                - database
-          maxUpdate: 20% # don't break them all at once.
-        - matchExpressions:
-            - key: stepName
-              operator: In
-              values:
-                - application
-          maxUpdate: 20% # don't break them all at once
+          - path: "chorus-tds/*/config.json"
   template:
     metadata:
       name: "{{index .path.segments 0}}-{{.path.basename}}"
-      labels:
-        stepName: '{{ if hasKey . "stepName" }}{{ .stepName }}{{ else }}application{{ end }}'
       #annotations:
       #  argocd-image-updater.argoproj.io/image-list: '{{.images}}'
     spec:
-      project: chorus-dev
+      project: chorus-tds
       sources:
         - repoURL: "harbor.build.chorus-tre.ch"
           chart: 'charts/{{ trimPrefix "charts/" .chart }}'
@@ -55,7 +32,7 @@ spec:
           ref: values
 
       destination:
-        name: chorus-dev
+        name: chorus-tds
         namespace: "{{.namespace}}" # Take namespace from config.json
       syncPolicy:
         automated:
@@ -64,4 +41,4 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
-          - 'ServerSideApply={{ if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'
+          - 'ServerSideApply={{if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'
