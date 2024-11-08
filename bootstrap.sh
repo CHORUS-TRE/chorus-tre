@@ -28,14 +28,21 @@ NS_INGRESS=ingress-nginx
 NS_CERTMANAGER=cert-manager
 NS_ARGOCD=argocd
 NS_HARBOR=harbor
+NS_KEYCLOAK=keycloak
 
 # Secrets
 SECRET_ARGOCD_CACHE=argo-cd-cache-secret
 SECRET_HARBOR_DB=harbor-db-secret
 SECRET_HARBOR=harbor-secret
+SECRET_KEYCLOAK_DB=keycloak-db-secret
+SECRET_KEYCLOAK=keycloak-secret
 
 # LetsEncrypt
 CLUSTER_ISSUER=letsencrypt-prod
+
+# Postgresql versions
+POSTGRESQL_HARBOR=15.8.0
+POSTGRESQL_KEYCLOAK=16.4.0
 
 # Creating a namespace if it's not existing.
 create_ns() {
@@ -150,6 +157,85 @@ helm upgrade --install ${CLUSTER_NAME}-argo-cd charts/argo-cd \
     --wait \
     ${DRY_RUN}
 
+# install Keycloak
+create_ns "${NS_KEYCLOAK}"
+
+set +e
+kubectl get -n ${NS_KEYCLOAK} secret "${SECRET_KEYCLOAK_DB}" 2>&1 >/dev/null
+if [ 0 -ne $? ]
+then
+    set -e
+    keycloak_db_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+    kubectl create secret generic \
+        "${SECRET_KEYCLOAK_DB}" \
+        -n "${NS_KEYCLOAK}" \
+        --from-literal "postgres-password=postgres" \
+        --from-literal "password=${keycloak_db_password}" \
+        ${DRY_RUN}
+fi
+
+set +e
+kubectl get -n ${NS_KEYCLOAK} secret "${SECRET_KEYCLOAK}" 2>&1 >/dev/null
+if [ 0 -ne $? ]
+then
+    set -e
+    keycloak_admin_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+    kubectl create secret generic \
+        "${SECRET_KEYCLOAK}" \
+        -n "${NS_KEYCLOAK}" \
+        --from-literal "adminPassword=${keycloak_admin_password}" \
+        ${DRY_RUN}
+fi
+set -e
+
+helm upgrade --install ${CLUSTER_NAME}-keycloak-db charts/postgresql \
+    -n "${NS_KEYCLOAK}" \
+    --set postgresql.global.postgresql.auth.username=keycloak \
+    --set postgresql.global.postgresql.auth.database=keycloak \
+    --set postgresql.global.postgresql.auth.existingSecret=keycloak-db-secret \
+    --set postgresql.tls.enabled=true \
+    --set postgresql.tls.certificatesSecret=keycloak-db-tls-secret \
+    --set postgresql.primary.persistence.size=1Gi \
+    --set postgresql.image.registry=docker.io \
+    --set postgresql.image.repository=bitnami/postgresql \
+    --set postgresql.image.tag=${POSTGRESQL_KEYCLOAK} \
+    --set postgresql.metrics.enabled=false \
+    --set postgresql.metrics.serviceMonitor.enabled=false \
+    --set certificate.enabled=true \
+    --set certificate.secretName=keycloak-db-tls-secret \
+    --set certificate.issuerRef.name=private-ca-cluster-issuer \
+    --set certificate.issuerRef.kind=ClusterIssuer \
+    --wait \
+    ${DRY_RUN}
+
+helm dep update charts/keycloak
+helm upgrade --install ${CLUSTER_NAME}-keycloak charts/keycloak \
+    -n "${NS_KEYCLOAK}" \
+    --set keycloak.nameOverride=keycloak \
+    --set keycloak.auth.existingSecret=keycloak-secret \
+    --set keycloak.auth.passwordSecretKey=adminPassword \
+    --set keycloak.tls.enabled=true \
+    --set keycloak.tls.existingSecreta=keycloak-tls-secret \
+    --set keycloak.ingress.servicePort=https \
+    --set keycloak.ingress.hostname=auth.build.${DOMAIN_NAME} \
+    --set keycloak.ingress.annotations.cert-manager\\.io/cluster-issuer=${CLUSTER_ISSUER} \
+    --set keycloak.ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/backend-protocol=HTTPS \
+    --set keycloak.adminIngress.enabled=false \
+    --set keycloak.externalDatabase.host=${CLUSTER_NAME}-keycloak-db-postgresql \
+    --set keycloak.externalDatabase.user=keycloak \
+    --set keycloak.externalDatabase.database=keycloak \
+    --set keycloak.externalDatabase.existingSecret=keycloak-db-secret \
+    --set keycloak.externalDatabase.existingSecretPasswordKey=password \
+    --set keycloak.postgresql.enabled=false \
+    --set keycloak.metrics.enabled=false \
+    --set keycloak.metrics.serviceMonitor.enavbled=false \
+    --set certificate.enabled=true \
+    --set certificate.secretName=keycloak-tls-secret \
+    --set certificate.issuerRef.name=private-ca-cluster-issuer \
+    --set certificate.issuerRef.kind=ClusterIssuer \
+    --wait \
+    ${DRY_RUN}
+
 
 # install Harbor
 create_ns "${NS_HARBOR}"
@@ -209,7 +295,6 @@ helm upgrade --install ${CLUSTER_NAME}-harbor-cache charts/valkey \
     ${DRY_RUN}
 
 # install Postgresql for Harbor
-set -x
 helm dep update charts/postgresql
 helm upgrade --install ${CLUSTER_NAME}-harbor-db charts/postgresql \
     -n "${NS_HARBOR}" \
@@ -222,13 +307,13 @@ helm upgrade --install ${CLUSTER_NAME}-harbor-db charts/postgresql \
     --set postgresql.primary.resourcePreset=small \
     --set postgresql.image.registry=docker.io \
     --set postgresql.image.repository=bitnami/postgresql \
-    --set postgresql.image.tag=15.8.0 \
+    --set postgresql.image.tag=${POSTGRESQL_HARBOR} \
+    --set postgresql.metrics.enabled=false \
+    --set postgresql.metrics.serviceMonitor.enabled=false \
     --set certificate.enabled=true \
     --set certificate.secretName=harbor-db-tls-secret \
     --set certificate.issuerRef.name=private-ca-cluster-issuer \
     --set certificate.issuerRef.kind=ClusterIssuer \
-    --set postgresql.metrics.enabled=false \
-    --set postgresql.metrics.serviceMonitor.enabled=false \
     --wait \
     ${DRY_RUN}
 
