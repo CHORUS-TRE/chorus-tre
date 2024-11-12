@@ -8,5 +8,5 @@ maintainers:
 version: 0.0.2
 dependencies:
   - name: matomo
-    version: 8.0.13
+    version: 9.0.0
     repository: https://charts.bitnami.com/bitnami
