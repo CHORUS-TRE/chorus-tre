@@ -2,17 +2,17 @@
 
 So you've got yourself a Keycloak and have to do the heavy setup. This is the right time for you to shine and this guide will help you do so.
 
-The goal is to **NOT** manage users directly inside Keycloak but grant them accesses to what they are allowed to access to. To do so, we'll link one or more external Identity Providers, create the Clients for our applications, and put Users into proper groups.
+The goal is to **NOT** manage users directly inside Keycloak but grant them accesses to what they are allowed to access. To do so, we'll link one or more external Identity Providers, create the Clients for our applications, and put Users into proper groups.
 
 ## Identity providers
 
 For **chorus-build** we've got:
 
-- Google ...
+- Google <https://console.cloud.google.com/welcome?project=chorus-build-434507>
 
 And for chorus-dev:
 
-- Google ...
+- Google <https://console.cloud.google.com/welcome?project=chorus-dev-437408>
 
 Feel free to add more, even enable anything that the CHUV, EBRAINS, or else can provide.
 
@@ -149,4 +149,19 @@ dataString:
   client-id: from keycloak
 ```
 
-You may reuse the same clientId as the redirectUrl is part of the configuration.
+You may reuse the same clientId for both as the redirectUrl is part of the configuration.
+
+## Other environments
+
+Ideally, the real environments, aka **dev**, **qa**, etc. are fully decorrelated from the build one. However, they fairly similar.
+
+The **dev** environments also have the following services deployed that are linked with Keycloak:
+
+- Harbor
+- Kube-prometheus-stack (Grafana, Prometheus, AlertManager)
+
+Their setup are almost the same as the ones in build.
+
+### Chorus-backend
+
+TODO(@sami-sweng): how is Keycloak setup for the chorus-backend.
