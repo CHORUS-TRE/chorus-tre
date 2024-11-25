@@ -116,7 +116,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: "golang:1.22-bookworm"
+                      image: "golang:1.23-bookworm"
                       command: [sh, -e, -c]
                       args:
                         - >-
@@ -127,7 +127,7 @@ spec:
           parameters:
             - src:
                 dependencyName: ci-chorus-backend
-                dataKey: body.repository.clone_url
+                dataKey: body.pull_request.head.repo.clone_url
               dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: ci-chorus-backend
