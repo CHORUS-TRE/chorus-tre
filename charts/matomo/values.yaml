@@ -131,3 +131,14 @@ matomo:
     password: ""
     database: bitnami_matomo
     existingSecret: "matomo-mariadb-secret"
+  cronjobs:
+    archive:
+      enabled: true
+      persistence:
+        enabled: true
+        existingClaim: "matomo-archive"
+    taskScheduler:
+      enabled: true
+      persistence:
+        enabled: true
+        existingClaim: "matomo-taskscheduler"
