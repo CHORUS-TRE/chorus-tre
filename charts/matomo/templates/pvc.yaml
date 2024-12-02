@@ -13,7 +13,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: matomo-cronjobs
+  name: matomo-taskscheduler
   namespace: {{ .Release.Namespace }}
 spec:
   accessModes:

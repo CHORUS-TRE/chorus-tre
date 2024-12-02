@@ -136,9 +136,9 @@ matomo:
       enabled: true
       persistence:
         enabled: true
-        existingClaim: "matomo-cronjobs"
+        existingClaim: "matomo-archive"
     taskScheduler:
       enabled: true
       persistence:
         enabled: true
-        existingClaim: "matomo-archive"
+        existingClaim: "matomo-taskscheduler"
