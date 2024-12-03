@@ -18,7 +18,7 @@ spec:
         value: "Dockerfile"
       - name: image
       - name: registry
-        value: "registry.build.chorus-tre.local"
+        value: "harbor.build.chorus-tre.local"
       - name: dockerConfigSecret
 
   templates:
