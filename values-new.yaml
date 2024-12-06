@@ -1,0 +1,486 @@
+---
+# Source: matomo/charts/matomo/templates/networkpolicy.yaml
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: chorus-dev-matomo
+  namespace: "matomo"
+  labels:
+    app.kubernetes.io/instance: chorus-dev-matomo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matomo
+    app.kubernetes.io/version: 5.1.2
+    helm.sh/chart: matomo-9.0.0
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: chorus-dev-matomo
+      app.kubernetes.io/name: matomo
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - {}
+  ingress:
+    - ports:
+        - port: 8080
+        - port: 8443
+---
+# Source: matomo/charts/matomo/templates/extra-list.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chorus-dev-matomo
+  namespace: matomo
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: matomo
+---
+# Source: matomo/charts/matomo/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: chorus-dev-matomo-matomo
+  namespace: "matomo"
+  labels:
+    app.kubernetes.io/instance: chorus-dev-matomo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matomo
+    app.kubernetes.io/version: 5.1.2
+    helm.sh/chart: matomo-9.0.0
+spec:
+  
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "8Gi"
+---
+# Source: matomo/templates/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matomo-archive
+  namespace: matomo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+---
+# Source: matomo/templates/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matomo-taskscheduler
+  namespace: matomo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+---
+# Source: matomo/charts/matomo/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: chorus-dev-matomo
+  namespace: "matomo"
+  labels:
+    app.kubernetes.io/instance: chorus-dev-matomo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matomo
+    app.kubernetes.io/version: 5.1.2
+    helm.sh/chart: matomo-9.0.0
+spec:
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: "Cluster"
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: https
+      port: 443
+      targetPort: https
+  selector:
+    app.kubernetes.io/instance: chorus-dev-matomo
+    app.kubernetes.io/name: matomo
+---
+# Source: matomo/charts/matomo/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chorus-dev-matomo
+  namespace: "matomo"
+  labels:
+    app.kubernetes.io/instance: chorus-dev-matomo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matomo
+    app.kubernetes.io/version: 5.1.2
+    helm.sh/chart: matomo-9.0.0
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: chorus-dev-matomo
+      app.kubernetes.io/name: matomo
+  strategy:
+    type: Recreate
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: matomo
+        app.kubernetes.io/instance: chorus-dev-matomo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: matomo
+        app.kubernetes.io/version: 5.1.2
+        helm.sh/chart: matomo-9.0.0
+    spec:
+      
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: Always
+        supplementalGroups: []
+        sysctls: []
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: chorus-dev-matomo
+                    app.kubernetes.io/name: matomo
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      priorityClassName: ""
+      automountServiceAccountToken: true
+      # yamllint disable rule:indentation
+      hostAliases:
+        - hostnames:
+          - status.localhost
+          ip: 127.0.0.1
+      # yamllint enable rule:indentation
+      initContainers:
+        
+      containers:
+        - name: chorus-dev-matomo
+          image: docker.io/bitnami/matomo:5.1.2-debian-12-r2
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: {}
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "no"
+            - name: APACHE_HTTP_PORT_NUMBER
+              value: "8080"
+            - name: APACHE_HTTPS_PORT_NUMBER
+              value: "8443"
+            - name: MATOMO_DATABASE_HOST
+              value: "chorus-dev-matomo-mariadb"
+            - name: MATOMO_DATABASE_PORT_NUMBER
+              value: "3306"
+            - name: MATOMO_DATABASE_NAME
+              value: "bitnami_matomo"
+            - name: MATOMO_DATABASE_USER
+              value: "bn_matomo"
+            - name: MATOMO_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: matomo-mariadb-secret
+                  key: "db-password"
+            - name: MATOMO_SKIP_BOOTSTRAP
+              value: "no"
+            - name: MATOMO_USERNAME
+              value: "chorus"
+            - name: MATOMO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: matomo-matomo-secret
+                  key: matomo-password
+            - name: MATOMO_EMAIL
+              value: "user@example.com"
+            - name: MATOMO_WEBSITE_NAME
+              value: "chorus-dev"
+            - name: MATOMO_WEBSITE_HOST
+              value: "https://matomo.dev.chorus-tre.ch"
+          envFrom:
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: https
+              containerPort: 8443
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 600
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /matomo.php
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 5
+          resources:
+            limits:
+              cpu: 375m
+              ephemeral-storage: 2Gi
+              memory: 384Mi
+            requests:
+              cpu: 250m
+              ephemeral-storage: 50Mi
+              memory: 256Mi
+          volumeMounts:
+            - name: matomo-data
+              mountPath: /bitnami/matomo
+      volumes:
+        - name: matomo-data
+          persistentVolumeClaim:
+            claimName: chorus-dev-matomo-matomo
+---
+# Source: matomo/charts/matomo/templates/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: chorus-dev-matomo-archive
+  namespace: "matomo"
+  labels:
+    app.kubernetes.io/name: matomo
+    helm.sh/chart: matomo-9.0.0
+    app.kubernetes.io/instance: chorus-dev-matomo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "5.1.2"
+spec:
+  schedule: "*/5 * * * *"
+  suspend: false
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: matomo
+            helm.sh/chart: matomo-9.0.0
+            app.kubernetes.io/instance: chorus-dev-matomo
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/version: "5.1.2"
+            app.kubernetes.io/component: archive
+        spec:
+          automountServiceAccountToken: true
+          
+          restartPolicy: OnFailure
+          initContainers:
+            
+          securityContext:
+                fsGroup: 1001
+                fsGroupChangePolicy: Always
+                supplementalGroups: []
+                sysctls: []
+          containers:
+            - name: chorus-dev-matomo-archive
+              image: docker.io/bitnami/matomo:5.1.2-debian-12-r2
+              imagePullPolicy: "IfNotPresent"
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                  - ALL
+                privileged: false
+                readOnlyRootFilesystem: false
+                runAsGroup: 0
+                runAsNonRoot: true
+                runAsUser: 1001
+                seLinuxOptions: {}
+                seccompProfile:
+                  type: RuntimeDefault
+              command:
+                - /bin/bash
+                - -c
+              args:
+                - . /opt/bitnami/scripts/matomo-env.sh &&
+                  . /opt/bitnami/scripts/libbitnami.sh &&
+                  . /opt/bitnami/scripts/liblog.sh &&
+                  /opt/bitnami/scripts/apache/setup.sh &&
+                  /opt/bitnami/scripts/php/setup.sh &&
+                  /opt/bitnami/scripts/mysql-client/setup.sh &&
+                  /opt/bitnami/scripts/matomo/setup.sh &&
+                  /post-init.sh &&
+                  /opt/bitnami/php/bin/php /opt/bitnami/matomo/console core:archive
+              env:
+                - name: BITNAMI_DEBUG
+                  value: "false"
+                - name: MATOMO_DATABASE_HOST
+                  value: "chorus-dev-matomo-mariadb"
+                - name: MATOMO_DATABASE_PORT_NUMBER
+                  value: "3306"
+                - name: MATOMO_DATABASE_NAME
+                  value: "bitnami_matomo"
+                - name: MATOMO_DATABASE_USER
+                  value: "bn_matomo"
+                - name: MATOMO_DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: matomo-mariadb-secret
+                      key: "db-password"
+              volumeMounts:
+                - name: matomo-data
+                  mountPath: /bitnami/matomo
+              # Fallback to the main resources request/limit to preserve backwards compatibility. This behaviour might be DEPRECATED
+              # in upcoming versions of the chart
+              resources:
+                {}
+          volumes:
+            - name: matomo-data
+              persistentVolumeClaim:
+                claimName: matomo-archive
+---
+# Source: matomo/charts/matomo/templates/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: chorus-dev-matomo-scheduled-tasks
+  namespace: "matomo"
+  labels:
+    app.kubernetes.io/name: matomo
+    helm.sh/chart: matomo-9.0.0
+    app.kubernetes.io/instance: chorus-dev-matomo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "5.1.2"
+spec:
+  schedule: "*/5 * * * *"
+  suspend: false
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: matomo
+            helm.sh/chart: matomo-9.0.0
+            app.kubernetes.io/instance: chorus-dev-matomo
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/version: "5.1.2"
+            app.kubernetes.io/component: task-scheduler
+        spec:
+          automountServiceAccountToken: true
+          
+          restartPolicy: OnFailure
+          initContainers:
+            
+          securityContext:
+                fsGroup: 1001
+                fsGroupChangePolicy: Always
+                supplementalGroups: []
+                sysctls: []
+          containers:
+            - name: chorus-dev-matomo-scheduled-tasks
+              image: docker.io/bitnami/matomo:5.1.2-debian-12-r2
+              imagePullPolicy: "IfNotPresent"
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                  - ALL
+                privileged: false
+                readOnlyRootFilesystem: false
+                runAsGroup: 0
+                runAsNonRoot: true
+                runAsUser: 1001
+                seLinuxOptions: {}
+                seccompProfile:
+                  type: RuntimeDefault
+              command:
+                - /bin/bash
+                - -c
+              args:
+                - . /opt/bitnami/scripts/matomo-env.sh &&
+                  . /opt/bitnami/scripts/libbitnami.sh &&
+                  . /opt/bitnami/scripts/liblog.sh &&
+                  /opt/bitnami/scripts/apache/setup.sh &&
+                  /opt/bitnami/scripts/php/setup.sh &&
+                  /opt/bitnami/scripts/mysql-client/setup.sh &&
+                  /opt/bitnami/scripts/matomo/setup.sh &&
+                  /post-init.sh &&
+                  /opt/bitnami/php/bin/php /opt/bitnami/matomo/console core:run-scheduled-tasks
+              env:
+                - name: BITNAMI_DEBUG
+                  value: "false"
+                - name: MATOMO_DATABASE_HOST
+                  value: "chorus-dev-matomo-mariadb"
+                - name: MATOMO_DATABASE_PORT_NUMBER
+                  value: "3306"
+                - name: MATOMO_DATABASE_NAME
+                  value: "bitnami_matomo"
+                - name: MATOMO_DATABASE_USER
+                  value: "bn_matomo"
+                - name: MATOMO_DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: matomo-mariadb-secret
+                      key: "db-password"
+              volumeMounts:
+                - name: matomo-data
+                  mountPath: /bitnami/matomo
+          volumes:
+            - name: matomo-data
+              persistentVolumeClaim:
+                claimName: matomo-taskscheduler
+---
+# Source: matomo/charts/matomo/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chorus-dev-matomo
+  namespace: "matomo"
+  labels:
+    app.kubernetes.io/instance: chorus-dev-matomo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: matomo
+    app.kubernetes.io/version: 5.1.2
+    helm.sh/chart: matomo-9.0.0
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: "nginx"
+  rules:
+    - host: matomo.dev.chorus-tre.ch
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chorus-dev-matomo
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - "matomo.dev.chorus-tre.ch"
+      secretName: matomo.dev.chorus-tre.ch-tls
