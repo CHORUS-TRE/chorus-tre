@@ -1,6 +1,6 @@
 dependencies:
 - name: trust-manager
   repository: https://charts.jetstack.io
-  version: v0.13.0
-digest: sha256:3189ce4e1671e1441541ff96dab9ff2e3e36cb1fe93d3b894c9ae7cf122ebc35
-generated: "2024-10-29T20:36:15.230077691Z"
+  version: v0.14.0
+digest: sha256:032de7272bfdb6818c94d5a4bd96250e75a94380bb6a18e1eaf8783fd3d0f8c6
+generated: "2024-12-09T18:11:58.01976286Z"
