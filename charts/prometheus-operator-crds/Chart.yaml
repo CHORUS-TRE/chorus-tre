@@ -3,10 +3,12 @@ description: |
   A Helm chart that collects custom resource definitions (CRDs) from the
   Prometheus Operator, allowing for seamless integration with GitOps tools
 maintainers:
-  - name: greut
-    email: yoan.blanc@chuv.ch
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: floriansipp
+    email: florian.sipp@chuv.ch
 name: prometheus-operator-crds
-version: 0.0.5
+version: 0.0.6
 dependencies:
   - name: prometheus-operator-crds
     version: 16.0.1
