@@ -22,6 +22,17 @@ ArgoCD will be public facing therefore, it's installing:
 
 Using Valkey as the external Redis is good for two reasons, we control the Redis/Valkey upgrades *and* share the knowledge and love with the other deployments, e.g. for Harbor.
 
+### Keycloak
+
+Keycloak is public facing, and requires:
+
+- [ingress-nginx][], same as above;
+- [cert-manager][], same as above;
+- [self-signed-issuer][], to generate a certificate for Postgres;
+- and, [postgresql][], as the main database.
+
+Then follow the [keycloak documentation](./keycloak.md) for the SSO setup.
+
 ### Harbor
 
 Harbor is also public facing, and requires:
