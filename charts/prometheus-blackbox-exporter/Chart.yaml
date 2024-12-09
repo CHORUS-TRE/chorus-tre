@@ -2,9 +2,11 @@ apiVersion: v2
 name: prometheus-blackbox-exporter
 description: Prometheus exporter for blackbox testing
 maintainers:
-  - name: greut
-    email: yoan.blanc@chuv.ch
-version: 0.0.4
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: floriansipp
+    email: florian.sipp@chuv.ch
+version: 0.0.5
 dependencies:
   - name: prometheus-blackbox-exporter
     version: 9.1.0
