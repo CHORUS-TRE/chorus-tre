@@ -1,0 +1,136 @@
+# Default values for i2b2-wildfly.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: docker.io/i2b2/i2b2-wildfly
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "release-v1.8.1a.0001"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: wildfly.build.chorus-tre.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: wildfly.build.chorus-tre.local-tls
+      hosts:
+        - wildfly.build.chorus-tre.local
+
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Additional volumes on the output Deployment definition.
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env:
+  ds_type: "postgres"
+  ds_ip: "i2b2-pg"
+  ds_port: "5432"
+  ds_pm_user: "i2b2pm"
+  ds_wd_user: "i2b2workdata"
+  ds_hive_user: "i2b2hive"
+  ds_pm_pass: "demouser"
+  ds_wd_pass: "demouser"
+  ds_hive_pass: "demouser"
+  ds_crc_ip: "i2b2-pg"
+  ds_crc_port: "5432"
+  ds_crc_user: "i2b2demodata"
+  ds_crc_pass: "demouser"
+  ds_crc_db: "i2b2demodata"
+  ds_ont_ip: "i2b2-pg"
+  ds_ont_port: "5432"
+  ds_ont_user: "i2b2metadata"
+  ds_ont_pass: "demouser"
+  ds_ont_db: "i2b2metadata"
+
+extraEnvVarsSecret: "wildfly-secret-envvars"
