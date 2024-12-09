@@ -1,6 +1,0 @@
-dependencies:
-- name: wildfly
-  repository: https://charts.bitnami.com/bitnami
-  version: 22.0.1
-digest: sha256:97a1d24c3a6a8c7054d5c3bd1774378bd470d8a9ef631a1b03ee72f31d5794e5
-generated: "2024-11-08T13:28:36.7397029+01:00"
