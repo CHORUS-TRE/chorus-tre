@@ -1,12 +1,14 @@
 apiVersion: v2
 description: ClusterSecret Operator
 name: cluster-secret
-version: 0.0.4
+version: 0.0.5
 dependencies:
   - name: cluster-secret
     version: 0.4.5
     repository: https://charts.clustersecret.com/
 
 maintainers:
-  - name: greut
-    email: yoan.blan@chuv.ch
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: floriansipp
+    email: florian.sipp@chuv.ch
