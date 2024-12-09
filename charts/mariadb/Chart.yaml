@@ -4,8 +4,8 @@ name: mariadb
 maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch
-version: 0.0.4
+version: 0.0.5
 dependencies:
   - name: mariadb
-    version: 19.1.0
+    version: 20.1.1
     repository: https://charts.bitnami.com/bitnami
