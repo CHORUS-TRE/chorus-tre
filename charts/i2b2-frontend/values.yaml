@@ -14,8 +14,7 @@ env:
   url: "https://i2b2.chorus-tre.local"
   router_base: "/"
 
-imagePullSecrets:
-  - name: regcred
+imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
