@@ -5,8 +5,8 @@ maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch
 
-version: 0.0.12
+version: 0.0.14
 dependencies:
   - name: postgresql
-    version: 16.1.0
+    version: 16.2.5
     repository: https://charts.bitnami.com/bitnami
