@@ -152,7 +152,7 @@ argocd-image-updater:
       #   credentials: ext:/scripts/auth1.sh
       #   credsexpire: 10h
       - name: CHORUS OCI Registry
-        api_url: https://registry.build.chorus-tre.local
+        api_url: https://harbor.build.chorus-tre.local
         ping: yes
         credentials: pullsecret:default/regcred
 
