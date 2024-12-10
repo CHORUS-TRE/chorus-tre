@@ -8,5 +8,5 @@ maintainers:
 version: 0.0.13
 dependencies:
   - name: postgresql
-    version: 16.1.0
+    version: 16.2.5
     repository: https://charts.bitnami.com/bitnami
