@@ -4,7 +4,7 @@ name: oauth2-proxy
 version: 0.0.7
 dependencies:
   - name: oauth2-proxy
-    version: 7.8.1
+    version: 7.8.2
     repository: https://oauth2-proxy.github.io/manifests
 
 maintainers:
