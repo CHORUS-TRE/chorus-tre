@@ -2,10 +2,8 @@ postgresql:
   global:
     postgresql:
       auth:
-        # This is safe as auth.enablePostgresUser is set to false.
-        password: postgre
-
-        username: CHANGEME
+        username: ""
+        password: ""
 
         existingSecret: "postgresql-secret"
 
@@ -15,10 +13,6 @@ postgresql:
         # secretKeys:
         #  adminPasswordKey: "postgres-password"
         #  userPasswordKey: "password"
-
-  auth:
-    # Disable the remote connection for the postgres (admin) user.
-    enablePostgresUser: false
 
   tls:
     enabled: false
