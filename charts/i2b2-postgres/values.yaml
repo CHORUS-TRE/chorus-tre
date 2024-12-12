@@ -41,7 +41,7 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 8080
+  port: 5432
 
 ingress:
   enabled: false
@@ -71,14 +71,22 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-livenessProbe:
-  httpGet:
-    path: /
-    port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
+# TODO: the probes don't work, but postgresql is accepting connections
+#readinessProbe:
+#  exec:
+#    command:
+#    - pg_isready
+#  initialDelaySeconds: 30
+#  periodSeconds: 10
+#  failureThreshold: 3
+
+#livenessProbe:
+#  exec:
+#    command:
+#    - pg_isready
+#  initialDelaySeconds: 120
+#  periodSeconds: 15
+# failureThreshold: 3
 
 autoscaling:
   enabled: false

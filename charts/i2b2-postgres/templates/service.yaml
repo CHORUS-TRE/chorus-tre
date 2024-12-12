@@ -8,8 +8,8 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
+      targetPort: 5432
       protocol: TCP
-      name: http
+      name: tcp-postgresql
   selector:
     {{- include "i2b2-postgres.selectorLabels" . | nindent 4 }}
