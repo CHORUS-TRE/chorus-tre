@@ -48,18 +48,20 @@ spec:
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           env:
-          {{- range $name, $value := .Values.env }}
-            {{- if and (typeIs "map" $value) (hasKey $value "existingSecret") }}
-            - name: {{ $name }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $value.existingSecret }}
-                  key: {{ $value.key }}
-            {{- else }}
-            - name: {{ $name }}
-              value: "{{ $value }}"
+            {{- range $key, $value := .Values.env }}
+            {{- if kindIs "map" $value }}
+            {{- if and (hasKey $value "existingSecret") (hasKey $value "key") }}
+              - name: {{ $key }}
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $value.existingSecret }}
+                    key: {{ $value.key }}
             {{- end }}
-          {{- end }}
+            {{- else }}
+              - name: {{ $key }}
+                value: "{{ $value }}"
+            {{- end }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
