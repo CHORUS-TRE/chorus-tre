@@ -36,11 +36,9 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env: 
-          - name: URL
-            value: "{{ .Values.env.url }}"
-          - name: ROUTER_BASE
-            value: "{{ .Values.env.router_base }}"
+          command: ["/bin/sh", "-c"]
+          args:
+          - {{ .Values.command | quote }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
