@@ -42,6 +42,7 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 8080
+  api: 9990
 
 ingress:
   enabled: true
@@ -114,23 +115,14 @@ affinity: {}
 
 env:
   ds_type: "postgres"
-  ds_ip: "i2b2-pg"
   ds_port: "5432"
   ds_pm_user: "i2b2pm"
   ds_wd_user: "i2b2workdata"
   ds_hive_user: "i2b2hive"
-  ds_pm_pass: "demouser"
-  ds_wd_pass: "demouser"
   ds_hive_pass: "demouser"
-  ds_crc_ip: "i2b2-pg"
   ds_crc_port: "5432"
   ds_crc_user: "i2b2demodata"
-  ds_crc_pass: "demouser"
   ds_crc_db: "i2b2demodata"
-  ds_ont_ip: "i2b2-pg"
   ds_ont_port: "5432"
   ds_ont_user: "i2b2metadata"
-  ds_ont_pass: "demouser"
   ds_ont_db: "i2b2metadata"
-
-extraEnvVarsSecret: "wildfly-secret-envvars"

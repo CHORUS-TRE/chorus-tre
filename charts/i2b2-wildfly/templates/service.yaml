@@ -11,5 +11,9 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    - port: {{ .Values.service.api }}
+      targetPort: 9990
+      protocol: TCP
+      name: api
   selector:
     {{- include "i2b2-wildfly.selectorLabels" . | nindent 4 }}
