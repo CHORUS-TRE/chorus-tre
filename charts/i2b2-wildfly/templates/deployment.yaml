@@ -38,7 +38,10 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.service.http }}
+              protocol: TCP
+            - name: api
+              containerPort: {{ .Values.service.api }}
               protocol: TCP
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
@@ -46,16 +49,15 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           env:
           {{- range $name, $value := .Values.env }}
-            {{- if hasKey $value "existingSecret" }}
-            - name: {{ $name }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $value.existingSecret }}
-                  key: {{ $value.key }}
-            {{- else }}
-            - name: {{ $name }}
-              value: "{{ $value }}"
-            {{- end }}
+            {{- if typeIs "map" $value }}
+            - name: {{ $name }} 
+              valueFrom: 
+                secretKeyRef: 
+                  name: {{ $value.existingSecret }} 
+                  key: {{ $value.key }} {{- else }}
+            - name: {{ $name }} 
+              value: "{{ $value }}" 
+            {{- end }} 
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
