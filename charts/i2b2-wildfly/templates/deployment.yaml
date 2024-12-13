@@ -49,15 +49,16 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           env:
           {{- range $name, $value := .Values.env }}
-            {{- if typeIs "map" $value }}
-            - name: {{ $name }} 
-              valueFrom: 
-                secretKeyRef: 
-                  name: {{ $value.existingSecret }} 
-                  key: {{ $value.key }} {{- else }}
-            - name: {{ $name }} 
-              value: "{{ $value }}" 
-            {{- end }} 
+            {{- if and (typeIs "map" $value) (hasKey $value "existingSecret") }}
+            - name: {{ $name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $value.existingSecret }}
+                  key: {{ $value.key }}
+            {{- else }}
+            - name: {{ $name }}
+              value: "{{ $value }}"
+            {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
