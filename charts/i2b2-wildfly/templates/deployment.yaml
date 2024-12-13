@@ -36,45 +36,6 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env:
-            - name: DS_TYPE
-              value: "{{ .Values.env.ds_type }}"
-            - name: DS_IP
-              value: "{{ .Values.env.ds_ip }}"
-            - name: DS_PORT
-              value: "{{ .Values.env.ds_port }}"
-            - name: DS_PM_USER
-              value: "{{ .Values.env.ds_pm_user }}"
-            - name: DS_WD_USER
-              value: "{{ .Values.env.ds_wd_user }}"
-            - name: DS_HIVE_USER
-              value: "{{ .Values.env.ds_hive_user }}"
-            - name: DS_PM_PASS
-              value: "{{ .Values.env.ds_pm_pass }}"
-            - name: DS_WD_PASS
-              value: "{{ .Values.env.ds_wd_pass }}"
-            - name: DS_HIVE_PASS
-              value: "{{ .Values.env.ds_hive_pass }}"
-            - name: DS_CRC_IP
-              value: "{{ .Values.env.ds_crc_ip }}"
-            - name: DS_CRC_PORT
-              value: "{{ .Values.env.ds_crc_port }}"
-            - name: DS_CRC_USER
-              value: "{{ .Values.env.ds_crc_user }}"
-            - name: DS_CRC_PASS
-              value: "{{ .Values.env.ds_crc_pass }}"
-            - name: DS_CRC_DB
-              value: "{{ .Values.env.ds_crc_db }}"
-            - name: DS_ONT_IP
-              value: "{{ .Values.env.ds_ont_ip }}"
-            - name: DS_ONT_PORT
-              value: "{{ .Values.env.ds_ont_port }}"
-            - name: DS_ONT_USER
-              value: "{{ .Values.env.ds_ont_user }}"
-            - name: DS_ONT_PASS
-              value: "{{ .Values.env.ds_ont_pass }}"
-            - name: DS_ONT_DB
-              value: "{{ .Values.env.ds_ont_db }}"
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -83,6 +44,19 @@ spec:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          env:
+          {{- range $name, $value := .Values.env }}
+            {{- if hasKey $value "existingSecret" }}
+            - name: {{ $name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $value.existingSecret }}
+                  key: {{ $value.key }}
+            {{- else }}
+            - name: {{ $name }}
+              value: "{{ $value }}"
+            {{- end }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
