@@ -123,9 +123,9 @@ env:
   DS_PM_PASS:
     existingSecret: i2b2-wildfly-secret
     key: ds_pm_pass
-  DS_WB_PASS:
+  DS_WD_PASS:
     existingSecret: i2b2-wildfly-secret
-    key: ds_wb_pass
+    key: ds_wd_pass
   DS_HIVE_PASS:
     existingSecret: i2b2-wildfly-secret
     key: ds_hive_pass
