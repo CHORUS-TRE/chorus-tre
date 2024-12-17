@@ -39,8 +39,6 @@ spec:
       name: "{{index .path.segments 0}}-{{.path.basename}}"
       labels:
         stepName: '{{ if hasKey . "stepName" }}{{ .stepName }}{{ else }}application{{ end }}'
-      #annotations:
-      #  argocd-image-updater.argoproj.io/image-list: '{{.images}}'
     spec:
       project: chorus-dev
       sources:
