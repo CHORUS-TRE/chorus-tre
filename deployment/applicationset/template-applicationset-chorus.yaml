@@ -16,8 +16,6 @@ spec:
   template:
     metadata:
       name: "{{index .path.segments 0}}-{{.path.basename}}"
-      #annotations:
-      #  argocd-image-updater.argoproj.io/image-list: '{{.images}}'
     spec:
       project: default
       sources:
