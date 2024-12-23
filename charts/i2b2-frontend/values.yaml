@@ -80,7 +80,7 @@ autoscaling:
 volumes:
   - name: i2b2-config
     configMap:
-      name: i2b2-config-map
+      name: chorus-i2b2-frontend-configmap
 
 volumeMounts:
   - name: i2b2-config
