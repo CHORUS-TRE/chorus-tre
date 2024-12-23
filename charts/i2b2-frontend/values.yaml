@@ -1,0 +1,121 @@
+# Default values for i2b2.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+replicaCount: 1
+
+image:
+  repository: docker.io/i2b2/i2b2-web
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "release-v1.8.1a.0001"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/app-root: /webclient
+  hosts:
+    - host: i2b2.chorus-tre.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: i2b2-tls
+      hosts:
+        - i2b2.chorus-tre.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage:
+
+volumes:
+  - name: i2b2-config
+    configMap:
+      name: chorus-i2b2-frontend-configmap
+
+volumeMounts:
+  - name: i2b2-config
+    mountPath: "/var/www/html/webclient/i2b2_config_domains.json"
+    subPath: i2b2_config_domains.json
+    readOnly: false
+  - name: i2b2-config
+    mountPath: "/var/www/html/webclient/proxy.php"
+    subPath: proxy.php
+    readOnly: false
+  - name: i2b2-config
+    mountPath: "/var/www/html/webclient/i2b2_proxy.conf"
+    subPath: i2b2_proxy.conf
+    readOnly: false
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# livenessProbe:
+#   httpGet:
+#     path: /
+#     port: http
+
+# readinessProbe:
+#   httpGet:
+#     path: /
+#     port: http
+
+command: "/run-httpd.sh localhost"
+
+cm:
+  urlCellPM: "http://chorus-env-i2b2-wildfly:8080/i2b2/services/PMService/"
+  pmURL: "http://chorus-env-i2b2-wildfly:8080/i2b2/rest/PMService/getServices"
+  whiteListURL: "http://chorus-env-i2b2-wildfly:8080"
+  ProxyPass: "http://chorus-env-i2b2-wildfly:8080/i2b2/"

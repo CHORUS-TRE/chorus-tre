@@ -1,0 +1,9 @@
+apiVersion: v2
+name: i2b2-frontend
+description: A Helm chart for I2B2 front end
+maintainers:
+  - name: yvesjaggi
+    email: yves.jaggi@chuv.ch
+type: application
+version: 0.0.1
+#appVersion: "v1.8.0.0002"
