@@ -1,7 +1,7 @@
 # Default values for i2b2.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-
+clusterName: chorus-build
 replicaCount: 1
 
 image:
@@ -71,18 +71,37 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage:
+
+volumes:
+  - name: i2b2-config
+    configMap:
+      name: i2b2-config-map
+
+volumeMounts:
+  - name: i2b2-config
+    mountPath: "/var/www/html/webclient/i2b2_config_domains.json"
+    subPath: i2b2_config_domains.json
+    readOnly: false
+  - name: i2b2-config
+    mountPath: "/var/www/html/webclient/proxy.php"
+    subPath: proxy.php
+    readOnly: false
+  - name: i2b2-config
+    mountPath: "/var/www/html/webclient/i2b2_proxy.conf"
+    subPath: i2b2_proxy.conf
+    readOnly: false
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
 
 # livenessProbe:
 #   httpGet:
