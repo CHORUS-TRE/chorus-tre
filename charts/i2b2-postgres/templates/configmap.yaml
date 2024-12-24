@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chorus-i2b2-postgres-configmap
+  labels: 
+    {{- include "i2b2-postgres.labels" . | nindent 4 }}
+data:
+  post_update_pg.sh: |
+    #!/bin/bash
+
+    sleep 60
+
+    # PostgreSQL connection details
+    DB_USER="{{ .Values.cm.pgUser }}"
+    DB_PASSWORD="{{ .Values.cm.pgPassword }}"
+
+    # Export the password for non-interactive use of psql
+    export PGPASSWORD=$DB_PASSWORD
+
+    # SQL commands to execute
+    SQL_COMMANDS="
+    UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.cm.wildflyURL }}/i2b2/services/QueryToolService/' WHERE CELL_ID = 'CRC';
+    UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.cm.wildflyURL }}/i2b2/services/OntologyService/' WHERE CELL_ID = 'ONT';
+    UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.cm.wildflyURL }}/i2b2/services/WorkplaceService/' WHERE CELL_ID = 'WORK';
+    UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.cm.wildflyURL }}/i2b2/services/FRService/' WHERE CELL_ID = 'FRC';
+    UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.cm.wildflyURL }}/i2b2/services/IMService/' WHERE CELL_ID = 'IM';
+    COMMIT;
+    "
+
+    # Execute the SQL commands
+    psql -U $DB_USER -c "$SQL_COMMANDS"
+
+    # Unset the password
+    unset PGPASSWORD

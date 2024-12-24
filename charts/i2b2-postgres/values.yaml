@@ -99,13 +99,25 @@ volumes:
   - name: postgresql-data
     persistentVolumeClaim:
     claimName: postgresql-data-pvc
+  - name: i2b2-pg-updates-config
+    configMap:
+      name: chorus-i2b2-postgres-configmap
 
 volumeMounts:
   - name: postgresql-data
     mountPath: "/var/lib/postgresql/data"
+  - name: i2b2-pg-updates-config
+    mountPath: "/usr/local/bin/post_update_pg.sh"
+    subPath: post_update_pg.sh
+    readOnly: false
 
 nodeSelector: {}
 
 tolerations: []
 
 affinity: {}
+
+cm:
+  pgUser: "i2b2"
+  pgPassword: "demouser"
+  wildflyURL: "http://chorus-env-i2b2-wildfly:8080"
