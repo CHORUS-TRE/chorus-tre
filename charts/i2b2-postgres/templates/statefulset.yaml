@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "i2b2-postgres.fullname" . }}
   labels:
@@ -54,12 +54,12 @@ spec:
             postStart:
               exec:
                 command:
-                  - /bin/sh
+                  - /bin/bash
                   - -c
                   - > 
                     cp /usr/local/bin/post_update_pg.sh /usr/local/bin/update_pg.sh;
                     chmod +x /usr/local/bin/update_pg.sh;
-                    /usr/local/bin/update_pg.sh;
+                    source /usr/local/bin/update_pg.sh;
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
@@ -76,3 +76,13 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  volumeClaimTemplates:
+    {{- range .Values.volumeClaimTemplates }}
+    - metadata:
+        name: {{ .name }}
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .storage }}
+    {{- end }}

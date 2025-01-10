@@ -96,13 +96,14 @@ autoscaling:
   # targetMemoryUtilizationPercentage: 80
 
 volumes:
-  - name: postgresql-data
-    persistentVolumeClaim:
-    claimName: postgresql-data-pvc
   - name: i2b2-pg-updates-config
     configMap:
       name: chorus-i2b2-postgres-configmap
 
+volumeClaimTemplates:
+  - name: postgresql-data
+    storage: 15Gi
+  
 volumeMounts:
   - name: postgresql-data
     mountPath: "/var/lib/postgresql/data"
