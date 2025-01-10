@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "i2b2-wildfly.fullname" . }}-test-connection"
+  labels:
+    {{- include "i2b2-wildfly.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "i2b2-wildfly.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never
