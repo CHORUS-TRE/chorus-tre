@@ -13,9 +13,32 @@ spec:
         revision: HEAD
         files:
           - path: "chorus-qa/*/config.json"
+  strategy:
+    type: RollingSync
+    rollingSync:
+      steps:
+        - matchExpressions:
+            - key: stepName
+              operator: In
+              values:
+                - infrastructure
+        - matchExpressions:
+            - key: stepName
+              operator: In
+              values:
+                - database
+          maxUpdate: 20% # don't break them all at once.
+        - matchExpressions:
+            - key: stepName
+              operator: In
+              values:
+                - application
+          maxUpdate: 20% # don't break them all at once
   template:
     metadata:
       name: "{{index .path.segments 0}}-{{.path.basename}}"
+      labels:
+        stepName: '{{ if hasKey . "stepName" }}{{ .stepName }}{{ else }}application{{ end }}'
     spec:
       project: chorus-qa
       sources:
@@ -39,4 +62,4 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
-          - 'ServerSideApply={{if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'
+          - 'ServerSideApply={{ if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'
