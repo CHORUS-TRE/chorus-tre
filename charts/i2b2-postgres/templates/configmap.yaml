@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: chorus-i2b2-postgres-configmap
-  labels: 
+  labels:
     {{- include "i2b2-postgres.labels" . | nindent 4 }}
 data:
   post_update_pg.sh: |
@@ -12,7 +12,12 @@ data:
 
     # PostgreSQL connection details
     DB_USER="{{ .Values.cm.pgUser }}"
-    DB_PASSWORD="{{ .Values.cm.pgPassword }}"
+    DB_PASSWORD=$POSTGRES_PASSWORD
+
+    if [ -z "$DB_PASSWORD" ]; then
+      echo "Error: POSTGRES_PASSWORD environment variable is not set."
+      exit 1
+    fi
 
     # Export the password for non-interactive use of psql
     export PGPASSWORD=$DB_PASSWORD

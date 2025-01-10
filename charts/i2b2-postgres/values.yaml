@@ -120,5 +120,7 @@ affinity: {}
 
 cm:
   pgUser: "i2b2"
-  pgPassword: "demouser"
+  pgPassword:
+    existingSecret: i2b2-postgres-secret
+    key: postgres-password
   wildflyURL: "http://chorus-env-i2b2-wildfly:8080"
