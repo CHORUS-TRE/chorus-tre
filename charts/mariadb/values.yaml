@@ -1,3 +1,8 @@
 mariadb:
   auth:
     existingSecret: "mariadb-secret"
+  primary:
+    livenessProbe:
+      timeoutSeconds: 10
+    readinessProbe:
+      timeoutSeconds: 10
