@@ -78,22 +78,22 @@ readinessProbe:
     - -c
     - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "I2B2PM"
   failureThreshold: 6
-  initialDelaySeconds: 5
+  initialDelaySeconds: 120
   periodSeconds: 10
   successThreshold: 1
-  timeoutSeconds: 5
+  timeoutSeconds: 10
 
 livenessProbe:
   exec:
     command:
     - /bin/sh
     - -c
-    - exec pg_isready -U "i2b2 -h 127.0.0.1 -p 5432 -d "I2B2PM"
+    - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "I2B2PM"
   failureThreshold: 6
-  initialDelaySeconds: 30
+  initialDelaySeconds: 120
   periodSeconds: 10
   successThreshold: 1
-  timeoutSeconds: 5
+  timeoutSeconds: 10
 
 autoscaling:
   enabled: false
