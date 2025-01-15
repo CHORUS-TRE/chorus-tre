@@ -4,7 +4,7 @@ name: mariadb
 maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch
-version: 0.0.5
+version: 0.0.6
 dependencies:
   - name: mariadb
     version: 20.1.1
