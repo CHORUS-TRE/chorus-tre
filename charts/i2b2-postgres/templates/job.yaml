@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "i2b2-postgres.fullname" . }}
+  labels:
+    {{- include "i2b2-postgres.labels" . | nindent 4 }}
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: check-pg-ready
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+            echo "Waiting for Postgresql to be ready..."
+            until pg_isready -h {{ include "i2b2-postgres.fullname" . }} -p {{ .Values.service.port }} -d {{ .Values.job.pgDB }} -U {{ .Values.job.pgUser }}; do
+              echo "Postgresql not ready, retrying in 5 seconds..."
+              sleep 5
+            done
+            echo "Postgresql is ready."
+
+      containers:
+      - name: pg-post-update
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.job.pgPassword.existingSecret }}
+              key: {{ .Values.job.pgPassword.key }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+            # SQL commands to execute
+            psql -U {{ .Values.job.pgUser }} -h {{ include "i2b2-postgres.fullname" . }} -p {{ .Values.service.port }} <<EOF
+            UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.job.wildflyURL }}/i2b2/services/QueryToolService/' WHERE CELL_ID = 'CRC';
+            UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.job.wildflyURL }}/i2b2/services/OntologyService/' WHERE CELL_ID = 'ONT';
+            UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.job.wildflyURL }}/i2b2/services/WorkplaceService/' WHERE CELL_ID = 'WORK';
+            UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.job.wildflyURL }}/i2b2/services/FRService/' WHERE CELL_ID = 'FRC';
+            UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.job.wildflyURL }}/i2b2/services/IMService/' WHERE CELL_ID = 'IM';
+            COMMIT;
+            EOF
+      restartPolicy: Never
+  backoffLimit: 4

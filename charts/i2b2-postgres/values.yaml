@@ -71,22 +71,29 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-# TODO: the probes don't work, but postgresql is accepting connections
-#readinessProbe:
-#  exec:
-#    command:
-#    - pg_isready
-#  initialDelaySeconds: 30
-#  periodSeconds: 10
-#  failureThreshold: 3
+readinessProbe:
+  exec:
+    command:
+    - /bin/sh
+    - -c
+    - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "I2B2PM"
+  failureThreshold: 6
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
 
-#livenessProbe:
-#  exec:
-#    command:
-#    - pg_isready
-#  initialDelaySeconds: 120
-#  periodSeconds: 15
-# failureThreshold: 3
+livenessProbe:
+  exec:
+    command:
+    - /bin/sh
+    - -c
+    - exec pg_isready -U "i2b2 -h 127.0.0.1 -p 5432 -d "I2B2PM"
+  failureThreshold: 6
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
 
 autoscaling:
   enabled: false
@@ -95,10 +102,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
-volumes:
-  - name: i2b2-pg-updates-config
-    configMap:
-      name: chorus-i2b2-postgres-configmap
+volumes: []
 
 volumeClaimTemplates:
   - name: postgresql-data
@@ -107,10 +111,6 @@ volumeClaimTemplates:
 volumeMounts:
   - name: postgresql-data
     mountPath: "/var/lib/postgresql/data"
-  - name: i2b2-pg-updates-config
-    mountPath: "/usr/local/bin/post_update_pg.sh"
-    subPath: post_update_pg.sh
-    readOnly: false
 
 nodeSelector: {}
 
@@ -118,8 +118,9 @@ tolerations: []
 
 affinity: {}
 
-cm:
+job:
   pgUser: "i2b2"
+  pgDB: "I2B2PM"
   pgPassword:
     existingSecret: i2b2-postgres-secret
     key: postgres-password

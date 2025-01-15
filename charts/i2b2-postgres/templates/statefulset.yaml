@@ -40,12 +40,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          env:
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: {{ .Values.cm.pgPassword.existingSecret }}
-                key: {{ .Values.cm.pgPassword.key }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -56,16 +50,6 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                  - /bin/bash
-                  - -c
-                  - > 
-                    cp /usr/local/bin/post_update_pg.sh /usr/local/bin/update_pg.sh;
-                    chmod +x /usr/local/bin/update_pg.sh;
-                    source /usr/local/bin/update_pg.sh;
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
