@@ -27,7 +27,7 @@ spec:
             value:
               # The goal is to publish tagged releases.
               - "refs/heads/master"
-              #- "refs/tags/v*"
+              - "refs/tags/v*"
 
     - name: ci-chorus-backend
       eventSourceName: {{ $fullName }}-github
