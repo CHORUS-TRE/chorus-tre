@@ -73,8 +73,7 @@ spec:
             do sleep 3;
           done;
 
-          CACHE="${CACHE:=cache}"
-          BUILDER_NAME="docker-container"
+          BUILDER_NAME="docker-container";
 
           if [ -n "${TAG}" ] && [ "n/a" != "${TAG}" ]; then
             version="${TAG}";
@@ -83,15 +82,16 @@ spec:
           fi;
 
           tag="${REGISTRY}/${IMAGE}:${version}";
+          tag-cache="${REGISTRY}/${CACHE}/${IMAGE}-${CACHE}";
 
           if [ "$OUTPUT" = "type=registry" ]; then
             CACHE_FROM="\
-              --cache-from=type=registry,ref=${REGISTRY}/${CACHE}/${IMAGE}-${CACHE}:${version} \
-              --cache-from=type=registry,ref=${REGISTRY}/${CACHE}/${IMAGE}-${CACHE}:latest";
+              --cache-from=type=registry,ref=${tag-cache}:${version} \
+              --cache-from=type=registry,ref=${tag-cache}:latest";
 
             CACHE_TO="\
-              --cache-to=type=registry,ref=${REGISTRY}/${CACHE}/${IMAGE}-${CACHE}:${version},mode=max,image-manifest=true \
-              --cache-to=type=registry,ref=${REGISTRY}/${CACHE}/${IMAGE}-${CACHE}:latest,mode=max,image-manifest=true";
+              --cache-to=type=registry,ref=${tag-cache}:${version},mode=max,image-manifest=true \
+              --cache-to=type=registry,ref=${tag-cache}:latest,mode=max,image-manifest=true";
           fi;
 
           # Check if the builder exists
