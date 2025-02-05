@@ -70,7 +70,7 @@ spec:
           value: "{{`{{inputs.parameters.image}}`}}"
         - name: TAG
           value: "{{`{{inputs.parameters.tag}}`}}"
-      command: [sh, -e, -c]
+      command: [sh, -e, -c, -x]
       args:
         - >-
           until docker ps;
