@@ -88,15 +88,13 @@ spec:
           tag="${REGISTRY}/${REPOSITORY}/${IMAGE}:${version}";
           tag_cache="${REGISTRY}/cache/${IMAGE}-cache";
 
-          if [ "$OUTPUT" = "type=registry" ]; then
-            CACHE_FROM="\
-              --cache-from=type=registry,ref=${tag_cache}:${version} \
-              --cache-from=type=registry,ref=${tag_cache}:latest";
+          CACHE_FROM="\
+            --cache-from=type=registry,ref=${tag_cache}:${version} \
+            --cache-from=type=registry,ref=${tag_cache}:latest";
 
-            CACHE_TO="\
-              --cache-to=type=registry,ref=${tag_cache}:${version},mode=max,image-manifest=true \
-              --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
-          fi;
+          CACHE_TO="\
+            --cache-to=type=registry,ref=${tag_cache}:${version},mode=max,image-manifest=true \
+            --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
 
           # Check if the builder exists
           if ! docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1; then
