@@ -86,16 +86,16 @@ spec:
           fi;
 
           tag="${REGISTRY}/${REPOSITORY}/${IMAGE}:${version}";
-          tag-cache="${REGISTRY}/cache/${IMAGE}-cache";
+          tag_cache="${REGISTRY}/cache/${IMAGE}-cache";
 
           if [ "$OUTPUT" = "type=registry" ]; then
             CACHE_FROM="\
-              --cache-from=type=registry,ref=${tag-cache}:${version} \
-              --cache-from=type=registry,ref=${tag-cache}:latest";
+              --cache-from=type=registry,ref=${tag_cache}:${version} \
+              --cache-from=type=registry,ref=${tag_cache}:latest";
 
             CACHE_TO="\
-              --cache-to=type=registry,ref=${tag-cache}:${version},mode=max,image-manifest=true \
-              --cache-to=type=registry,ref=${tag-cache}:latest,mode=max,image-manifest=true";
+              --cache-to=type=registry,ref=${tag_cache}:${version},mode=max,image-manifest=true \
+              --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
           fi;
 
           # Check if the builder exists
