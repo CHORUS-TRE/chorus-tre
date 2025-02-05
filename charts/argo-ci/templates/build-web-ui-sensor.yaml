@@ -229,13 +229,15 @@ spec:
                           arguments:
                             parameters:
                               - name: image
-                                value: "chorus/web-ui"
+                                value: "web-ui"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
                               - name: sha
                                 value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
                                 value: "Dockerfile"
+                              - name: repository
+                                value: "chorus"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
