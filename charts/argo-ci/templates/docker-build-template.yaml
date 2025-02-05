@@ -17,6 +17,7 @@ spec:
       - name: dockerfile
         value: "Dockerfile"
       - name: image
+      - name: repository
       - name: registry
         value: "harbor.build.chorus-tre.local"
       - name: dockerConfigSecret
@@ -29,6 +30,7 @@ spec:
         - name: sha
         - name: dockerfile
         - name: image
+        - name: repository
         - name: registry
         - name: dockerConfigSecret
       artifacts:
@@ -58,6 +60,8 @@ spec:
           value: 127.0.0.1
         - name: DOCKERFILE
           value: "{{`{{inputs.parameters.dockerfile}}`}}"
+        - name: REPOSITORY
+          value: "{{`{{inputs.parameters.repository}}`}}"
         - name: REGISTRY
           value: "{{`{{inputs.parameters.registry}}`}}"
         - name: SHA
@@ -81,8 +85,8 @@ spec:
             version="$(date +%Y%m%d)-$(echo -n ${SHA} | cut -c 1-8)";
           fi;
 
-          tag="${REGISTRY}/${IMAGE}:${version}";
-          tag-cache="${REGISTRY}/${CACHE}/${IMAGE}-${CACHE}";
+          tag="${REGISTRY}/${REPOSITORY}/${IMAGE}:${version}";
+          tag-cache="${REGISTRY}/cache/${IMAGE}-cache";
 
           if [ "$OUTPUT" = "type=registry" ]; then
             CACHE_FROM="\
