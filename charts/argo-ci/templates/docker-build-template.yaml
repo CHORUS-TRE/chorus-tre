@@ -96,10 +96,7 @@ spec:
             --cache-to=type=registry,ref=${tag_cache}:${version},mode=max,image-manifest=true \
             --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
 
-          # Check if the builder exists
-          if ! docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1; then
-            docker buildx create --name "${BUILDER_NAME}" --driver docker-container;
-          fi;
+          docker buildx create --name "${BUILDER_NAME}" --driver docker-container;
 
           docker buildx build
           --pull
