@@ -17,6 +17,7 @@ spec:
       - name: dockerfile
         value: "Dockerfile"
       - name: image
+      - name: repository
       - name: registry
         value: "harbor.build.chorus-tre.local"
       - name: dockerConfigSecret
@@ -29,6 +30,7 @@ spec:
         - name: sha
         - name: dockerfile
         - name: image
+        - name: repository
         - name: registry
         - name: dockerConfigSecret
       artifacts:
@@ -58,6 +60,8 @@ spec:
           value: 127.0.0.1
         - name: DOCKERFILE
           value: "{{`{{inputs.parameters.dockerfile}}`}}"
+        - name: REPOSITORY
+          value: "{{`{{inputs.parameters.repository}}`}}"
         - name: REGISTRY
           value: "{{`{{inputs.parameters.registry}}`}}"
         - name: SHA
@@ -73,19 +77,35 @@ spec:
             do sleep 3;
           done;
 
+          BUILDER_NAME="docker-container";
+
           if [ -n "${TAG}" ] && [ "n/a" != "${TAG}" ]; then
             version="${TAG}";
           else
             version="$(date +%Y%m%d)-$(echo -n ${SHA} | cut -c 1-8)";
           fi;
 
-          tag="${REGISTRY}/${IMAGE}:${version}";
+          tag="${REGISTRY}/${REPOSITORY}/${IMAGE}:${version}";
+          tag_cache="${REGISTRY}/cache/${IMAGE}-cache";
+
+          CACHE_FROM="\
+            --cache-from=type=registry,ref=${tag_cache}:${version} \
+            --cache-from=type=registry,ref=${tag_cache}:latest";
+
+          CACHE_TO="\
+            --cache-to=type=registry,ref=${tag_cache}:${version},mode=max,image-manifest=true \
+            --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
+
+          docker buildx create --name "${BUILDER_NAME}" --driver docker-container;
 
           docker buildx build
           --pull
+          --builder ${BUILDER_NAME}
           --file "${DOCKERFILE}"
           --label "org.opencontainers.image.revision=${SHA}"
           --tag "${tag}"
+          ${CACHE_FROM}
+          ${CACHE_TO}
           --output "type=registry"
           .
       workingDir: "/src"

@@ -1,0 +1,127 @@
+# Default values for i2b2-wildfly.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: docker.io/i2b2/i2b2-pg
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "release-v1.8.1a.0001"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 5432
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+readinessProbe:
+  exec:
+    command:
+    - /bin/sh
+    - -c
+    - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "I2B2PM"
+  failureThreshold: 6
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 10
+
+livenessProbe:
+  exec:
+    command:
+    - /bin/sh
+    - -c
+    - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "I2B2PM"
+  failureThreshold: 6
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 10
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+volumes: []
+
+volumeClaimTemplates:
+  - name: postgresql-data
+    storage: 15Gi
+  
+volumeMounts:
+  - name: postgresql-data
+    mountPath: "/var/lib/postgresql/data"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+job:
+  pgUser: "i2b2"
+  pgDB: "I2B2PM"
+  pgPassword:
+    existingSecret: i2b2-postgres-secret
+    key: postgres-password
+  wildflyURL: "http://chorus-env-i2b2-wildfly:8080"

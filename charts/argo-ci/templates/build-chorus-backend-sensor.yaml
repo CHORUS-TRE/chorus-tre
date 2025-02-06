@@ -18,7 +18,7 @@ spec:
     secondsAfterSuccess: 7776000
     secondsAfterFailure: 7776000
   dependencies:
-    - name: build-chorus-backend
+    - name: ci-chorus-backend
       eventSourceName: {{ $fullName }}-github
       eventName: chorus-backend
       filters:
@@ -31,23 +31,7 @@ spec:
             type: string
             value:
               # The goal is to publish tagged releases.
-              - "refs/heads/master"
-              - "refs/tags/v*"
-
-    - name: ci-chorus-backend
-      eventSourceName: {{ $fullName }}-github
-      eventName: chorus-backend
-      filters:
-        data:
-          - path: headers.X-Github-Event
-            type: string
-            value:
-              - pull_request
-          - path: "body.action"
-            type: string
-            value:
-              - "opened"
-              - "synchronize"
+              - "refs/heads/*"
 
   triggers:
     - template:
@@ -100,6 +84,34 @@ spec:
                           value: {{ $githubSecretName }}
 
                 templates:
+                  - name: set-version
+                    steps:
+                      - - name: run-tests
+                          template: template-set-version
+
+                  - name: template-set-version
+                    inputs:
+                      artifacts:
+                        - name: git
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: "golang:1.23-bookworm"
+                      command: [sh, -e, -c]
+                      args:
+                        - >-
+                          go test -v ./...
+
+                      workingDir: "/src"
                   - name: go-test
                     steps:
                       - - name: run-tests
@@ -127,6 +139,115 @@ spec:
                         - >-
                           go test -v ./...
 
+                      workingDir: "/src"
+
+                  - name: build-chorus-backend
+                    dependencies: [test]
+                    steps:
+                      - - name: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: image
+                                value: "backend"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: sha
+                                value: "{{`{{workflow.parameters.sha}}`}}"
+                              - name: dockerfile
+                                value: "docker/dockerfiles/Dockerfile"
+                              - name: repository
+                                value: "chorus"
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
+
+                      - - name: oci-credentials
+                          template: oci-credentials
+
+                      - - name: helm-build
+                          template: helm-build
+                          arguments:
+                            parameters:
+                              - name: oci-username
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
+                              - name: oci-password
+                                value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
+
+                  - name: oci-credentials
+                    container:
+                      image: backplane/jq
+                      volumeMounts:
+                        - name: docker-config
+                          mountPath: /.docker
+                      env:
+                        - name: DOCKER_CONFIG
+                          value: /.docker
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -c]
+                      args:
+                        - >-
+                          auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
+                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
+                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' | base64 > /tmp/password
+                    outputs:
+                      parameters:
+                        - name: username
+                          valueFrom:
+                            path: /tmp/username
+                        - name: password
+                          valueFrom:
+                            path: /tmp/password
+
+                  - name: helm-build
+                    inputs:
+                      # FIXME: we need artifact storage to pass the password as a file.
+                      parameters:
+                        - name: oci-username
+                        - name: oci-password
+                      artifacts:
+                        - name: images
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    container:
+                      image: alpine/helm
+                      env:
+                        - name: REGISTRY
+                          value: {{ .Values.sensor.registry | quote }}
+                      command: [sh, -e, -c]
+                      args:
+                        - >-
+                          helm package deploy/backend;
+                          echo -n '{{`{{inputs.parameters.oci-password}}`}}' > /tmp/password;
+                          cat /tmp/password | base64 -d | helm registry login -u '{{`{{inputs.parameters.oci-username}}`}}' --password-stdin  "${REGISTRY}";
+                          helm push backend-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
 
           parameters:
@@ -200,13 +321,15 @@ spec:
                           arguments:
                             parameters:
                               - name: image
-                                value: "chorus/backend"
+                                value: "backend"
                               - name: tag
                                 value: "{{`{{workflow.parameters.tag}}`}}"
                               - name: sha
                                 value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
                                 value: "docker/dockerfiles/Dockerfile"
+                              - name: repository
+                                value: "chorus"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret

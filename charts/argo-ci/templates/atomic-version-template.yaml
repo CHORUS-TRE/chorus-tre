@@ -1,0 +1,54 @@
+{{- $fullName := include "argo-ci.fullname" . -}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: {{ $fullName }}-sqlite-version-template
+  labels:
+    {{- include "argo-ci.labels" . | nindent 4 }}
+spec:
+  arguments:
+    parameters:
+      - name: input_string
+  templates:
+  - name: sqlite-version
+    inputs:
+      parameters:
+        - name: input_string
+    outputs:
+      parameters:
+        - name: version_number
+          valueFrom:
+            path: "/tmp/version_output.txt"
+    volumes:
+      - name: sqlite-storage
+        emptyDir: {}
+    container:
+      image: "python:3.9"
+      volumeMounts:
+        - name: sqlite-storage
+          mountPath: /data
+      command: ["sh", "-c"]
+      args:
+        - >-
+          DB_PATH="/data/version_store.db";
+          python3 -c "
+import sqlite3, os;
+input_str = os.environ['INPUT_STRING'];
+db_path = os.environ['DB_PATH'];
+conn = sqlite3.connect(db_path);
+c = conn.cursor();
+c.execute('''CREATE TABLE IF NOT EXISTS versions (id TEXT PRIMARY KEY, version INTEGER DEFAULT 0)''');
+c.execute('''INSERT INTO versions (id, version) VALUES (?, 0) ON CONFLICT(id) DO UPDATE SET version = version + 1 RETURNING version;''', (input_str,));
+conn.commit();
+version = c.fetchone()[0];
+with open('/tmp/version_output.txt', 'w') as f:
+    f.write(str(version));
+print(version);
+conn.close();
+          "
+      env:
+        - name: INPUT_STRING
+          value: "{{`{{inputs.parameters.input_string}}`}}"
+        - name: DB_PATH
+          value: "/data/version_store.db"
