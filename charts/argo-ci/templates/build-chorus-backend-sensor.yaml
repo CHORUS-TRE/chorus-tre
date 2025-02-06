@@ -12,6 +12,11 @@ spec:
   eventBusName: {{ $fullName }}-default
   template:
     serviceAccountName: {{ $serviceAccountName }}
+  ttlStrategy:
+    # 90 days
+    secondsAfterCompletion: 7776000
+    secondsAfterSuccess: 7776000
+    secondsAfterFailure: 7776000
   dependencies:
     - name: build-chorus-backend
       eventSourceName: {{ $fullName }}-github
