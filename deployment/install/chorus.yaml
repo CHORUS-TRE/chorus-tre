@@ -1,0 +1,26 @@
+# version: v0.0.1
+
+context: bootstrap
+
+metadata:
+  org: "https://github.com/CHORUS-TRE/chorus-tre"
+  maintainer: "Nathalie Casati (nathalie.casati@chuv.ch)"
+  description: "DSF to install CHORUS-TRE"
+
+settings:
+  kubeContext: "build-test" 
+  globalMaxHistory: 5
+
+# define your environments and their k8s namespaces
+namespaces:
+  argocd:
+
+apps:
+  argocd:
+    namespace: "argocd" 
+    enabled: true 
+    chart: "../../charts/argo-cd"
+    version: "0.0.30"
+    valuesFile: "" 
+    priority: -3
+    wait: false
