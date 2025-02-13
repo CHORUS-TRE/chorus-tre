@@ -13,14 +13,36 @@ settings:
 
 # define your environments and their k8s namespaces
 namespaces:
+  ingress-nginx:
+  cert-manager:
   argocd:
 
 apps:
-  argocd:
+  ingress-nginx:
+    namespace: "ingress-nginx"
+    enabled: true
+    chart: "../../charts/ingress-nginx"
+    version: "0.0.4"
+    valuesFile: ""
+    priority: -4
+    wait: true
+  cert-manager:
+    namespace: "cert-manager"
+    enabled: true
+    chart: "../../charts/cert-manager"
+    version: "0.0.10"
+    valuesFile: ""
+    priority: -3
+    wait: true
+    hooks:
+      preInstall: ./hooks/pre-install/cert-manager-crds.sh 
+  argo-cd:
     namespace: "argocd" 
     enabled: true 
     chart: "../../charts/argo-cd"
     version: "0.0.30"
     valuesFile: "" 
-    priority: -3
-    wait: false
+    priority: -2
+    wait: true
+    hooks:
+      postDelete: ./hooks/post-delete/argo-cd-crds.sh
