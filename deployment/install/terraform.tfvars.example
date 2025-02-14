@@ -1,0 +1,4 @@
+kubeconfig_path = "~/.kube/config"
+kubeconfig_context = "chorus-build"
+
+cluster_name = "chorus-build"
