@@ -96,9 +96,9 @@ spec:
             --cache-to=type=registry,ref=${tag_cache}:${version},mode=max,image-manifest=true \
             --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
 
-          docker buildx create --name "${BUILDER_NAME}" --driver docker-container;
+          docker-buildx create --name "${BUILDER_NAME}" --driver docker-container;
 
-          docker buildx build
+          docker-buildx build
           --pull
           --builder ${BUILDER_NAME}
           --file "${DOCKERFILE}"
