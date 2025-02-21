@@ -10,6 +10,11 @@ mariadb:
     enabled: true
     serviceMonitor:
       enabled: true
+    extraArgs:
+      primary:
+        - --no-collect.slave_status
+        - --no-collect.info_schema.innodb_cmp
+        - --no-collect.info_schema.innodb_cmpmem
   tls:
     enabled: false
     # Generate this secret using a cert-manager Certificate resource.
