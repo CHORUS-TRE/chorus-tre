@@ -1,0 +1,10 @@
+apiVersion: v2
+description: Keeps security report resources updated.
+type: application
+maintainers:
+  - name: luanamartelli
+    email: luana.martelli@chuv.ch
+name: trivy-operator
+version: 0.0.1
+sources:
+  - https://github.com/aquasecurity/trivy-operator
