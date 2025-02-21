@@ -6,3 +6,7 @@ mariadb:
       timeoutSeconds: 10
     readinessProbe:
       timeoutSeconds: 10
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
