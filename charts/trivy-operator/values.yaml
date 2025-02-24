@@ -13,8 +13,4 @@ operator:
   metricsConfigAuditInfo: true 
 service:
   # disabled ensures that the pod gets a ClusterIP.
-  headless: false    
-
-
-
-
+  headless: false
