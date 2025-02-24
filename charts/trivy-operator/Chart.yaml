@@ -1,6 +1,5 @@
 apiVersion: v2
 description: Keeps security report resources updated.
-type: application
 maintainers:
   - name: luanamartelli
     email: luana.martelli@chuv.ch
