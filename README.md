@@ -26,7 +26,11 @@ dependencies:
     repository: <helm_chart_repository>
 ```
 
-`values.yaml`: add the values that must be customized for all CHORUS environments.
+`values.yaml`:
+```yaml
+<helm_chart_name>:
+  #add the values that must be customized for all CHORUS environments
+```
 
 From the `charts` folder, run
 ```bash
