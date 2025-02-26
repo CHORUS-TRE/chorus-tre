@@ -7,9 +7,9 @@ mariadb:
     readinessProbe:
       timeoutSeconds: 10
   metrics:
-    enabled: true
+    enabled: false
     serviceMonitor:
-      enabled: true
+      enabled: false
     extraArgs:
       primary:
         - --collect.global_status
