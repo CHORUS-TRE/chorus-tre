@@ -6,7 +6,7 @@ maintainers:
   - name: floriansipp
     email: florian.sipp@chuv.ch
 name: kube-prometheus-stack
-version: 0.0.23
+version: 0.0.22
 dependencies:
   - name: kube-prometheus-stack
     version: 66.3.1
