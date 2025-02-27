@@ -121,7 +121,7 @@ spec:
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: docker:27
+                      image: docker:27.5.1
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
@@ -148,7 +148,7 @@ spec:
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
                     sidecars:
                       - name: dind
-                        image: docker:27-dind
+                        image: docker:27.5.1-dind
                         env:
                           - name: DOCKER_TLS_CERTDIR
                             value: ""

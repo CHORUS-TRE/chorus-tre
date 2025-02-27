@@ -1,0 +1,11 @@
+apiVersion: v2
+description: Keeps security report resources updated.
+maintainers:
+  - name: luanamartelli
+    email: luana.martelli@chuv.ch
+name: trivy-operator
+version: 0.0.1
+dependencies:
+  - name: trivy-operator
+    version: 0.25.0
+    repository: https://aquasecurity.github.io/helm-charts/
