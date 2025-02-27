@@ -1,4 +1,6 @@
-#Install
+# How to bootstrap the CHORUS-TRE Build cluster
+
+## Install
 
 1. Initialize terraform:
 
@@ -18,7 +20,7 @@ terraform plan -out=chorus
 terraform apply chorus
 ```
 
-#Uninstall
+## Uninstall
 
 1. Destroy the infrastructure
 
