@@ -2,22 +2,30 @@
 
 ## Install
 
-1. Initialize terraform:
+1. Set variables for your usecase:
+
+```
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit this file as needed.
+
+2. Initialize terraform:
 
 ```
 terraform init
 ```
 
-2. Save the execution plan:
+3. Save the execution plan:
 
 ```
-terraform plan -out=chorus
+terraform plan -out=chorus.plan
 ```
 
-3. Apply the saved plan:
+4. Apply the saved plan:
 
 ```
-terraform apply chorus
+terraform apply chorus.plan
 ```
 
 ## Uninstall

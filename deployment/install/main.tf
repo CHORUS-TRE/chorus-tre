@@ -83,13 +83,16 @@ resource "helm_release" "argo_cd" {
     ignore_changes = [values]
   }
 
-  # Pre-Delete Hook
+  provisioner "local-exec" {
+    command = "./hooks/post-install/build-appset.sh"
+    when    = create
+  }
+
   provisioner "local-exec" {
     command = "./hooks/pre-delete/argo-cd-crds.sh"
     when    = destroy
   }
 
-  # Post-Delete Hook
   provisioner "local-exec" {
     command = "./hooks/post-delete/argo-cd-crds.sh"
     when    = destroy
