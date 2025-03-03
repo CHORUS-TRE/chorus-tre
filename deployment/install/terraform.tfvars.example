@@ -2,5 +2,5 @@ kubeconfig_path = "~/.kube/config"
 kubeconfig_context = "chorus-build"
 
 cluster_name = "chorus-build"
-domain_name = "chorus-tre.ch"
+domain_name = "example.com"
 subdomain_name = "build"
