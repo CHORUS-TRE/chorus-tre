@@ -110,6 +110,22 @@ kube-prometheus-stack:
               requests:
                 storage: 1Gi
 
+      # trivy-operator job
+      serviceMonitorSelector: {}
+      serviceMonitorNamespaceSelector: {}
+      additionalScrapeConfigs: 
+        - job_name: 'trivy-operator'
+          kubernetes_sd_configs:
+            - role: endpoints
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_service_name]
+              regex: trivy-operator
+              action: keep
+            - source_labels: [__meta_kubernetes_namespace]
+              regex: trivy-system
+              action: keep
+
+
 alertmanagerConfiguration:
   name: global-alertmanager-config
 

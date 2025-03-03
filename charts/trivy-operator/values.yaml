@@ -1,0 +1,17 @@
+# Minimal config
+trivy-operator:
+  serviceMonitor:
+    # enabled determines whether a serviceMonitor should be deployed
+    enabled: true
+  trivy:
+    ignoreUnfixed: true
+  operator:
+    metricsVulnIdEnabled: true
+    metricsClusterComplianceInfo: true
+    metricsExposedSecretInfo: true
+    metricsInfraAssessmentInfo: true
+    metricsRbacAssessmentInfo: true
+    metricsConfigAuditInfo: true 
+  service:
+    # disabled ensures that the pod gets a ClusterIP.
+    headless: false
