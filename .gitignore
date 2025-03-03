@@ -1,3 +1,9 @@
 **/charts
 !/charts
 **/*.tgz
+**/*.tfvars
+**/.terraform
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform.lock.hcl
+**/chorus.plan
