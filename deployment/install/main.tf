@@ -29,6 +29,41 @@ resource "kubernetes_namespace" "argocd" {
   }
 }
 
+# Secret Definitions
+# Check if the Kubernetes secret already exists
+data "kubernetes_secret" "existing_secret_argocd_cache" {
+  metadata {
+    name      = "argo-cd-cache-secret"
+    namespace = "argocd"
+  }
+}
+
+# Generate a random password (only if needed)
+resource "random_password" "redis_password" {
+  length  = 32
+  special = false
+}
+
+# Create Kubernetes secret using existing password (if found) or generate a new one
+resource "kubernetes_secret" "argo_cd_cache" {
+  metadata {
+    name      = "argo-cd-cache-secret"
+    namespace = "argocd"
+  }
+
+  data = {
+    redis-username = ""
+    redis-password = coalesce(
+      try(data.kubernetes_secret.existing_secret_argocd_cache.data["redis-password"], null),
+      random_password.redis_password.result
+    )
+  }
+
+  lifecycle {
+    ignore_changes = [data["redis-password"]]
+  }
+}
+
 # Ingress-Nginx Deployment
 resource "helm_release" "ingress_nginx" {
   name       = "${var.cluster_name}-ingress-nginx"
@@ -60,8 +95,47 @@ resource "helm_release" "cert_manager" {
   }
 
   provisioner "local-exec" {
-    command = "./hooks/pre-install/cert-manager-crds.sh"
+    command = "${path.module}/hooks/pre-install/cert-manager-crds.sh"
     when    = create
+  }
+}
+
+# Valkey Deployment
+resource "helm_release" "valkey" {
+  name       = "${var.cluster_name}-argo-cd-cache"
+  namespace  = "argocd"
+  chart      = "../../charts/valkey"
+  version    = "0.0.8"
+  create_namespace = false
+  wait       = true
+
+  values = [
+    file("${path.module}/../../../environment-template/chorus-build/argo-cd-cache/values.yaml")
+  ]
+
+  set {
+    name = "valkey.metrics.enabled"
+    value = "false"
+  }
+
+  set {
+    name = "valkey.metrics.serviceMonitor.enabled"
+    value = "false"
+  }
+
+  set {
+    name = "valkey.metrics.podMonitor.enabled"
+    value = "false"
+  }
+
+  depends_on = [
+    kubernetes_namespace.argocd,
+    kubernetes_secret.argo_cd_cache,
+    helm_release.cert_manager
+  ]
+
+  lifecycle {
+    ignore_changes = [values]
   }
 }
 
@@ -74,9 +148,18 @@ resource "helm_release" "argo_cd" {
   create_namespace = false
   wait       = true
 
+  values = [
+    file("${path.module}/../../../environment-template/chorus-build/argo-cd/values.yaml")
+  ]
+
+  set {
+    name  = "argo-cd.global.domain"
+    value = "argo-cd.${var.subdomain_name}.${var.domain_name}"
+  }
+
   depends_on = [
     kubernetes_namespace.argocd,
-    helm_release.cert_manager
+    helm_release.valkey
   ]
 
   lifecycle {
@@ -84,17 +167,17 @@ resource "helm_release" "argo_cd" {
   }
 
   provisioner "local-exec" {
-    command = "./hooks/post-install/build-appset.sh"
+    command = "${path.module}/hooks/post-install/build-appset.sh"
     when    = create
   }
 
   provisioner "local-exec" {
-    command = "./hooks/pre-delete/argo-cd-crds.sh"
+    command = "${path.module}/hooks/pre-delete/argo-cd-crds.sh"
     when    = destroy
   }
 
   provisioner "local-exec" {
-    command = "./hooks/post-delete/argo-cd-crds.sh"
+    command = "${path.module}/hooks/post-delete/argo-cd-crds.sh"
     when    = destroy
   }
 }

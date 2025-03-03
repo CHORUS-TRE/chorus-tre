@@ -12,3 +12,13 @@ variable "kubeconfig_context" {
   description = "Kubernetes context to use"
   type        = string
 }
+
+variable "domain_name" {
+  description = "The domain name for your CHORUS-TRE installation"
+  type        = string
+}
+
+variable "subdomain_name" {
+  description = "The subdomain name for your build cluster installation"
+  type        = string
+}
