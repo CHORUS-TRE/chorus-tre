@@ -201,7 +201,7 @@ spec:
                               - name: sha
                                 value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
-                                value: "docker/dockerfiles/Dockerfile"
+                                value: "docker/dockerfiles/stage2.dockerfile"
                               - name: repository
                                 value: "chorus"
                               - name: registry
