@@ -9,12 +9,12 @@ metadata:
 spec:
   arguments:
     parameters:
-      - name: input_string
+      - name: version_string
   templates:
   - name: sqlite-version
     inputs:
       parameters:
-        - name: input_string
+        - name: version_string
     outputs:
       parameters:
         - name: version_number
@@ -33,22 +33,22 @@ spec:
         - >-
           DB_PATH="/data/version_store.db";
           python3 -c "
-import sqlite3, os;
-input_str = os.environ['INPUT_STRING'];
-db_path = os.environ['DB_PATH'];
-conn = sqlite3.connect(db_path);
-c = conn.cursor();
-c.execute('''CREATE TABLE IF NOT EXISTS versions (id TEXT PRIMARY KEY, version INTEGER DEFAULT 0)''');
-c.execute('''INSERT INTO versions (id, version) VALUES (?, 0) ON CONFLICT(id) DO UPDATE SET version = version + 1 RETURNING version;''', (input_str,));
-conn.commit();
-version = c.fetchone()[0];
-with open('/tmp/version_output.txt', 'w') as f:
-    f.write(str(version));
-print(version);
-conn.close();
+          import sqlite3, os;
+          input_str = os.environ['VERSION_STRING'];
+          db_path = os.environ['DB_PATH'];
+          conn = sqlite3.connect(db_path);
+          c = conn.cursor();
+          c.execute('''CREATE TABLE IF NOT EXISTS versions (id TEXT PRIMARY KEY, version INTEGER DEFAULT 0)''');
+          c.execute('''INSERT INTO versions (id, version) VALUES (?, 0) ON CONFLICT(id) DO UPDATE SET version = version + 1 RETURNING version;''', (input_str,));
+          conn.commit();
+          version = c.fetchone()[0];
+          with open('/tmp/version_output.txt', 'w') as f:
+              f.write(str(version));
+          print(version);
+          conn.close();
           "
       env:
-        - name: INPUT_STRING
-          value: "{{`{{inputs.parameters.input_string}}`}}"
+        - name: VERSION_STRING
+          value: "{{`{{inputs.parameters.version_string}}`}}"
         - name: DB_PATH
           value: "/data/version_store.db"

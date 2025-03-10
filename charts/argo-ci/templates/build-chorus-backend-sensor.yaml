@@ -84,34 +84,56 @@ spec:
                           value: {{ $githubSecretName }}
 
                 templates:
+                  - name: get-atomic-id
+                    steps:
+                      - - name: get-atomic-id
+                          templateRef:
+                            name: {{ $fullName }}-atomic-version-template
+                            template: sqlite-version
+                          arguments:
+                            parameters:
+                              - name: version_string
+                                value: "{{`{{ workflow.parameters.ref }}`}}"
+
                   - name: set-version
                     steps:
                       - - name: run-tests
                           template: template-set-version
 
                   - name: template-set-version
-                    inputs:
-                      artifacts:
-                        - name: git
-                          path: "/src"
-                          git:
-                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
-                            revision: "{{`{{workflow.parameters.sha}}`}}"
-                            usernameSecret:
-                              name: {{ $githubSecretName }}
-                              key: username
-                            passwordSecret:
-                              name: {{ $githubSecretName }}
-                              key: password
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    env:
+                      - name: REF
+                        value: "{{`{{ workflow.parameters.ref }}`}}"
+                      - name: BUILD_ID
+                        value: "{{`{{ steps.get-atomic-id.outputs.parameters.version_number }}`}}"
+                    outputs:
+                      parameters:
+                        - name: version
+                          valueFrom:
+                            path: /tmp/version
                     container:
                       image: "golang:1.23-bookworm"
-                      command: [sh, -e, -c]
+                      command: [sh, -c]
                       args:
                         - >-
-                          go test -v ./...
+                          echo "REF: $REF"
+                          echo "BUILD_ID: $BUILD_ID"
+                          
+                          if [[ $REF == refs/heads/release/v* ]]; then
+                            stripped=${REF#refs/heads/release/v}
+                            MAJOR=$(echo $stripped | cut -d'.' -f1)
+                            MINOR=$(echo $stripped | cut -d'.' -f2)
+                            VERSION="v$MAJOR.$MINOR.$BUILD_ID"
+                          else
+                            BRANCH_NAME=${REF#refs/heads/}
+                            VERSION=$BRANCH_NAME-$BUILD_ID
+                            VERSION=$(echo -n "$VERSION" | awk '{print tolower($0)}')
+                            VERSION=$(echo -n ${VERSION//[\\/_]/-})
+                          fi
+                          
+                          echo "VERSION: $VERSION"
+                          echo -n $VERSION > /tmp/version
 
-                      workingDir: "/src"
                   - name: go-test
                     steps:
                       - - name: run-tests
@@ -153,7 +175,7 @@ spec:
                               - name: image
                                 value: "backend"
                               - name: tag
-                                value: "{{`{{workflow.parameters.tag}}`}}"
+                                value: "{{`{{ steps.template-set-version.outputs.parameters.version }}`}}"
                               - name: sha
                                 value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
