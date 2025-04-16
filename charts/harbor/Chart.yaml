@@ -1,10 +1,10 @@
 apiVersion: v2
 description: An open source trusted cloud native registry that stores, signs, and scans content.
 name: harbor
-version: 0.0.2
+version: 0.0.3
 dependencies:
   - name: harbor
-    version: 1.16.0
+    version: 1.17.0
     repository: https://helm.goharbor.io
 
 maintainers:
