@@ -52,6 +52,31 @@ service:
   type: ClusterIP
   port: 80
 
+networkPolicy:
+  enabled: true
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/component: controller
+    ports:
+    - protocol: TCP
+      port: 80
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: mariadb
+          app.kubernetes.io/instance: chorus-dev-didata-db
+          app.kubernetes.io/component: primary
+    ports:
+    - protocol: TCP
+      port: 3306
+
 ingress:
   enabled: true
   className: "nginx"
