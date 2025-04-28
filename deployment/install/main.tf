@@ -69,7 +69,7 @@ resource "helm_release" "ingress_nginx" {
   name       = "${var.cluster_name}-ingress-nginx"
   namespace  = "ingress-nginx"
   chart      = "../../charts/ingress-nginx"
-  version    = "0.0.4"
+  version    = var.ingress_nginx_version
   create_namespace = false # Namespace is created separately
   wait       = true
 
@@ -81,7 +81,7 @@ resource "helm_release" "cert_manager" {
   name       = "${var.cluster_name}-cert-manager"
   namespace  = "cert-manager"
   chart      = "../../charts/cert-manager"
-  version    = "0.0.10"
+  version    = var.cert_manager_version
   create_namespace = false
   wait       = true
 
@@ -105,7 +105,7 @@ resource "helm_release" "valkey" {
   name       = "${var.cluster_name}-argo-cd-cache"
   namespace  = "argocd"
   chart      = "../../charts/valkey"
-  version    = "0.0.8"
+  version    = var.valkey_version
   create_namespace = false
   wait       = true
 
@@ -144,7 +144,7 @@ resource "helm_release" "argo_cd" {
   name       = "${var.cluster_name}-argo-cd"
   namespace  = "argocd"
   chart      = "../../charts/argo-cd"
-  version    = "0.0.30"
+  version    = var.argocd_version
   create_namespace = false
   wait       = true
 
