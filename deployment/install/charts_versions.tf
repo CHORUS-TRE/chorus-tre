@@ -9,10 +9,6 @@ script to populate the default version automatically
 The variabes names below correspond to their related
 Helm chart with the dashes "-" replaced by
 underscores "_" and with "_version" appended
-
-Example
-Helm chart folder name: my-new-chart
-Terraform variable name: my_new_chart_version
 */
 
 variable "ingress_nginx_version" {
