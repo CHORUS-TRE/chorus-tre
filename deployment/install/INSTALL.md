@@ -10,19 +10,26 @@ cp terraform.tfvars.example terraform.tfvars
 
 Edit this file as needed.
 
-2. Initialize terraform:
+1. Fetch the Helm charts version
+
+```
+chmod +x scripts/populate-helm-charts-versions.sh && \
+scripts/populate-helm-charts-versions.sh
+```
+
+1. Initialize terraform:
 
 ```
 terraform init
 ```
 
-3. Save the execution plan:
+1. Save the execution plan:
 
 ```
 terraform plan -out=chorus.plan
 ```
 
-4. Apply the saved plan:
+1. Apply the saved plan:
 
 ```
 terraform apply chorus.plan

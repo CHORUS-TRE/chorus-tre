@@ -1,29 +1,40 @@
 /*
-All the variables declared in this file follow
+The values declared in this file follow
 the CHORUS-specific versioning as specified
 in https://github.com/CHORUS-TRE/chorus-tre/tree/master/charts
+
+Use the scripts/populate-helm-charts-versions.sh
+script to populate the default version automatically
+
+The variabes names below correspond to their related
+Helm chart with the dashes "-" replaced by
+underscores "_" and with "_version" appended
+
+Example
+Helm chart folder name: my-new-chart
+Terraform variable name: my_new_chart_version
 */
 
 variable "ingress_nginx_version" {
   description = "Ingress-Nginx Helm chart version"
   type        = string
-  default     = "0.0.4"
+  default     = "x.x.x"
 }
 
 variable "cert_manager_version" {
   description = "Cert-Manager Helm chart version"
   type        = string
-  default     = "0.0.10"
+  default     = "x.x.x"
 }
 
 variable "valkey_version" {
   description = "Valkey Helm chart version"
   type        = string
-  default     = "0.0.8"
+  default     = "x.x.x"
 }
 
-variable "argocd_version" {
+variable "argo_cd_version" {
   description = "ArgoCD Helm chart version"
   type        = string
-  default     = "0.0.30"
+  default     = "x.x.x"
 }

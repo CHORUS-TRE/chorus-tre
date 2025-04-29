@@ -144,7 +144,7 @@ resource "helm_release" "argo_cd" {
   name       = "${var.cluster_name}-argo-cd"
   namespace  = "argocd"
   chart      = "../../charts/argo-cd"
-  version    = var.argocd_version
+  version    = var.argo_cd_version
   create_namespace = false
   wait       = true
 
