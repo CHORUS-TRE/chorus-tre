@@ -3,8 +3,9 @@ The values declared in this file follow
 the CHORUS-specific versioning as specified
 in https://github.com/CHORUS-TRE/chorus-tre/tree/master/charts
 
-Use the scripts/populate-helm-charts-versions.sh
+Use the scripts/init_helm_charts.sh
 script to populate the default version automatically
+as described in the readme
 
 The variabes names below correspond to their related
 Helm chart with the dashes "-" replaced by
