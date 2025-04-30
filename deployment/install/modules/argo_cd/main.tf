@@ -20,7 +20,7 @@ resource "random_password" "redis_password" {
 }
 
 # Create Kubernetes secret using existing password (if found) or generate a new one
-resource "kubernetes_secret" "argo_cd_cache" {
+resource "kubernetes_secret" "argocd_cache" {
   metadata {
     name      = "argo-cd-cache-secret"
     namespace = "argocd"
@@ -44,7 +44,7 @@ resource "helm_release" "valkey" {
   name       = "${var.cluster_name}-argo-cd-cache"
   namespace  = "argocd"
   chart      = "../../charts/valkey"
-  version    = var.valkey_version
+  version    = var.valkey_chart_version
   create_namespace = false
   wait       = true
 
@@ -69,7 +69,7 @@ resource "helm_release" "valkey" {
 
   depends_on = [
     kubernetes_namespace.argocd,
-    kubernetes_secret.argo_cd_cache
+    kubernetes_secret.argocd_cache
   ]
 
   lifecycle {
@@ -78,11 +78,11 @@ resource "helm_release" "valkey" {
 }
 
 # Argo-CD Deployment
-resource "helm_release" "argo_cd" {
+resource "helm_release" "argocd" {
   name       = "${var.cluster_name}-argo-cd"
   namespace  = "argocd"
   chart      = "../../charts/argo-cd"
-  version    = var.argo_cd_version
+  version    = var.argo_cd_chart_version
   create_namespace = false
   wait       = true
   skip_crds  = false
@@ -116,11 +116,11 @@ resource "helm_release" "argo_cd" {
 /*
 resource "kubernetes_manifest" "app_project" {
     manifest = provider::kubernetes::manifest_decode(file("${path.module}/../../../argocd/project/chorus-build.yaml"))
-    depends_on = [helm_release.argo_cd]
+    depends_on = [helm_release.argocd]
 }
 
 resource "kubernetes_manifest" "application_set" {
     manifest = provider::kubernetes::manifest_decode(file("${path.module}/../../../argocd/applicationset/applicationset-chorus-build.yaml"))
-    depends_on = [helm_release.argo_cd]
+    depends_on = [helm_release.argocd]
 }
 */
