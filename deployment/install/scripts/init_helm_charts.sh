@@ -73,7 +73,7 @@ for chart_var in $chart_var_names; do
     # Copy over the CRDs version if needed
     for app_var in $app_var_names; do
         if [[ $app_var == "${chart_var/_chart_version/}"* ]]; then
-            app_version="$(grep -o "[0-9]*\\.[0-9]*\\.[0-9]*" $chart_rel_path/$chart_name/Chart.lock)"
+            app_version=$(grep -E '^appVersion:' "$yaml_file" | awk -F': ' '{print $2}')
             check_version_non_null $app_version
             sed -i '' -E "/variable \"$app_var\"[[:space:]]*\{/,/^\}/ s/(default[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$app_version\"/" "$app_file"
             break
