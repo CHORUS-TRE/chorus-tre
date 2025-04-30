@@ -66,7 +66,7 @@ for chart_var in $tf_chart_var_names; do
     # Copy over the CRDs version if needed
     for crds_var in $tf_crds_var_names; do
         if [[ $crds_var == "${chart_var/_version/}"* ]]; then
-            crds_version="$(grep -o "v[0-9]*\\.[0-9]*\\.[0-9]*" $chart_rel_path/$chart_name/Chart.lock)"
+            crds_version="$(grep -o "[0-9]*\\.[0-9]*\\.[0-9]*" $chart_rel_path/$chart_name/Chart.lock)"
             check_version_non_null $crds_version
             sed -i '' -E "/variable \"$crds_var\"[[:space:]]*\{/,/^\}/ s/(default[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$crds_version\"/" "$tf_crds_file"
             break
