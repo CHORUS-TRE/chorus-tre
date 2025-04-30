@@ -4,13 +4,9 @@ resource "kubernetes_namespace" "cert_manager" {
   }
 }
 
-output "debug_crds_version" {
-  value = var.crds_version
-}
-
 # Cert-Manager CRDs installation
 data "http" "cert_manager_crds" {
-  url = "https://github.com/cert-manager/cert-manager/releases/download/${var.crds_version}/cert-manager.crds.yaml"
+  url = "https://github.com/cert-manager/cert-manager/releases/download/${var.app_version}/cert-manager.crds.yaml"
 
   lifecycle {
     postcondition {
