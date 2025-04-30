@@ -8,20 +8,27 @@ if [[ "$1" == "--debug" ]]; then
   debug=true
 fi
 
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "This script pulls the Helm charts needed by the Terraform scripts "\
+    "and copies over the chart and the app version"
+    echo "Use the '--debug' option to see the full trace"
+    echo "Use the '--no-pull' option to prevent pulling the charts"
+    exit 0
+fi
+
 echo "Pulling the Helm charts needed by the Terraform scripts "\
 "and copying over their versions..."
-echo "(Use the '--debug' option to see the full trace)"
 
 header_msg="/* This file was automatically generated
 by $0
 DO NOT modify manually
 Any change will be overwritten
 */"
-tf_chart_file_template="charts_versions.tftpl"
-tf_chart_file="charts_versions.tf"
+chart_file_template="chart_versions.tftpl"
+chart_file="chart_versions.tf"
 
-tf_crds_file_template="crds_versions.tftpl"
-tf_crds_file="crds_versions.tf"
+app_file_template="app_versions.tftpl"
+app_file="app_versions.tf"
 
 generate_from_template() {
     local file_template=$1
@@ -38,17 +45,17 @@ check_version_non_null() {
     fi
 }
 
-generate_from_template $tf_chart_file_template $tf_chart_file
-generate_from_template $tf_crds_file_template $tf_crds_file
+generate_from_template $chart_file_template $chart_file
+generate_from_template $app_file_template $app_file
 
 chart_rel_path="../../charts"
-tf_chart_var_names=$(grep 'variable ' "$tf_chart_file" | sed 's/variable "\([^"]*\)".*/\1/')
-tf_crds_var_names=$(grep 'variable ' "$tf_crds_file" | sed 's/variable "\([^"]*\)".*/\1/')
+chart_var_names=$(grep 'variable ' "$chart_file" | sed 's/variable "\([^"]*\)".*/\1/')
+app_var_names=$(grep 'variable ' "$app_file" | sed 's/variable "\([^"]*\)".*/\1/')
 
-for chart_var in $tf_chart_var_names; do
+for chart_var in $chart_var_names; do
     # Extract chart name
     # from terraform variable name
-    chart_name="${chart_var/_version/}"
+    chart_name="${chart_var/_chart_version/}"
     chart_name="${chart_name//_/-}"
     echo -e ".\t $chart_name"
     yaml_file="${chart_rel_path}/${chart_name}/Chart.yaml"
@@ -62,25 +69,24 @@ for chart_var in $tf_chart_var_names; do
     check_version_non_null $chart_version
 
     # Replace default Helm chart version
-    sed -i '' -E "/variable \"$chart_var\"[[:space:]]*\{/,/^\}/ s/(default[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$chart_version\"/" "$tf_chart_file"
+    sed -i '' -E "/variable \"$chart_var\"[[:space:]]*\{/,/^\}/ s/(default[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$chart_version\"/" "$chart_file"
     # Copy over the CRDs version if needed
-    for crds_var in $tf_crds_var_names; do
-        if [[ $crds_var == "${chart_var/_version/}"* ]]; then
-            crds_version="$(grep -o "[0-9]*\\.[0-9]*\\.[0-9]*" $chart_rel_path/$chart_name/Chart.lock)"
-            check_version_non_null $crds_version
-            sed -i '' -E "/variable \"$crds_var\"[[:space:]]*\{/,/^\}/ s/(default[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$crds_version\"/" "$tf_crds_file"
+    for app_var in $app_var_names; do
+        if [[ $app_var == "${chart_var/_chart_version/}"* ]]; then
+            app_version="$(grep -o "[0-9]*\\.[0-9]*\\.[0-9]*" $chart_rel_path/$chart_name/Chart.lock)"
+            check_version_non_null $app_version
+            sed -i '' -E "/variable \"$app_var\"[[:space:]]*\{/,/^\}/ s/(default[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$app_version\"/" "$app_file"
             break
         fi
     done
     # Pull the chart
-    if [[ $debug == true ]]; then
-        cd $chart_rel_path/$chart_name && \
-        helm dependency update $chart && \
-        cd -
-    else
-        cd $chart_rel_path/$chart_name && \
-        helm dependency update $chart > /dev/null 2>&1  && \
-        cd - > /dev/null 2>&1
+    if [[ "$1" != "--no-pull" ]]; then
+        pull_cmd="cd $chart_rel_path/$chart_name && helm dependency update $chart && cd -"
+        if [[ $debug == true ]]; then
+            eval "$pull_cmd"
+        else
+            eval "$pull_cmd" 2>&1
+        fi
     fi
 done
 echo "Done"

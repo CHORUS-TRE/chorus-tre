@@ -3,8 +3,8 @@ variable "chart_version" {
   type        = string
 }
 
-variable "crds_version" {
-  description = "Cert-Manager CRDs version"
+variable "app_version" {
+  description = "Cert-Manager version"
   type        = string
 }
 

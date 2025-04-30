@@ -6,8 +6,14 @@ script to populate the default version automatically
 as described in the readme
 */
 
-variable "cert_manager_crds_version" {
-  description = "Cert-Manager CRDs version"
+variable "cert_manager_app_version" {
+  description = "Cert-Manager version"
+  type        = string
+  default     = "x.x.x"
+}
+
+variable "argo_cd_app_version" {
+  description = "ArgoCD version"
   type        = string
   default     = "x.x.x"
 }

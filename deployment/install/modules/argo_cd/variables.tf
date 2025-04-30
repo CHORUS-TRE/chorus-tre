@@ -1,10 +1,15 @@
-variable "valkey_version" {
+variable "valkey_chart_version" {
   description = "Valkey Helm chart version"
   type        = string
 }
 
-variable "argo_cd_version" {
+variable "argo_cd_chart_version" {
   description = "ArgoCD Helm chart version"
+  type        = string
+}
+
+variable "app_version" {
+  description = "ArgoCD version"
   type        = string
 }
 
