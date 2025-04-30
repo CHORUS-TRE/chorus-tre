@@ -32,6 +32,12 @@ resource "helm_release" "cert_manager" {
   wait       = true
   skip_crds  = true
 
+  values = [
+    yamlencode({
+      cert-manager = { crds = { enabled = false } }
+    })
+   ]
+
   depends_on = [
     kubernetes_namespace.cert_manager
   ]
