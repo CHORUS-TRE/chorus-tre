@@ -2,15 +2,15 @@ module "ingress_nginx" {
   source = "./modules/ingress_nginx"
 
   cluster_name = var.cluster_name
-  chart_version = var.ingress_nginx_version
+  chart_version = var.ingress_nginx_chart_version
 }
 
 module "cert_manager" {
   source = "./modules/cert_manager"
 
   cluster_name = var.cluster_name
-  chart_version = var.cert_manager_version
-  crds_version = var.cert_manager_crds_version
+  chart_version = var.cert_manager_chart_version
+  app_version = var.cert_manager_app_version
   # the depends_on raises issue for cert_manager
   # planning because the data "http" will not
   # be evaluated
@@ -22,8 +22,9 @@ module "argo_cd" {
   source = "./modules/argo_cd"
 
   cluster_name = var.cluster_name
-  argo_cd_version = var.argo_cd_version
-  valkey_version = var.valkey_version
+  app_version = var.argo_cd_app_version
+  argo_cd_chart_version = var.argo_cd_chart_version
+  valkey_chart_version = var.valkey_chart_version
   domain_name = var.domain_name
   subdomain_name = var.subdomain_name
 
