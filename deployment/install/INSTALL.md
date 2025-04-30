@@ -10,11 +10,11 @@
 
     Edit this file as needed.
 
-1. Fetch the Helm charts version
+1. Pull the necessary Helm charts and copy over their versions
 
     ```
-    chmod +x scripts/populate-helm-charts-versions.sh && \
-    scripts/populate-helm-charts-versions.sh
+    chmod +x scripts/init_helm_charts.sh && \
+    scripts/init_helm_charts.sh
     ```
 
 1. Initialize terraform:
