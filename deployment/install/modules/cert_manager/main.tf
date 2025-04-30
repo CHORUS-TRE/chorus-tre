@@ -34,6 +34,7 @@ resource "helm_release" "cert_manager" {
   version    = var.chart_version
   create_namespace = false
   wait       = true
+  skip_crds  = true
 
   depends_on = [
     kubernetes_namespace.cert_manager
