@@ -11,7 +11,7 @@ data "http" "cert_manager_crds" {
   lifecycle {
     postcondition {
       condition     = self.status_code == 200
-      error_message = "Failed to download CRDs: ${self.status_code}"
+      error_message = "Failed to download Cert-Manager CRDs: ${self.status_code}"
     }
   }
 }
@@ -19,7 +19,10 @@ data "http" "cert_manager_crds" {
 resource "kubernetes_manifest" "cert_manager_crds" {
     for_each = { for i, m in provider::kubernetes::manifest_decode_multi(data.http.cert_manager_crds.response_body) : i => m }
     manifest = each.value
-    depends_on = [kubernetes_namespace.cert_manager]
+    depends_on = [
+      kubernetes_namespace.cert_manager,
+      data.http.cert_manager_crds
+    ]
 }
 
 # Cert-Manager deployment
