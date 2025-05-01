@@ -9,7 +9,6 @@ locals {
   argocd_cache_helm_values = file("${path.module}/${var.argocd_cache_helm_values_path}")
   argocd_cache_helm_values_parsed = yamldecode(local.argocd_cache_helm_values)
   argocd_cache_existing_secret = local.argocd_cache_helm_values_parsed.valkey.auth.existingSecret
-  argocd_cache_existing_secret_password_key = local.argocd_cache_helm_values_parsed.valkey.auth.existingSecretPasswordKey
 }
 
 # Secret Definitions
@@ -37,7 +36,7 @@ resource "kubernetes_secret" "argocd_cache" {
   data = {
     redis-username = ""
     redis-password = coalesce(
-      try(data.kubernetes_secret.existing_secret_argocd_cache.data[local.argocd_cache_existing_secret_password_key], null),
+      try(data.kubernetes_secret.existing_secret_argocd_cache.data["redis-password"], null),
       random_password.redis_password.result
     )
   }
