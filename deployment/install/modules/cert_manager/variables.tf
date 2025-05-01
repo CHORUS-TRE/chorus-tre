@@ -12,3 +12,9 @@ variable "cluster_name" {
   description = "The cluster name to be used as a prefix to release names"
   type        = string
 }
+
+variable "namespace" {
+  description = "Cert-Manager namespace"
+  type        = string
+  default     = "cert-manager"
+}

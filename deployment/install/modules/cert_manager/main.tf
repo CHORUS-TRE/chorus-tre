@@ -1,6 +1,6 @@
 resource "kubernetes_namespace" "cert_manager" {
   metadata {
-    name = "cert-manager"
+    name = var.namespace
   }
 }
 
@@ -28,7 +28,7 @@ resource "kubernetes_manifest" "cert_manager_crds" {
 # Cert-Manager deployment
 resource "helm_release" "cert_manager" {
   name       = "${var.cluster_name}-cert-manager"
-  namespace  = "cert-manager"
+  namespace  = var.namespace
   chart      = "../../charts/cert-manager"
   version    = var.chart_version
   create_namespace = false
