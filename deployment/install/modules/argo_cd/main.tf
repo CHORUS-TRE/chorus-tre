@@ -1,6 +1,6 @@
 resource "kubernetes_namespace" "argocd" {
   metadata {
-    name = var.argo_cd_namespace
+    name = var.namespace
   }
 }
 
@@ -9,7 +9,7 @@ resource "kubernetes_namespace" "argocd" {
 data "kubernetes_secret" "existing_secret_argocd_cache" {
   metadata {
     name      = "argo-cd-cache-secret"
-    namespace = var.argo_cd_namespace
+    namespace = var.namespace
   }
 }
 
@@ -23,7 +23,7 @@ resource "random_password" "redis_password" {
 resource "kubernetes_secret" "argocd_cache" {
   metadata {
     name      = "argo-cd-cache-secret"
-    namespace = var.argo_cd_namespace
+    namespace = var.namespace
   }
 
   data = {
@@ -42,7 +42,7 @@ resource "kubernetes_secret" "argocd_cache" {
 # Valkey Deployment
 resource "helm_release" "valkey" {
   name       = "${var.cluster_name}-argo-cd-cache"
-  namespace  = var.argo_cd_namespace
+  namespace  = var.namespace
   chart      = "../../charts/valkey"
   version    = var.valkey_chart_version
   create_namespace = false
@@ -80,7 +80,7 @@ resource "helm_release" "valkey" {
 # Argo-CD Deployment
 resource "helm_release" "argocd" {
   name       = "${var.cluster_name}-argo-cd"
-  namespace  = var.argo_cd_namespace
+  namespace  = var.namespace
   chart      = "../../charts/argo-cd"
   version    = var.argo_cd_chart_version
   create_namespace = false

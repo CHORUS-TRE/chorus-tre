@@ -23,7 +23,7 @@ variable "subdomain_name" {
   type        = string
 }
 
-variable "argo_cd_namespace" {
+variable "namespace" {
   description = "ArgoCD namespace"
   type        = string
   default     = "argocd"
