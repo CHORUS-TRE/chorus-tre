@@ -3,6 +3,8 @@ module "ingress_nginx" {
 
   cluster_name = var.cluster_name
   chart_version = var.ingress_nginx_chart_version
+  helm_chart_path = "../../${var.helm_chart_path}/ingress-nginx"
+  helm_values_path = "../../${var.helm_values_path}/ingress-nginx/values.yaml"
 }
 
 module "cert_manager" {

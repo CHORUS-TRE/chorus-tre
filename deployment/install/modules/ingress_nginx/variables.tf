@@ -8,6 +8,16 @@ variable "cluster_name" {
   type        = string
 }
 
+variable "helm_chart_path" {
+  description = "Path to the Ingress-Nginx Helm chart"
+  type        = string
+}
+
+variable "helm_values_path" {
+  description = "Path to the Ingress-Nginx Helm chart values"
+  type        = string
+}
+
 variable "namespace" {
   description = "Ingress-Nginx namespace"
   type        = string

@@ -22,3 +22,15 @@ variable "subdomain_name" {
   description = "The subdomain name for your build cluster installation"
   type        = string
 }
+
+variable "helm_chart_path" {
+  description = "Path to the repository storing the Helm charts"
+  type        = string
+  default     = "../../charts"
+}
+
+variable "helm_values_path" {
+  description = "Path to the repository storing the Helm chart values"
+  type        = string
+  default     = "../../../environment-template/chorus-build"
+}
