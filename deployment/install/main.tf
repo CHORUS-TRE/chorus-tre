@@ -25,7 +25,14 @@ module "argo_cd" {
   valkey_chart_version = var.valkey_chart_version
   domain_name = var.domain_name
   subdomain_name = var.subdomain_name
-
   # we need to see if this order dependency is really needed
-  depends_on = [ module.cert_manager ]
+  depends_on = [
+    module.cert_manager,
+    module.ingress_nginx
+  ]
+}
+
+module "custom_resources" {
+  source = "./modules/custom_resources"
+  depends_on = [ module.argo_cd]
 }

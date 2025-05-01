@@ -117,22 +117,3 @@ resource "helm_release" "argocd" {
     ignore_changes = [values]
   }
 }
-
-# TODO: investigate alternative to using local file
-
-# we have an issue of precedency, when running terraform plan
-# we get an error because
-# the AppProject and ApplicationSet CRDs do not exist yet
-# https://github.com/hashicorp/terraform-provider-kubernetes/issues/1782#issuecomment-1189943312
-# We will need to move this to a second step
-/*
-resource "kubernetes_manifest" "app_project" {
-    manifest = provider::kubernetes::manifest_decode(file("${path.module}/../../../argocd/project/chorus-build.yaml"))
-    depends_on = [helm_release.argocd]
-}
-
-resource "kubernetes_manifest" "application_set" {
-    manifest = provider::kubernetes::manifest_decode(file("${path.module}/../../../argocd/applicationset/applicationset-chorus-build.yaml"))
-    depends_on = [helm_release.argocd]
-}
-*/

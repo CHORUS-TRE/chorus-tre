@@ -23,16 +23,33 @@
     terraform init
     ```
 
-1. Save the execution plan:
+1. Save the first step of the execution plan:
 
     ```
-    terraform plan -out=chorus.plan
+    terraform plan -out=chorus_step1.plan -target=module.argo_cd
     ```
 
 1. Apply the saved plan:
 
     ```
-    terraform apply chorus.plan
+    terraform apply chorus_step1.plan
+    ```
+
+> **_NOTE:_** We need to install the different CRDs before being able to plan the creation of custom resource objects, hence the two steps installation
+
+!!! warning
+hello
+
+1. Save the whole execution plan:
+
+    ```
+    terraform plan -out=chorus_step2.plan
+    ```
+
+1. Apply the saved plan:
+
+    ```
+    terraform apply chorus_step2.plan
     ```
 
 ## Uninstall
