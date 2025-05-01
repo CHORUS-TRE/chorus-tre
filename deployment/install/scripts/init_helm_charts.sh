@@ -85,7 +85,7 @@ for chart_var in $chart_var_names; do
         if [[ $debug == true ]]; then
             eval "$pull_cmd"
         else
-            eval "$pull_cmd" 2>&1
+            eval "$pull_cmd" > /dev/null 2>&1
         fi
     fi
 done
