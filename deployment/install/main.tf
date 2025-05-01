@@ -36,6 +36,21 @@ module "argo_cd" {
   ]
 }
 
+module "keycloak" {
+  source = "./modules/keycloak"
+
+  cluster_name = var.cluster_name
+  domain_name = var.domain_name
+  subdomain_name = var.subdomain_name
+  keycloak_chart_version = var.keycloak_chart_version
+  keycloak_db_chart_version = var.postgresql_chart_version
+  keycloak_db_helm_chart_path = "../../${var.helm_chart_path}/postgresql"
+  keycloak_db_helm_values_path = "../../${var.helm_values_path}/keycloak-db/values.yaml"
+  keycloak_helm_chart_path = "../../${var.helm_chart_path}/keycloak"
+  keycloak_helm_values_path = "../../${var.helm_values_path}/keycloak/values.yaml"
+  cluster_issuer = var.cluster_issuer
+}
+
 module "custom_resources" {
   source = "./modules/custom_resources"
   depends_on = [ module.argo_cd]
