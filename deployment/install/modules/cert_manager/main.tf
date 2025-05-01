@@ -26,20 +26,20 @@ resource "kubernetes_manifest" "cert_manager_crds" {
 }
 
 # Cert-Manager deployment
+locals {
+  helm_values = file("${path.module}/${var.helm_values_path}")
+}
+
 resource "helm_release" "cert_manager" {
   name       = "${var.cluster_name}-cert-manager"
   namespace  = var.namespace
-  chart      = "../../charts/cert-manager"
+  chart      = "${path.module}/${var.helm_chart_path}"
   version    = var.chart_version
   create_namespace = false
   wait       = true
   skip_crds  = true
 
-  values = [
-    yamlencode({
-      cert-manager = { crds = { enabled = false } }
-    })
-   ]
+  values = [ local.helm_values ]
 
   depends_on = [
     kubernetes_namespace.cert_manager,

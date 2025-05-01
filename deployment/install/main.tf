@@ -13,18 +13,20 @@ module "cert_manager" {
   cluster_name = var.cluster_name
   chart_version = var.cert_manager_chart_version
   app_version = var.cert_manager_app_version
-  # the depends_on raises issue for cert_manager
-  # planning because the data "http" will not
-  # be evaluated
-  # we need to see if this order dependency is really needed
-  #depends_on = [ module.ingress_nginx ]
+  helm_chart_path = "../../${var.helm_chart_path}/cert-manager"
+  helm_values_path = "../../${var.helm_values_path}/cert-manager/values.yaml"
 }
 
 module "argo_cd" {
   source = "./modules/argo_cd"
+
   cluster_name = var.cluster_name
-  argo_cd_chart_version = var.argo_cd_chart_version
-  valkey_chart_version = var.valkey_chart_version
+  argocd_chart_version = var.argo_cd_chart_version
+  argocd_cache_chart_version = var.valkey_chart_version
+  argocd_helm_chart_path = "../../${var.helm_chart_path}/argo-cd"
+  argocd_helm_values_path = "../../${var.helm_values_path}/argo-cd/values.yaml"
+  argocd_cache_helm_chart_path = "../../${var.helm_chart_path}/valkey"
+  argocd_cache_helm_values_path = "../../${var.helm_values_path}/argo-cd-cache/values.yaml"
   domain_name = var.domain_name
   subdomain_name = var.subdomain_name
   # we need to see if this order dependency is really needed
