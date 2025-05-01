@@ -95,6 +95,18 @@ resource "helm_release" "argocd" {
     name  = "argo-cd.global.domain"
     value = "argo-cd.${var.subdomain_name}.${var.domain_name}"
   }
+  # Install the ArgoCD CRDs
+  # when installing the chart
+  set {
+    name = "argo-cd.crds.install"
+    value = "true"
+  }
+  # Delete the ArgoCD CRDs
+  # when deleting the chart
+  set {
+    name = "argo-cd.crds.keep"
+    value = "false"
+  }
 
   depends_on = [
     kubernetes_namespace.argocd,
