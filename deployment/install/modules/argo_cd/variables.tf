@@ -22,3 +22,9 @@ variable "subdomain_name" {
   description = "The subdomain name for your build cluster installation"
   type        = string
 }
+
+variable "argo_cd_namespace" {
+  description = "ArgoCD namespace"
+  type        = string
+  default     = "argocd"
+}
