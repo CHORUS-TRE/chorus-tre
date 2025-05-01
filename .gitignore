@@ -6,5 +6,6 @@
 **/terraform.tfstate
 **/terraform.tfstate.backup
 **/chorus.plan
+**/*.plan
 deployment/install/chart_versions.tf
 deployment/install/app_versions.tf
