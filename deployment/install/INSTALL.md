@@ -1,5 +1,39 @@
 # How to bootstrap the CHORUS-TRE Build cluster
 
+## Project structure
+
+```
+.
+├── chorus-tre
+│   ├── charts
+│   │   ├── argo-cd
+│   │   │   ├── Chart.lock
+│   │   │   ├── Chart.yaml
+│   │   │   └── values.yaml
+│   │   └── ...
+│   └── deployment
+│   │   └── install
+│   │       ├── INSTALL.md
+│   │       ├── main.tf
+│   │       ├── modules
+│   │       │   ├── argo_cd
+│   │       │   └── ...
+│   │       ├── provider.tf
+│   │       └── variables.tf
+└── environment-template
+    └── chorus-build
+        ├── argo-cd
+        │   ├── config.json
+        │   └── values.yaml
+        └── ...
+
+```
+
+Required repositories
+
+- [chorus-tre](https://github.com/CHORUS-TRE/chorus-tre)
+- [environment-template](https://github.com/CHORUS-TRE/environment-template)
+
 ## Install
 
 1. Set variables for your usecase:
