@@ -1,14 +1,19 @@
-resource "kubernetes_namespace" "argocd" {
-  metadata {
-    name = var.namespace
-  }
-}
-
+# Read values
 locals {
   argocd_helm_values = file("${path.module}/${var.argocd_helm_values_path}")
+  argocd_helm_values_parsed = yamldecode(local.argocd_helm_values)
   argocd_cache_helm_values = file("${path.module}/${var.argocd_cache_helm_values_path}")
   argocd_cache_helm_values_parsed = yamldecode(local.argocd_cache_helm_values)
   argocd_cache_existing_secret = local.argocd_cache_helm_values_parsed.valkey.auth.existingSecret
+  argocd_cache_existing_secret_key = local.argocd_cache_helm_values_parsed.valkey.auth.existingSecretPasswordKey
+  argocd_cache_existing_user_key = "redis-username"
+
+}
+
+resource "kubernetes_namespace" "argocd" {
+  metadata {
+    name = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
+  }
 }
 
 # Secret Definitions
@@ -16,7 +21,7 @@ locals {
 data "kubernetes_secret" "existing_secret_argocd_cache" {
   metadata {
     name = local.argocd_cache_existing_secret
-    namespace = var.namespace
+    namespace = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
   }
 }
 
@@ -30,26 +35,26 @@ resource "random_password" "redis_password" {
 resource "kubernetes_secret" "argocd_cache" {
   metadata {
     name = local.argocd_cache_existing_secret
-    namespace = var.namespace
+    namespace = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
   }
 
   data = {
-    redis-username = ""
-    redis-password = coalesce(
-      try(data.kubernetes_secret.existing_secret_argocd_cache.data["redis-password"], null),
+    "${local.argocd_cache_existing_user_key}" = ""
+    "${local.argocd_cache_existing_secret_key}" = coalesce(
+      try(data.kubernetes_secret.existing_secret_argocd_cache.data["${local.argocd_cache_existing_secret_key}"], null),
       random_password.redis_password.result
     )
   }
 
   lifecycle {
-    ignore_changes = [data["redis-password"]]
+    ignore_changes = [data]
   }
 }
 
 # ArgoCD Cache (Valkey) Deployment
 resource "helm_release" "argocd_cache" {
   name       = "${var.cluster_name}-argo-cd-cache"
-  namespace  = var.namespace
+  namespace  = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
   chart      = "${path.module}/${var.argocd_cache_helm_chart_path}"
   version    = var.argocd_cache_chart_version
   create_namespace = false
@@ -70,7 +75,7 @@ resource "helm_release" "argocd_cache" {
 # Argo-CD Deployment
 resource "helm_release" "argocd" {
   name       = "${var.cluster_name}-argo-cd"
-  namespace  = var.namespace
+  namespace  = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
   chart      = "${path.module}/${var.argocd_helm_chart_path}"
   version    = var.argocd_chart_version
   create_namespace = false
@@ -78,11 +83,6 @@ resource "helm_release" "argocd" {
   skip_crds  = false
 
   values = [ local.argocd_helm_values ]
-
-  set {
-    name  = "argo-cd.global.domain"
-    value = "argo-cd.${var.subdomain_name}.${var.domain_name}"
-  }
 
   depends_on = [
     kubernetes_namespace.argocd,

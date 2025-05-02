@@ -17,9 +17,3 @@ variable "helm_values_path" {
   description = "Path to the Ingress-Nginx Helm chart values"
   type        = string
 }
-
-variable "namespace" {
-  description = "Ingress-Nginx namespace"
-  type        = string
-  default     = "ingress-nginx"
-}

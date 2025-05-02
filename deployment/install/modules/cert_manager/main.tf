@@ -1,6 +1,12 @@
+# Read values
+locals {
+  helm_values = file("${path.module}/${var.helm_values_path}")
+  helm_values_parsed = yamldecode(local.helm_values)
+}
+
 resource "kubernetes_namespace" "cert_manager" {
   metadata {
-    name = var.namespace
+    name = local.helm_values_parsed.cert-manager.namespace
   }
 }
 
@@ -26,13 +32,9 @@ resource "kubernetes_manifest" "cert_manager_crds" {
 }
 
 # Cert-Manager deployment
-locals {
-  helm_values = file("${path.module}/${var.helm_values_path}")
-}
-
 resource "helm_release" "cert_manager" {
   name       = "${var.cluster_name}-cert-manager"
-  namespace  = var.namespace
+  namespace  = local.helm_values_parsed.cert-manager.namespace
   chart      = "${path.module}/${var.helm_chart_path}"
   version    = var.chart_version
   create_namespace = false
