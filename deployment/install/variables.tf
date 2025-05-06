@@ -44,6 +44,12 @@ variable "cert_manager_chart_name" {
   default     = "cert-manager"
 }
 
+variable "selfsigned_chart_name" {
+  description = "Self-Signed Issuer Helm chart folder name"
+  type        = string
+  default     = "self-signed-issuer"
+}
+
 variable "argocd_chart_name" {
   description = "ArgoCD Helm chart folder name"
   type        = string
