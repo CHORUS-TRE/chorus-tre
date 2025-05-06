@@ -5,8 +5,6 @@ locals {
   cert_manager_namespace = local.cert_manager_helm_values_parsed.cert-manager.namespace
   selfsigned_helm_values = file("${path.module}/${var.selfsigned_helm_values_path}")
   selfsigned_helm_values_parsed = yamldecode(local.selfsigned_helm_values)
-  existing_selfsigned_ca = local.selfsigned_helm_values_parsed.nameOverride
-  existing_selfsigned_clusterissuer = local.selfsigned_helm_values_parsed.clusterIssuers.0.name
 }
 
 resource "kubernetes_namespace" "cert_manager" {
@@ -58,14 +56,6 @@ resource "helm_release" "cert_manager" {
   }
 }
 
-# Check if the self-signed certificate authority already exists
-data "kubernetes_secret" "existing_selfsigned_ca_secret" {
-  metadata {
-    name = "${local.existing_selfsigned_ca}-secret"
-    namespace = local.cert_manager_namespace
-  }
-}
-
 # Self-Signed Issuer for PostgreSQL
 resource "helm_release" "selfsigned" {
   name       = "${var.cluster_name}-self-signed-issuer"
@@ -74,20 +64,8 @@ resource "helm_release" "selfsigned" {
   version    = var.selfsigned_chart_version
   create_namespace = false
   wait       = true
-  skip_crds  = true
 
   values = [ local.selfsigned_helm_values ]
-
-  set {
-    name = "nameOverride"
-    value = try(data.kubernetes_secret.existing_selfsigned_ca_secret.data["ca.crt"],
-                "selfsigned-${formatdate("YYYYMM", timestamp())}")
-  }
-  set {
-    name = "clusterIssuers[0].name"
-    value = try(local.selfsigned_helm_values_parsed.clusterIssuers[0].name,
-                "private-ca-cluster-issuer")
-  }
 
   lifecycle {
     ignore_changes = [values]
