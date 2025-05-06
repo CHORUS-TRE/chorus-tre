@@ -1,10 +1,10 @@
 apiVersion: v2
 description: A Helm chart for Argo Events, the event-driven workflow automation framework
 name: argo-events
-version: 0.0.6
+version: 0.0.7
 dependencies:
   - name: argo-events
-    version: 2.4.9
+    version: 2.4.15
     repository: https://argoproj.github.io/argo-helm
 
 maintainers:
