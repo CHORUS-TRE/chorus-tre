@@ -62,6 +62,19 @@ resource "helm_release" "argocd_cache" {
 
   values = [ local.argocd_cache_helm_values ]
 
+  set {
+    name  = "valkey.metrics.enabled"
+    value = "false"
+  }
+  set {
+    name  = "valkey.metrics.serviceMonitor.enabled"
+    value = "false"
+  }
+  set {
+    name  = "valkey.metrics.podMonitor.enabled"
+    value = "false"
+  }
+
   depends_on = [
     kubernetes_namespace.argocd,
     kubernetes_secret.argocd_cache
