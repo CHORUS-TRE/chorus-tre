@@ -60,7 +60,12 @@ Required repositories
 1. Save the first step of the execution plan:
 
     ```
-    terraform plan -out=chorus_step1.plan -target=module.argo_cd
+    terraform plan \
+    -target=module.ingress_nginx \
+    -target=module.certificate_authorities \
+    -target=module.argo_cd \
+    -target=module.keycloak \
+    -out=chorus_step1.plan
     ```
 
 1. Apply the saved plan:
