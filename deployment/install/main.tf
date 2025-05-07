@@ -28,7 +28,7 @@ module "certificate_authorities" {
   cert_manager_helm_chart_path   = "../../${var.helm_chart_path}/${var.cert_manager_chart_name}"
   cert_manager_helm_values_path  = "../../${var.helm_values_path}/${var.cert_manager_chart_name}/values.yaml"
   selfsigned_helm_chart_path     = "../../${var.helm_chart_path}/${var.selfsigned_chart_name}"
-  selfsigned_helm_values_path  = "../../${var.helm_values_path}/${var.selfsigned_chart_name}/values.yaml"
+  selfsigned_helm_values_path    = "../../${var.helm_values_path}/${var.selfsigned_chart_name}/values.yaml"
 }
 
 module "argo_cd" {
