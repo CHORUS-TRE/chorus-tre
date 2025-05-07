@@ -116,7 +116,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: "golang:1.23-bookworm"
+                      image: "golang:1.24.3-bookworm"
                       command: [sh, -e, -c]
                       args:
                         - >-
