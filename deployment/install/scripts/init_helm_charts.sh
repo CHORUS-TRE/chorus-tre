@@ -18,7 +18,7 @@ fi
 echo "Pulling the Helm charts needed by the Terraform scripts"
 
 chart_rel_path="../../charts"
-chart_names='ingress-nginx cert-manager argo-cd valkey keycloak postgresql'
+chart_names='ingress-nginx cert-manager argo-cd valkey keycloak postgresql harbor'
 
 for chart_name in $chart_names; do
     echo -e ".\t $chart_name"
