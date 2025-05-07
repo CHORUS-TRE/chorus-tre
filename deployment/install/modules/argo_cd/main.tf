@@ -2,6 +2,7 @@
 locals {
   argocd_helm_values = file("${path.module}/${var.argocd_helm_values_path}")
   argocd_helm_values_parsed = yamldecode(local.argocd_helm_values)
+  argocd_namespace = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
   argocd_cache_helm_values = file("${path.module}/${var.argocd_cache_helm_values_path}")
   argocd_cache_helm_values_parsed = yamldecode(local.argocd_cache_helm_values)
   argocd_cache_existing_secret = local.argocd_cache_helm_values_parsed.valkey.auth.existingSecret
@@ -12,7 +13,7 @@ locals {
 
 resource "kubernetes_namespace" "argocd" {
   metadata {
-    name = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
+    name = local.argocd_namespace
   }
 }
 
@@ -21,7 +22,7 @@ resource "kubernetes_namespace" "argocd" {
 data "kubernetes_secret" "existing_secret_argocd_cache" {
   metadata {
     name = local.argocd_cache_existing_secret
-    namespace = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
+    namespace = local.argocd_namespace
   }
 }
 
@@ -35,7 +36,7 @@ resource "random_password" "redis_password" {
 resource "kubernetes_secret" "argocd_cache" {
   metadata {
     name = local.argocd_cache_existing_secret
-    namespace = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
+    namespace = local.argocd_namespace
   }
 
   data = {
@@ -54,7 +55,7 @@ resource "kubernetes_secret" "argocd_cache" {
 # ArgoCD Cache (Valkey) Deployment
 resource "helm_release" "argocd_cache" {
   name       = "${var.cluster_name}-argo-cd-cache"
-  namespace  = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
+  namespace  = local.argocd_namespace
   chart      = "${path.module}/${var.argocd_cache_helm_chart_path}"
   version    = var.argocd_cache_chart_version
   create_namespace = false
@@ -88,7 +89,7 @@ resource "helm_release" "argocd_cache" {
 # Argo-CD Deployment
 resource "helm_release" "argocd" {
   name       = "${var.cluster_name}-argo-cd"
-  namespace  = local.argocd_helm_values_parsed.argo-cd.namespaceOverride
+  namespace  = local.argocd_namespace
   chart      = "${path.module}/${var.argocd_helm_chart_path}"
   version    = var.argocd_chart_version
   create_namespace = false
