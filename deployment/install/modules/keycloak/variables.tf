@@ -3,16 +3,6 @@ variable "cluster_name" {
   type        = string
 }
 
-variable "domain_name" {
-  description = "The domain name for your CHORUS-TRE installation"
-  type        = string
-}
-
-variable "subdomain_name" {
-  description = "The subdomain name for your build cluster installation"
-  type        = string
-}
-
 variable "keycloak_db_chart_version" {
   description = "Keycloak DB Helm chart version (e.g. PostgreSQL)"
   type        = string
@@ -41,10 +31,4 @@ variable "keycloak_helm_chart_path" {
 variable "keycloak_helm_values_path" {
   description = "Path to the Keycloak Helm chart values"
   type        = string
-}
-
-variable "namespace" {
-  description = "Keycloak namespace"
-  type        = string
-  default     = "keycloak"
 }
