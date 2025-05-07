@@ -6,7 +6,7 @@ locals {
   valkey_chart_yaml         = yamldecode(file("${path.module}/${var.helm_chart_path}/${var.valkey_chart_name}/Chart.yaml"))
   keycloak_chart_yaml       = yamldecode(file("${path.module}/${var.helm_chart_path}/${var.keycloak_chart_name}/Chart.yaml"))
   postgresql_chart_yaml     = yamldecode(file("${path.module}/${var.helm_chart_path}/${var.postgresql_chart_name}/Chart.yaml"))
-
+  harbor_chart_yaml         = yamldecode(file("${path.module}/${var.helm_chart_path}/${var.harbor_chart_name}/Chart.yaml"))
 }
 
 module "ingress_nginx" {
@@ -40,7 +40,7 @@ module "argo_cd" {
   argocd_helm_chart_path          = "../../${var.helm_chart_path}/${var.argocd_chart_name}"
   argocd_helm_values_path         = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
   argocd_cache_helm_chart_path    = "../../${var.helm_chart_path}/${var.valkey_chart_name}"
-  argocd_cache_helm_values_path   = "../../${var.helm_values_path}/argo-cd-cache/values.yaml"
+  argocd_cache_helm_values_path   = "../../${var.helm_values_path}/${var.argocd_chart_name}-cache/values.yaml"
 
   depends_on = [
     module.certificate_authorities,
@@ -57,7 +57,27 @@ module "keycloak" {
   keycloak_helm_chart_path      = "../../${var.helm_chart_path}/${var.keycloak_chart_name}"
   keycloak_helm_values_path     = "../../${var.helm_values_path}/${var.keycloak_chart_name}/values.yaml"
   keycloak_db_helm_chart_path   = "../../${var.helm_chart_path}/${var.postgresql_chart_name}"
-  keycloak_db_helm_values_path  = "../../${var.helm_values_path}/keycloak-db/values.yaml"
+  keycloak_db_helm_values_path  = "../../${var.helm_values_path}/${var.keycloak_chart_name}-db/values.yaml"
+
+  depends_on = [
+    module.certificate_authorities,
+    module.ingress_nginx,
+   ]
+}
+
+module "harbor" {
+  source = "./modules/harbor"
+
+  cluster_name = var.cluster_name
+  harbor_chart_version = local.harbor_chart_yaml.version
+  harbor_cache_chart_version = local.valkey_chart_yaml.version
+  harbor_db_chart_version = local.postgresql_chart_yaml.version
+  harbor_helm_chart_path = "../../${var.helm_chart_path}/${var.harbor_chart_name}"
+  harbor_helm_values_path = "../../${var.helm_values_path}/${var.harbor_chart_name}/values.yaml"
+  harbor_cache_helm_chart_path = "../../${var.helm_chart_path}/${var.valkey_chart_name}"
+  harbor_cache_helm_values_path = "../../${var.helm_values_path}/${var.harbor_chart_name}-cache/values.yaml"
+  harbor_db_helm_chart_path = "../../${var.helm_chart_path}/${var.postgresql_chart_name}"
+  harbor_db_helm_values_path = "../../${var.helm_values_path}/${var.harbor_chart_name}-db/values.yaml"
 
   depends_on = [
     module.certificate_authorities,
