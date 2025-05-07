@@ -100,7 +100,7 @@ resource "helm_release" "keycloak_db" {
 resource "helm_release" "keycloak" {
   name       = "${var.cluster_name}-keycloak"
   namespace  = local.keycloak_namespace
-  chart      = "${path.module}/${var.keycloak_db_helm_chart_path}"
+  chart      = "${path.module}/${var.keycloak_helm_chart_path}"
   version    = var.keycloak_db_chart_version
   create_namespace = false
   wait       = true
