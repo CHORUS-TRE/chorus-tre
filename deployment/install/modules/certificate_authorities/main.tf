@@ -56,7 +56,7 @@ resource "helm_release" "cert_manager" {
   }
 }
 
-# Self-Signed Issuer for PostgreSQL
+# Self-Signed Issuer (e.g. for PostgreSQL)
 resource "helm_release" "selfsigned" {
   name       = "${var.cluster_name}-self-signed-issuer"
   namespace  = local.cert_manager_namespace
@@ -66,6 +66,10 @@ resource "helm_release" "selfsigned" {
   wait       = true
 
   values = [ local.selfsigned_helm_values ]
+
+  depends_on = [
+    helm_release.cert_manager
+  ]
 
   lifecycle {
     ignore_changes = [values]
