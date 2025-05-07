@@ -65,6 +65,7 @@ Required repositories
     -target=module.certificate_authorities \
     -target=module.argo_cd \
     -target=module.keycloak \
+    -target=module.harbor \
     -out=chorus_step1.plan
     ```
 
@@ -75,9 +76,6 @@ Required repositories
     ```
 
 > **_NOTE:_** We need to install the different CRDs before being able to plan the creation of custom resource objects, hence the two steps installation
-
-!!! warning
-hello
 
 1. Save the whole execution plan:
 
