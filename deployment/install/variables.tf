@@ -73,3 +73,9 @@ variable "postgresql_chart_name" {
   type        = string
   default     = "postgresql"
 }
+
+variable "harbor_chart_name" {
+  description = "Harbor Helm chart folder name"
+  type        = string
+  default     = "harbor"
+}
