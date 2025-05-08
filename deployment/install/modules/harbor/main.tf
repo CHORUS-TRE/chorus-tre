@@ -375,23 +375,3 @@ output "harbor_url" {
   value = local.harbor_values_parsed.harbor.externalURL
   description = "Harbor URL"
 }
-
-/*
-The kubernetes_ingress data source did not parse the objects correctly
-this seems to be a terraform limitation
-
-data "kubernetes_ingress" "harbor_registry" {
-  metadata {
-    name = "${var.cluster_name}-harbor-ingress"
-    namespace = local.harbor_namespace
-  }
-
-  depends_on = [ helm_release.harbor ]
-}
-
-output "harbor_registry_external_ip" {
-  value = try(data.kubernetes_ingress.harbor_registry.status.loadBalancer.ingress[0].ip,
-              "Failed to fetch Harbor registry external IP")
-  description = "Harbor registry external IP"
-}
-*/

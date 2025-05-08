@@ -91,6 +91,10 @@ module "custom_resources" {
 }
 
 # Outputs
+output "loadbalancer_ip" {
+  value = module.ingress_nginx.loadbalancer_ip
+}
+
 output "argocd_url" {
   value = module.argo_cd.argocd_url
 }

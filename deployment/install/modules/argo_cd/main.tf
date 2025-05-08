@@ -133,38 +133,3 @@ output "argocd_password" {
   description = "ArgoCD password"
   sensitive = true
 }
-
-/*
-The kubernetes_ingress data source did not parse the objects correctly
-this seems to be a terraform limitation
-
-data "kubernetes_ingress" "argocd_server" {
-  metadata {
-    name = "${var.cluster_name}-argo-cd-argocd-server"
-    namespace = local.argocd_namespace
-  }
-
-  depends_on = [ helm_release.argocd ]
-}
-
-data "kubernetes_ingress" "argocd_grpc" {
-  metadata {
-    name = "${var.cluster_name}-argo-cd-argocd-server-grpc"
-    namespace = local.argocd_namespace
-  }
-
-  depends_on = [ helm_release.argocd ]
-}
-
-output "argocd_external_ip" {
-  value = try(data.kubernetes_ingress.argocd_server.status.loadBalancer.ingress[0].ip,
-              "Failed to fetch ArgoCD external IP")
-  description = "ArgoCD server external IP"
-}
-
-output "argocd_grpc_external_ip" {
-  value = try(data.kubernetes_ingress.argocd_grpc.status.loadBalancer.ingress[0].ip,
-              "Failed to fetch ArgoCD GRPC external IP")
-  description = "ArgoCD GRPC server external IP"
-}
-*/
