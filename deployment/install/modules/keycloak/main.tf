@@ -116,3 +116,27 @@ resource "helm_release" "keycloak" {
     value = "false"
   }
 }
+
+data "kubernetes_secret" "keycloak_admin_password" {
+  metadata {
+    name = local.keycloak_values_parsed.keycloak.auth.existingSecret
+    namespace = local.keycloak_namespace
+  }
+
+  depends_on = [ helm_release.keycloak ]
+}
+
+output "keycloak_url" {
+  value = "https://${local.keycloak_values_parsed.keycloak.ingress.hostname}"
+}
+
+output "keycloak_username" {
+  value = "admin"
+  description = "Keycloak username"
+}
+
+output "keycloak_password" {
+  value = data.kubernetes_secret.keycloak_admin_password.data["${local.keycloak_values_parsed.keycloak.auth.passwordSecretKey}"]
+  description = "Keycloak password"
+  sensitive = true
+}

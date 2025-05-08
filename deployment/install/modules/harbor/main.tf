@@ -351,9 +351,29 @@ resource "helm_release" "harbor" {
   }
 }
 
-output "harbor_registry_url" {
+data "kubernetes_secret" "harbor_admin_password" {
+  metadata {
+    name = local.harbor_values_parsed.harbor.existingSecretAdminPassword
+    namespace = local.harbor_namespace
+  }
+
+  depends_on = [ helm_release.harbor ]
+}
+
+output "harbor_username" {
+  value = "admin"
+  description = "Harbor username"
+}
+
+output "harbor_password" {
+  value = data.kubernetes_secret.harbor_admin_password.data["${local.harbor_values_parsed.harbor.existingSecretAdminPasswordKey}"]
+  description = "Harbor password"
+  sensitive = true
+}
+
+output "harbor_url" {
   value = local.harbor_values_parsed.harbor.externalURL
-  description = "Harbor OCI Registry URL"
+  description = "Harbor URL"
 }
 
 /*

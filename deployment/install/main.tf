@@ -104,8 +104,30 @@ output "argocd_password" {
   sensitive = true
 }
 
-output "harbor_registry_url" {
-  value = module.harbor.harbor_registry_url
+output "harbor_url" {
+  value = module.harbor.harbor_url
+}
+
+output "harbor_username" {
+  value = module.harbor.harbor_username
+}
+
+output "harbor_password" {
+  value = module.harbor.harbor_password
+  sensitive = true
+}
+
+output "keycloak_url" {
+  value = module.keycloak.keycloak_url
+}
+
+output "keycloak_username" {
+  value = module.keycloak.keycloak_username
+}
+
+output "keycloak_password" {
+  value = module.keycloak.keycloak_password
+  sensitive = true
 }
 
 /*
