@@ -89,6 +89,11 @@ Required repositories
     terraform apply chorus_step2.plan
     ```
 
+1. Display sensitive output (e.g. argocd_password)
+    ```
+    terraform output argocd_password
+    ```
+
 ## Uninstall
 
 1. Destroy the infrastructure
