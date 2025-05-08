@@ -60,7 +60,6 @@ resource "kubernetes_secret" "environments_repository_credentials" {
 
   data = {
     url      = var.github_environments_repository_url
-    username = "none"
     password = var.github_environments_repository_pat
     type     = "git"
   }
