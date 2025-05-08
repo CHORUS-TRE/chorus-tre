@@ -20,6 +20,11 @@ variable "kubeconfig_context" {
   type        = string
 }
 
+variable "github_environments_repository_pat" {
+  description = "Fine-grained personal access token (PAT) to access the environments repository"
+  type        = string
+}
+
 variable "helm_chart_path" {
   description = "Path to the repository storing the Helm charts"
   type        = string
@@ -78,4 +83,16 @@ variable "harbor_chart_name" {
   description = "Harbor Helm chart folder name"
   type        = string
   default     = "harbor"
+}
+
+variable "github_environments_repository_url" {
+  description = "URL of the environments repository"
+  type        = string
+  default     = "https://github.com/CHORUS-TRE/environments"
+}
+
+variable "github_environments_repository_secret" {
+  description = "Secret to store the GitHub credentials in for ArgoCD"
+  type        = string
+  default     = "argo-cd-github-environments"
 }

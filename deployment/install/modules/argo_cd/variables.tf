@@ -32,3 +32,18 @@ variable "argocd_helm_values_path" {
   description = "Path to the ArgoCD Helm chart values"
   type        = string
 }
+
+variable "github_environments_repository_pat" {
+  description = "Fine-grained personal access token (PAT) to access the environments repository"
+  type        = string
+}
+
+variable "github_environments_repository_secret" {
+  description = "Secret to store the GitHub credentials in"
+  type        = string
+}
+
+variable "github_environments_repository_url" {
+  description = "URL of the environments repository"
+  type        = string
+}

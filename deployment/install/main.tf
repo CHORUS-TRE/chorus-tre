@@ -34,13 +34,16 @@ module "certificate_authorities" {
 module "argo_cd" {
   source = "./modules/argo_cd"
 
-  cluster_name                    = var.cluster_name
-  argocd_chart_version            = local.argocd_chart_yaml.version
-  argocd_cache_chart_version      = local.valkey_chart_yaml.version
-  argocd_helm_chart_path          = "../../${var.helm_chart_path}/${var.argocd_chart_name}"
-  argocd_helm_values_path         = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
-  argocd_cache_helm_chart_path    = "../../${var.helm_chart_path}/${var.valkey_chart_name}"
-  argocd_cache_helm_values_path   = "../../${var.helm_values_path}/${var.argocd_chart_name}-cache/values.yaml"
+  cluster_name                          = var.cluster_name
+  argocd_chart_version                  = local.argocd_chart_yaml.version
+  argocd_cache_chart_version            = local.valkey_chart_yaml.version
+  argocd_helm_chart_path                = "../../${var.helm_chart_path}/${var.argocd_chart_name}"
+  argocd_helm_values_path               = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
+  argocd_cache_helm_chart_path          = "../../${var.helm_chart_path}/${var.valkey_chart_name}"
+  argocd_cache_helm_values_path         = "../../${var.helm_values_path}/${var.argocd_chart_name}-cache/values.yaml"
+  github_environments_repository_secret = var.github_environments_repository_secret
+  github_environments_repository_pat    = var.github_environments_repository_pat
+  github_environments_repository_url    = var.github_environments_repository_url
 
   depends_on = [
     module.certificate_authorities,
@@ -85,9 +88,13 @@ module "harbor" {
    ]
 }
 
-module "custom_resources" {
-  source = "./modules/custom_resources"
-  depends_on = [ module.argo_cd]
+module "argocd_custom_resources" {
+  source = "./modules/argo_cd_custom_resources"
+
+  app_project_path = "../../../argocd/project/chorus-build-t.yaml"
+  application_set_path = "../../../argocd/applicationset/applicationset-chorus-build-t.yaml"
+
+  depends_on = [ module.argo_cd ]
 }
 
 # Outputs
@@ -133,20 +140,3 @@ output "keycloak_password" {
   value = module.keycloak.keycloak_password
   sensitive = true
 }
-
-/*
-The kubernetes_ingress data source did not parse the objects correctly
-this seems to be a terraform limitation
-
-output "argocd_external_ip" {
-  value = "Please set the following DNS record: ${module.argo_cd.argocd_url} -> ${module.argo_cd.argocd_external_ip}"
-}
-
-output "argocd_grpc_external_ip" {
-  value = "Please set the following DNS record: ${module.argo_cd.argocd_grpc_url} -> ${module.argo_cd.argocd_grpc_external_ip}"
-}
-
-output "harbor_registry_external_ip" {
-  value = "Please set the following DNS record: ${module.harbor.harbor_registry_url} -> ${module.harbor.harbor_registry_external_ip}"
-}
-*/

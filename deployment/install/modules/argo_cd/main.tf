@@ -49,6 +49,23 @@ resource "kubernetes_secret" "argocd_cache" {
   }
 }
 
+resource "kubernetes_secret" "environments_repository_credentials" {
+  metadata {
+    name = var.github_environments_repository_secret
+    namespace = local.argocd_namespace
+    labels = {
+      "argocd.argoproj.io/secret-type" = "repository"
+    }
+  }
+
+  data = {
+    url      = var.github_environments_repository_url
+    username = "none"
+    password = var.github_environments_repository_pat
+    type     = "git"
+  }
+}
+
 # ArgoCD Cache (Valkey) Deployment
 resource "helm_release" "argocd_cache" {
   name       = "${var.cluster_name}-argo-cd-cache"
