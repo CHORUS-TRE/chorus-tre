@@ -89,3 +89,38 @@ module "custom_resources" {
   source = "./modules/custom_resources"
   depends_on = [ module.argo_cd]
 }
+
+# Outputs
+output "argocd_url" {
+  value = module.argo_cd.argocd_url
+}
+
+output "argocd_username" {
+  value = module.argo_cd.argocd_username
+}
+
+output "argocd_password" {
+  value = module.argo_cd.argocd_password
+  sensitive = true
+}
+
+output "harbor_registry_url" {
+  value = module.harbor.harbor_registry_url
+}
+
+/*
+The kubernetes_ingress data source did not parse the objects correctly
+this seems to be a terraform limitation
+
+output "argocd_external_ip" {
+  value = "Please set the following DNS record: ${module.argo_cd.argocd_url} -> ${module.argo_cd.argocd_external_ip}"
+}
+
+output "argocd_grpc_external_ip" {
+  value = "Please set the following DNS record: ${module.argo_cd.argocd_grpc_url} -> ${module.argo_cd.argocd_grpc_external_ip}"
+}
+
+output "harbor_registry_external_ip" {
+  value = "Please set the following DNS record: ${module.harbor.harbor_registry_url} -> ${module.harbor.harbor_registry_external_ip}"
+}
+*/
