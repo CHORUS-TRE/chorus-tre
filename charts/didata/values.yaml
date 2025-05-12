@@ -54,6 +54,18 @@ service:
 
 ingress:
   enabled: false
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: didata.chorus-tre.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: didata-tls
+      hosts:
+        - didata.chorus-tre.local
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
