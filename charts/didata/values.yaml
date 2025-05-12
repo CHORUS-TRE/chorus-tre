@@ -53,19 +53,7 @@ service:
   port: 80
 
 ingress:
-  enabled: true
-  className: "nginx"
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  hosts:
-    - host: didata.chorus-tre.local
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: didata-tls
-      hosts:
-        - didata.chorus-tre.local
+  enabled: false
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -125,3 +113,22 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# Some part of NetworkPolicy configuration for future reference
+# networkPolicy:
+#   enabled: true
+#   ingress:
+#     - from:
+#       - namespaceSelector:
+#           matchLabels:
+#             # Replace with actual label identifying the workbench namespace(s)
+#             # For example: kubernetes.io/metadata.name: <workbench-namespace-name>
+#             kubernetes.io/metadata.name: <workbench-namespace-name> # Placeholder
+#       - podSelector:
+#           matchLabels:
+#             # Replace with actual label identifying workbench pods
+#             # For example: app.kubernetes.io/name: workbench
+#             app.kubernetes.io/name: workbench 
+#       ports:
+#         - protocol: TCP
+#           port: 80 # Port didata service listens on
