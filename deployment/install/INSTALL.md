@@ -12,14 +12,14 @@
 │   │   │   └── values.yaml
 │   │   └── ...
 │   └── deployment
-│   │   └── install
-│   │       ├── INSTALL.md
-│   │       ├── main.tf
-│   │       ├── modules
-│   │       │   ├── argo_cd
-│   │       │   └── ...
-│   │       ├── provider.tf
-│   │       └── variables.tf
+│       └── install
+│           ├── INSTALL.md
+│           ├── main.tf
+│           ├── modules
+│           │   ├── argo_cd
+│           │   └── ...
+│           ├── provider.tf
+│           └── variables.tf
 └── environment-template
     └── chorus-build
         ├── argo-cd
@@ -88,6 +88,9 @@ Required repositories
     ```
     terraform apply chorus_step2.plan
     ```
+
+> **_NOTE:_** If something goes wrong with the output variables, you can run
+```terraform apply -refresh-only``` to trigger the output again
 
 1. Display sensitive output (e.g. argocd_password)
     ```
