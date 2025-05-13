@@ -24,6 +24,8 @@ locals {
   harbor_existing_registry_http_secret = local.harbor_values_parsed.harbor.registry.existingSecret
   harbor_existing_registry_http_secret_key = local.harbor_values_parsed.harbor.registry.existingSecretKey
   harbor_existing_registry_credentials_secret = local.harbor_values_parsed.harbor.registry.credentials.existingSecret
+  harbor_admin_username = "admin"
+  harbor_registry_admin_username = "admin"
 }
 
 resource "kubernetes_namespace" "harbor" {
@@ -135,9 +137,9 @@ resource "random_password" "harbor_registry_passwd" {
   special = false
 }
 
-resource "random_password" "harbor_registry_htpasswd" {
-  length  = 32
-  special = false
+resource "random_password" "salt" {
+  length           = 8
+  special          = false
 }
 
 # Create Kubernetes secret using existing password (if found) or generate a new one
@@ -256,6 +258,11 @@ resource "kubernetes_secret" "harbor_registry_http_secret" {
   }
 }
 
+resource "htpasswd_password" "harbor_registry" {
+  password = random_password.harbor_registry_passwd.result
+  salt     = random_password.salt.result
+}
+
 resource "kubernetes_secret" "harbor_registry_credentials_secret" {
   metadata {
     name = local.harbor_existing_registry_credentials_secret
@@ -268,7 +275,7 @@ resource "kubernetes_secret" "harbor_registry_credentials_secret" {
         "REGISTRY_PASSWD"       = try(data.kubernetes_secret.existing_registry_credentials_secret_harbor.data["REGISTRY_PASSWD"],
                                       random_password.harbor_registry_passwd.result)
         "REGISTRY_HTPASSWD"     = try(data.kubernetes_secret.existing_registry_credentials_secret_harbor.data["REGISTRY_HTPASSWD"],
-                                      random_password.harbor_registry_htpasswd.result)
+                                      "${local.harbor_registry_admin_username}:${htpasswd_password.harbor_registry.bcrypt}")
   }
 
   lifecycle {
@@ -361,7 +368,7 @@ data "kubernetes_secret" "harbor_admin_password" {
 }
 
 output "harbor_username" {
-  value = "admin"
+  value = local.harbor_admin_username
   description = "Harbor username"
 }
 
