@@ -52,7 +52,7 @@ resource "helm_release" "cert_manager" {
   ]
 
   lifecycle {
-    ignore_changes = [values]
+    ignore_changes = [ values ]
   }
 }
 
@@ -72,6 +72,6 @@ resource "helm_release" "selfsigned" {
   ]
 
   lifecycle {
-    ignore_changes = [values]
+    ignore_changes = [ values ]
   }
 }
