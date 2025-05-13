@@ -77,6 +77,8 @@ Required repositories
 
 > **_NOTE:_** We need to install the different CRDs before being able to plan the creation of custom resource objects, hence the two steps installation
 
+1. Update your DNS server with using the loadbalancer IP address
+
 1. Save the whole execution plan:
 
     ```
