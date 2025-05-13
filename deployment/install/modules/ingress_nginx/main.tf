@@ -25,14 +25,6 @@ resource "helm_release" "ingress_nginx" {
   depends_on = [kubernetes_namespace.ingress_nginx]
 }
 
-data "kubernetes_service" "loadbalancer" {
-  metadata {
-    name = "${var.cluster_name}-ingress-nginx-controller"
-    namespace = local.ingress_nginx_namespace
-  }
-}
-
-output "loadbalancer_ip" {
-  value = data.kubernetes_service.loadbalancer.status.0.load_balancer.0.ingress.0.ip
-  description = "Load balancer IP address"
+output "ingress_nginx_namespace" {
+  value = local.ingress_nginx_namespace
 }
