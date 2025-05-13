@@ -44,6 +44,8 @@ module "argo_cd" {
   github_environments_repository_secret = var.github_environments_repository_secret
   github_environments_repository_pat    = var.github_environments_repository_pat
   github_environments_repository_url    = var.github_environments_repository_url
+  harbor_robot_username                 = var.argocd_harbor_robot_username
+  harbor_robot_password                 = module.harbor_config.argocd_robot_password
 
   depends_on = [
     module.certificate_authorities,
@@ -88,14 +90,25 @@ module "harbor" {
    ]
 }
 
+module "harbor_config" {
+  source = "./modules/harbor_config"
+
+  harbor_url            = module.harbor.harbor_url
+  harbor_username       = module.harbor.harbor_username
+  harbor_password       = module.harbor.harbor_password
+  argocd_robot_username = var.argocd_harbor_robot_username
+}
+
+/*
 module "argocd_custom_resources" {
   source = "./modules/argo_cd_custom_resources"
 
-  app_project_path = "../../../argocd/project/chorus-build-t.yaml"
+  app_project_path = "../../../argocd/appproject/chorus-build-t.yaml"
   application_set_path = "../../../argocd/applicationset/applicationset-chorus-build-t.yaml"
 
   depends_on = [ module.argo_cd ]
 }
+*/
 
 # Outputs
 
@@ -104,6 +117,8 @@ data "kubernetes_service" "loadbalancer" {
     name = "${var.cluster_name}-ingress-nginx-controller"
     namespace = module.ingress_nginx.ingress_nginx_namespace
   }
+
+  depends_on = [ module.ingress_nginx ]
 }
 
 output "loadbalancer_ip" {
@@ -153,5 +168,10 @@ output "keycloak_username" {
 
 output "keycloak_password" {
   value = module.keycloak.keycloak_password
+  sensitive = true
+}
+
+output "harbor_argocd_robot_password" {
+  value = module.harbor_config.argocd_robot_password
   sensitive = true
 }
