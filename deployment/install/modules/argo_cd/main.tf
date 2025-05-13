@@ -63,7 +63,68 @@ resource "kubernetes_secret" "environments_repository_credentials" {
     password = var.github_environments_repository_pat
     type     = "git"
   }
+
+  depends_on = [
+    kubernetes_namespace.argocd
+  ]
 }
+
+resource "kubernetes_secret" "oci-build" {
+  metadata {
+    name = "oci-repository-build"
+    namespace = local.argocd_namespace
+    labels = {
+      "argocd.argoproj.io/secret-type" = "repository"
+    }
+  }
+
+  data = {
+    enableOCI = "true"
+    name      = "chorus-build-harbor"
+    password  = var.harbor_robot_password
+    type      = "helm"
+    url       = "harbor.build-t.chorus-tre.ch"
+    username  = join("", ["robot$", var.harbor_robot_username])
+  }
+
+  depends_on = [
+    kubernetes_namespace.argocd
+  ]
+}
+
+
+/*
+# Note: in-cluster is created by default in ArgoCD
+Remote cluster configuration will be done in a second development round
+
+resource "kubernetes_secret" "remote_cluster" {
+  metadata {
+    name = TODO
+    namespace = local.argocd_namespace
+    labels = {
+      "argocd.argoproj.io/secret-type" = "cluster"
+    }
+
+    data = {
+      name = TODO
+      server = TODO
+      config = TODO
+    }
+  }
+}
+IDEA: take the path to the config.json file as module input,
+read the file in the locals block at the top of this file and
+inject it in the secret
+
+{
+  "bearerToken": "<token>",
+  "tlsClientConfig": {
+    "insecure": false,
+    "caData": "<base64-encoded-ca-cert>"
+  }
+}
+
+*/
 
 # ArgoCD Cache (Valkey) Deployment
 resource "helm_release" "argocd_cache" {
