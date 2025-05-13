@@ -98,16 +98,27 @@ module "argocd_custom_resources" {
 }
 
 # Outputs
+
+data "kubernetes_service" "loadbalancer" {
+  metadata {
+    name = "${var.cluster_name}-ingress-nginx-controller"
+    namespace = module.ingress_nginx.ingress_nginx_namespace
+  }
+}
+
 output "loadbalancer_ip" {
-  value = module.ingress_nginx.loadbalancer_ip
+  value = try(data.kubernetes_service.loadbalancer.status.0.load_balancer.0.ingress.0.ip,
+              "Failed to retrieve loadbalancer IP address")
 }
 
 output "argocd_url" {
-  value = module.argo_cd.argocd_url
+  value = try(module.argo_cd.argocd_url,
+              "Failed to retrieve ArgoCD URL")
 }
 
 output "argocd_username" {
-  value = module.argo_cd.argocd_username
+  value = try(module.argo_cd.argocd_username,
+              "Failed to retrieve ArgoCD admin username ")
 }
 
 output "argocd_password" {
@@ -116,11 +127,13 @@ output "argocd_password" {
 }
 
 output "harbor_url" {
-  value = module.harbor.harbor_url
+  value = try(module.harbor.harbor_url,
+              "Failed to retrieve Harbor URL")
 }
 
 output "harbor_username" {
-  value = module.harbor.harbor_username
+  value = try(module.harbor.harbor_username,
+              "Failed to retrieve Harbor URL")
 }
 
 output "harbor_password" {
@@ -129,11 +142,13 @@ output "harbor_password" {
 }
 
 output "keycloak_url" {
-  value = module.keycloak.keycloak_url
+  value = try(module.keycloak.keycloak_url,
+              "Failed to retrieve Keycloak URL")
 }
 
 output "keycloak_username" {
-  value = module.keycloak.keycloak_username
+  value = try(module.keycloak.keycloak_username,
+              "Failed to retrieve Keycloak admin username")
 }
 
 output "keycloak_password" {
