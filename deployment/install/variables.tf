@@ -96,3 +96,9 @@ variable "github_environments_repository_secret" {
   type        = string
   default     = "argo-cd-github-environments"
 }
+
+variable "argocd_harbor_robot_username" {
+  description = "Harbor robot username used by ArgoCD"
+  type        = string
+  default     = "argo-cd"
+}
