@@ -47,3 +47,13 @@ variable "github_environments_repository_url" {
   description = "URL of the environments repository"
   type        = string
 }
+
+variable "harbor_robot_username" {
+  description = "Username of the robot used to connect to Harbor"
+  type        = string
+}
+
+variable "harbor_robot_password" {
+  description = "Password of the robot used to connect to Harbor"
+  type        = string
+}
