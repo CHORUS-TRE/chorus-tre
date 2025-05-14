@@ -56,6 +56,12 @@ resource "helm_release" "cert_manager" {
   }
 }
 
+resource "time_sleep" "wait" {
+  depends_on = [ helm_release.cert_manager ]
+
+  create_duration = "30s"
+}
+
 # Self-Signed Issuer (e.g. for PostgreSQL)
 resource "helm_release" "selfsigned" {
   name       = "${var.cluster_name}-self-signed-issuer"
@@ -68,7 +74,8 @@ resource "helm_release" "selfsigned" {
   values = [ local.selfsigned_helm_values ]
 
   depends_on = [
-    helm_release.cert_manager
+    helm_release.cert_manager,
+    time_sleep.wait
   ]
 
   lifecycle {
