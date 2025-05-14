@@ -92,6 +92,12 @@ resource "harbor_robot_account" "argocd" {
   }
 }
 
+resource "harbor_registry" "docker_hub" {
+  provider_name = "docker-hub"
+  name          = "Docker Hub"
+  endpoint_url  = "https://hub.docker.com"
+}
+
 output "argocd_robot_password" {
   value = random_password.argocd_robot_password.result
   description = "Password of the robot user used by ArgoCD"
