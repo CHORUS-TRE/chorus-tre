@@ -26,27 +26,6 @@ locals {
   harbor_existing_registry_credentials_secret = local.harbor_values_parsed.harbor.registry.credentials.existingSecret
   harbor_admin_username = "admin"
   harbor_registry_admin_username = "admin"
-
-  oidc_secret = [
-    for env in local.harbor_values_parsed.harbor.core.extraEnvVars : env
-    if env.name == "CONFIG_OVERWRITE_JSON"
-  ][0].valueFrom.secretKeyRef
-  oidc_config = <<EOT
-  {
-  "auth_mode": "oidc_auth",
-  "primary_auth_mode": "true",
-  "oidc_name": "Keycloak",
-  "oidc_endpoint": ${var.oidc_endpoint},
-  "oidc_client_id": ${var.oidc_client_id},
-  "oidc_client_secret": ${var.oidc_client_secret},
-  "oidc_groups_claim": "groups",
-  "oidc_admin_group": "HarborAdmins",
-  "oidc_scope": "openid,profile,offline_access,email,groups",
-  "oidc_verify_cert": "true",
-  "oidc_auto_onboard": "true",
-  "oidc_user_claim": "name"
-  }
-  EOT
 }
 
 resource "kubernetes_namespace" "harbor" {
@@ -110,16 +89,6 @@ data "kubernetes_secret" "existing_registry_credentials_secret_harbor" {
   metadata {
     name = local.harbor_existing_registry_credentials_secret
     namespace = local.harbor_namespace
-  }
-}
-
-data "kubernetes_secret" "oidc_secret" {
-  metadata {
-    name = local.oidc_secret.name
-    namespace = local.harbor_namespace
-  }
-  data = {
-    "${local.oidc_secret.key}" = local.oidc_config
   }
 }
 

@@ -85,6 +85,12 @@ variable "harbor_chart_name" {
   default     = "harbor"
 }
 
+variable "harbor_projects" {
+  description = "Harbor projects"
+  type = list(string)
+  default = [ "apps", "charts" ]
+}
+
 variable "github_environments_repository_url" {
   description = "URL of the environments repository"
   type        = string
@@ -101,4 +107,16 @@ variable "argocd_harbor_robot_username" {
   description = "Harbor robot username used by ArgoCD"
   type        = string
   default     = "argo-cd"
+}
+
+variable "keycloak_realm" {
+  description = "Keycloak realm name"
+  type = string
+  default = "build"
+}
+
+variable "harbor_keycloak_client_id" {
+  description = "Keycloak client ID used assigned to Harbor"
+  type = string
+  default = "harbor"
 }

@@ -1,10 +1,33 @@
-resource "harbor_project" "apps" {
-  name                   = "apps"
-  vulnerability_scanning = "false"
+locals {
+  harbor_values = file("${path.module}/${var.harbor_helm_values_path}")
+  harbor_values_parsed = yamldecode(local.harbor_values)
+  harbor_namespace = local.harbor_values_parsed.harbor.namespace
+    oidc_secret = [
+    for env in local.harbor_values_parsed.harbor.core.extraEnvVars : env
+    if env.name == "CONFIG_OVERWRITE_JSON"
+  ][0].valueFrom.secretKeyRef
+  oidc_config = <<EOT
+  {
+  "auth_mode": "oidc_auth",
+  "primary_auth_mode": "true",
+  "oidc_name": "Keycloak",
+  "oidc_endpoint": "${var.oidc_endpoint}",
+  "oidc_client_id": "${var.oidc_client_id}",
+  "oidc_client_secret": "${var.oidc_client_secret}",
+  "oidc_groups_claim": "groups",
+  "oidc_admin_group": "HarborAdmins",
+  "oidc_scope": "openid,profile,offline_access,email,groups",
+  "oidc_verify_cert": "true",
+  "oidc_auto_onboard": "true",
+  "oidc_user_claim": "name"
+  }
+  EOT
 }
 
-resource "harbor_project" "charts" {
-  name                   = "charts"
+resource "harbor_project" "projects" {
+  for_each = toset(var.harbor_projects)
+
+  name                   = each.key
   vulnerability_scanning = "false"
 }
 
@@ -26,6 +49,8 @@ resource "harbor_robot_account" "argocd" {
     kind = "system"
     namespace = "/"
   }
+  # TODO: find a better way
+  # to assign permissions per project aka namespace (apps, charts)
   permissions {
     access {
       action = "list"
@@ -52,7 +77,7 @@ resource "harbor_robot_account" "argocd" {
       resource = "repository"
     }
     kind = "project"
-    namespace = harbor_project.apps.name
+    namespace = var.harbor_projects[0] # apps
   }
   permissions {
     access {
@@ -88,7 +113,7 @@ resource "harbor_robot_account" "argocd" {
       resource = "repository"
     }
     kind = "project"
-    namespace = harbor_project.charts.name
+    namespace = var.harbor_projects[1] # charts
   }
 }
 
@@ -102,4 +127,19 @@ output "argocd_robot_password" {
   value = random_password.argocd_robot_password.result
   description = "Password of the robot user used by ArgoCD"
   sensitive = true
+}
+
+resource "kubernetes_secret" "oidc_secret" {
+  metadata {
+    name = local.oidc_secret.name
+    namespace = local.harbor_namespace
+  }
+
+  data = {
+    "${local.oidc_secret.key}" = local.oidc_config
+  }
+
+  lifecycle {
+    ignore_changes = [ data ]
+  }
 }
