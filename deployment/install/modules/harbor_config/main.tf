@@ -15,14 +15,14 @@ locals {
   "oidc_client_id": "${var.oidc_client_id}",
   "oidc_client_secret": "${var.oidc_client_secret}",
   "oidc_groups_claim": "groups",
-  "oidc_admin_group": "HarborAdmins",
-  "oidc_scope": "openid,profile,offline_access,email,groups",
-  "oidc_verify_cert": "true",
+  "oidc_admin_group": "${var.oidc_admin_group}",
+  "oidc_scope": "openid,profile,offline_access,email",
+  "oidc_verify_cert": "false",
   "oidc_auto_onboard": "true",
   "oidc_user_claim": "name"
   }
   EOT
-}
+} #TODO: set oidc_verify_cert to "true"
 
 resource "harbor_project" "projects" {
   for_each = toset(var.harbor_projects)

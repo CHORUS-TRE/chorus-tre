@@ -120,3 +120,15 @@ variable "harbor_keycloak_client_id" {
   type = string
   default = "harbor"
 }
+
+variable "harbor_keycloak_oidc_admin_group" {
+  description = "Keycloak client ID used assigned to Harbor"
+  type = string
+  default = "HarborAdmin"
+}
+
+variable "harbor_keycloak_base_url" {
+  description = "Harbor base URL or home URL for the Keycloak auth server to redirect to"
+  type = string
+  default = "/harbor/projects"
+}

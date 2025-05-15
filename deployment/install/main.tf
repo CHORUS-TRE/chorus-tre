@@ -70,6 +70,40 @@ module "keycloak" {
    ]
 }
 
+resource "random_password" "harbor_keycloak_client_secret" {
+  length  = 32
+  special = false
+}
+
+provider "keycloak" {
+    alias         = "kcadmin-provider"
+    client_id     = "admin-cli"
+    username      = module.keycloak.keycloak_username
+    password      = module.keycloak.keycloak_password
+    url           = module.keycloak.keycloak_url
+    tls_insecure_skip_verify = true
+}
+
+
+module "keycloak_config" {
+  source = "./modules/keycloak_config"
+
+  providers = {
+    keycloak = keycloak.kcadmin-provider
+  }
+
+  admin_id = module.keycloak.keycloak_username
+  realm_name = var.keycloak_realm
+  client_id = var.harbor_keycloak_client_id
+  client_secret = random_password.harbor_keycloak_client_secret.result
+  root_url = module.harbor.harbor_url
+  base_url = var.harbor_keycloak_base_url
+  admin_url = module.harbor.harbor_url
+  web_origins = [ module.harbor.harbor_url ]
+  valid_redirect_uris = [ join("/", [ module.harbor.harbor_url, "c/oidc/callback" ]) ]
+  client_group = var.harbor_keycloak_oidc_admin_group
+}
+
 module "harbor" {
   source = "./modules/harbor"
 
@@ -86,17 +120,31 @@ module "harbor" {
 
   depends_on = [
     module.certificate_authorities,
-    module.ingress_nginx,
+    module.ingress_nginx
    ]
+}
+
+provider "harbor" {
+  alias    = "harboradmin-provider"
+  url      = module.harbor.harbor_url
+  username = module.harbor.harbor_username
+  password = module.harbor.harbor_password
 }
 
 module "harbor_config" {
   source = "./modules/harbor_config"
 
-  harbor_url            = module.harbor.harbor_url
-  harbor_username       = module.harbor.harbor_username
-  harbor_password       = module.harbor.harbor_password
+  providers = {
+    harbor = harbor.harboradmin-provider
+  }
+
+  harbor_helm_values_path = "../../${var.helm_values_path}/${var.harbor_chart_name}/values.yaml"
+  harbor_projects = var.harbor_projects
   argocd_robot_username = var.argocd_harbor_robot_username
+  oidc_client_id = var.harbor_keycloak_client_id
+  oidc_client_secret = random_password.harbor_keycloak_client_secret.result
+  oidc_endpoint = join("/", [module.keycloak.keycloak_url, "realms", var.keycloak_realm])
+  oidc_admin_group = var.harbor_keycloak_oidc_admin_group
 }
 
 /*
