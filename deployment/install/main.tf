@@ -7,6 +7,29 @@ locals {
   keycloak_chart_yaml       = yamldecode(file("${path.module}/${var.helm_chart_path}/${var.keycloak_chart_name}/Chart.yaml"))
   postgresql_chart_yaml     = yamldecode(file("${path.module}/${var.helm_chart_path}/${var.postgresql_chart_name}/Chart.yaml"))
   harbor_chart_yaml         = yamldecode(file("${path.module}/${var.helm_chart_path}/${var.harbor_chart_name}/Chart.yaml"))
+
+  harbor_keycloak_client_config = {
+    "${var.harbor_keycloak_client_id}" = {
+      client_secret = random_password.harbor_keycloak_client_secret.result
+      root_url = module.harbor.harbor_url
+      base_url = var.harbor_keycloak_base_url
+      admin_url = module.harbor.harbor_url
+      web_origins = [ module.harbor.harbor_url ]
+      valid_redirect_uris = [ join("/", [ module.harbor.harbor_url, "c/oidc/callback" ]) ]
+      client_group = var.harbor_keycloak_oidc_admin_group
+    }
+  }
+  argocd_keycloak_client_config = {
+    "${var.argocd_keycloak_client_id}" = {
+      client_secret = random_password.argocd_keycloak_client_secret.result
+      root_url = module.argo_cd.argocd_url
+      base_url = var.argocd_keycloak_base_url
+      admin_url = module.argo_cd.argocd_url
+      web_origins = [ module.argo_cd.argocd_url ]
+      valid_redirect_uris = [ join("/", [ module.argo_cd.argocd_url, "auth/callback" ]) ]
+      client_group = var.argocd_keycloak_oidc_admin_group
+    }
+  }
 }
 
 module "ingress_nginx" {
@@ -31,28 +54,6 @@ module "certificate_authorities" {
   selfsigned_helm_values_path    = "../../${var.helm_values_path}/${var.selfsigned_chart_name}/values.yaml"
 }
 
-module "argo_cd" {
-  source = "./modules/argo_cd"
-
-  cluster_name                          = var.cluster_name
-  argocd_chart_version                  = local.argocd_chart_yaml.version
-  argocd_cache_chart_version            = local.valkey_chart_yaml.version
-  argocd_helm_chart_path                = "../../${var.helm_chart_path}/${var.argocd_chart_name}"
-  argocd_helm_values_path               = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
-  argocd_cache_helm_chart_path          = "../../${var.helm_chart_path}/${var.valkey_chart_name}"
-  argocd_cache_helm_values_path         = "../../${var.helm_values_path}/${var.argocd_chart_name}-cache/values.yaml"
-  github_environments_repository_secret = var.github_environments_repository_secret
-  github_environments_repository_pat    = var.github_environments_repository_pat
-  github_environments_repository_url    = var.github_environments_repository_url
-  harbor_robot_username                 = var.argocd_harbor_robot_username
-  harbor_robot_password                 = module.harbor_config.argocd_robot_password
-
-  depends_on = [
-    module.certificate_authorities,
-    module.ingress_nginx,
-  ]
-}
-
 module "keycloak" {
   source = "./modules/keycloak"
 
@@ -75,6 +76,11 @@ resource "random_password" "harbor_keycloak_client_secret" {
   special = false
 }
 
+resource "random_password" "argocd_keycloak_client_secret" {
+  length  = 32
+  special = false
+}
+
 provider "keycloak" {
     alias         = "kcadmin-provider"
     client_id     = "admin-cli"
@@ -82,8 +88,8 @@ provider "keycloak" {
     password      = module.keycloak.keycloak_password
     url           = module.keycloak.keycloak_url
     tls_insecure_skip_verify = true
+    initial_login = false
 }
-
 
 module "keycloak_config" {
   source = "./modules/keycloak_config"
@@ -94,14 +100,10 @@ module "keycloak_config" {
 
   admin_id = module.keycloak.keycloak_username
   realm_name = var.keycloak_realm
-  client_id = var.harbor_keycloak_client_id
-  client_secret = random_password.harbor_keycloak_client_secret.result
-  root_url = module.harbor.harbor_url
-  base_url = var.harbor_keycloak_base_url
-  admin_url = module.harbor.harbor_url
-  web_origins = [ module.harbor.harbor_url ]
-  valid_redirect_uris = [ join("/", [ module.harbor.harbor_url, "c/oidc/callback" ]) ]
-  client_group = var.harbor_keycloak_oidc_admin_group
+  clients_config = merge(
+    local.harbor_keycloak_client_config,
+    local.argocd_keycloak_client_config
+  )
 }
 
 module "harbor" {
@@ -147,30 +149,46 @@ module "harbor_config" {
   oidc_admin_group = var.harbor_keycloak_oidc_admin_group
 }
 
-/*
-module "argocd_custom_resources" {
-  source = "./modules/argo_cd_custom_resources"
+module "argo_cd" {
+  source = "./modules/argo_cd"
 
+  cluster_name                          = var.cluster_name
+  argocd_chart_version                  = local.argocd_chart_yaml.version
+  argocd_cache_chart_version            = local.valkey_chart_yaml.version
+  argocd_helm_chart_path                = "../../${var.helm_chart_path}/${var.argocd_chart_name}"
+  argocd_helm_values_path               = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
+  argocd_cache_helm_chart_path          = "../../${var.helm_chart_path}/${var.valkey_chart_name}"
+  argocd_cache_helm_values_path         = "../../${var.helm_values_path}/${var.argocd_chart_name}-cache/values.yaml"
+  github_environments_repository_secret = var.github_environments_repository_secret
+  github_environments_repository_pat    = var.github_environments_repository_pat
+  github_environments_repository_url    = var.github_environments_repository_url
+  harbor_robot_username                 = var.argocd_harbor_robot_username
+  harbor_robot_password                 = module.harbor_config.argocd_robot_password
+
+  depends_on = [
+    module.certificate_authorities,
+    module.ingress_nginx,
+  ]
+}
+
+
+module "argocd_config" {
+  source = "./modules/argo_cd_config"
+
+  argocd_helm_values_path = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
   app_project_path = "../../../argocd/appproject/chorus-build-t.yaml"
   application_set_path = "../../../argocd/applicationset/applicationset-chorus-build-t.yaml"
+  oidc_endpoint = join("/", [module.keycloak.keycloak_url, "realms", var.keycloak_realm])
+  oidc_client_id = var.argocd_keycloak_client_id
+  oidc_client_secret = random_password.argocd_keycloak_client_secret.result
 
   depends_on = [ module.argo_cd ]
 }
-*/
 
 # Outputs
 
-data "kubernetes_service" "loadbalancer" {
-  metadata {
-    name = "${var.cluster_name}-ingress-nginx-controller"
-    namespace = module.ingress_nginx.ingress_nginx_namespace
-  }
-
-  depends_on = [ module.ingress_nginx ]
-}
-
 output "loadbalancer_ip" {
-  value = try(data.kubernetes_service.loadbalancer.status.0.load_balancer.0.ingress.0.ip,
+  value = try(module.ingress_nginx.loadbalancer_ip,
               "Failed to retrieve loadbalancer IP address")
 }
 
@@ -192,6 +210,11 @@ output "argocd_password" {
 output "harbor_url" {
   value = try(module.harbor.harbor_url,
               "Failed to retrieve Harbor URL")
+}
+
+output "harbor_url_admin_login" {
+  value = try(module.harbor.harbor_url_admin_login,
+              "Failed to retrieve Harbor URL to login with local DB admin user")
 }
 
 output "harbor_username" {

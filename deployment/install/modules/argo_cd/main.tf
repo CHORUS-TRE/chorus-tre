@@ -23,6 +23,8 @@ data "kubernetes_secret" "existing_secret_argocd_cache" {
     name = local.argocd_cache_existing_secret
     namespace = local.argocd_namespace
   }
+
+  depends_on = [ kubernetes_namespace.argocd ]
 }
 
 # Generate a random password (only if needed)

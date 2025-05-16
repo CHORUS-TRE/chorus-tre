@@ -57,15 +57,15 @@ Required repositories
     terraform init
     ```
 
+> **_NOTE:_** We need to install the different CRDs before being able to plan the creation of custom resource objects, therefore the installation requires multiple steps
+
 1. Save the first step of the execution plan:
 
     ```
     terraform plan \
     -target=module.ingress_nginx \
     -target=module.certificate_authorities \
-    -target=module.argo_cd \
     -target=module.keycloak \
-    -target=module.harbor \
     -out=chorus_step1.plan
     ```
 
@@ -75,14 +75,27 @@ Required repositories
     terraform apply chorus_step1.plan
     ```
 
-> **_NOTE:_** We need to install the different CRDs before being able to plan the creation of custom resource objects, hence the two steps installation
+1. Retrieve the loadbalancer IP address
+
+    ```
+    terraform output loadbalancer_ip
+    ```
 
 1. Update your DNS server with using the loadbalancer IP address
 
-1. Save the whole execution plan:
+1. Save the second part of the execution plan:
 
     ```
-    terraform plan -out=chorus_step2.plan
+    terraform plan \
+    -target=module.ingress_nginx \
+    -target=module.certificate_authorities \
+    -target=module.keycloak \
+    -target=module.keycloak_config \
+    -target=module.harbor \
+    -target=module.harbor_config \
+    -target=module.argo_cd \
+    -target=module.argo_cd_config \
+    -out=chorus_step2.plan
     ```
 
 1. Apply the saved plan:
@@ -105,4 +118,21 @@ Required repositories
 
     ```
     terraform destroy
+    ```
+
+1. Make sure the uninstallation was successful
+    ```
+    kubectl get ns
+    # Expected output: system-level namespace only (e.g. kube-***)
+    ```
+
+    ```
+    helm list -A
+    # Expected output: system-level charts only (e.g. kube-***)
+    ```
+
+1. In case resources were not cleaned up correctly
+    ```
+    helm uninstall problematic-chart -n problematic-namespace
+    kubectl delete namespace problematic-namespace
     ```

@@ -56,10 +56,10 @@ resource "helm_release" "cert_manager" {
   }
 }
 
-resource "time_sleep" "wait" {
+resource "time_sleep" "wait_for_webhook" {
   depends_on = [ helm_release.cert_manager ]
 
-  create_duration = "30s"
+  create_duration = "60s"
 }
 
 # Self-Signed Issuer (e.g. for PostgreSQL)
@@ -73,10 +73,7 @@ resource "helm_release" "selfsigned" {
 
   values = [ local.selfsigned_helm_values ]
 
-  depends_on = [
-    helm_release.cert_manager,
-    time_sleep.wait
-  ]
+  depends_on = [ time_sleep.wait_for_webhook ]
 
   lifecycle {
     ignore_changes = [ values ]
