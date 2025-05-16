@@ -379,6 +379,6 @@ output "harbor_password" {
 }
 
 output "harbor_url" {
-  value = local.harbor_values_parsed.harbor.externalURL
+  value = join("/", [ local.harbor_values_parsed.harbor.externalURL, "account/sign-in" ])
   description = "Harbor URL"
 }
