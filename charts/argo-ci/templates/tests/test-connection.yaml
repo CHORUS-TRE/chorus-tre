@@ -9,7 +9,7 @@ metadata:
 spec:
   containers:
     - name: wget
-      image: busybox
+      image: harbor.build.chorus-tre.ch/docker_proxy/library/busybox
       command: ['wget']
       args: ['{{ include "argo-ci.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never
