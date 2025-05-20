@@ -41,7 +41,7 @@ spec:
 
     container:
       # This image comes with yq (rather than jq)
-      image: alpine/helm:3
+      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/helm:3
       volumeMounts:
         - name: docker-config
           mountPath: /.docker

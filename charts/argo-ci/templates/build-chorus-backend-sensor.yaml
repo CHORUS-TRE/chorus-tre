@@ -116,7 +116,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: "golang:1.24.3-bookworm"
+                      image: "harbor.build.chorus-tre.ch/docker_proxy/library/golang:1.24.3-bookworm"
                       command: [sh, -e, -c]
                       args:
                         - >-
@@ -236,7 +236,7 @@ spec:
 
                   - name: oci-credentials
                     container:
-                      image: backplane/jq
+                      image: harbor.build.chorus-tre.ch/docker_proxy/backplane/jq
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
@@ -281,7 +281,7 @@ spec:
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: alpine/helm
+                      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/helm
                       env:
                         - name: REGISTRY
                           value: {{ .Values.sensor.registry | quote }}

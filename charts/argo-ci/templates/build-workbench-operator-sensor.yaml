@@ -117,7 +117,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: "golang:1.23-bookworm"
+                      image: "harbor.build.chorus-tre.ch/docker_proxy/library/golang:1.23-bookworm"
                       command: [sh, -e, -c]
                       args:
                         - make test

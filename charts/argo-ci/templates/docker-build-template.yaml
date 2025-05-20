@@ -46,7 +46,7 @@ spec:
               path: config.json
 
     container:
-      image: "docker:27.5.1"
+      image: "harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1"
       volumeMounts:
         - name: docker-config
           mountPath: /.docker
@@ -111,7 +111,7 @@ spec:
       workingDir: "/src"
     sidecars:
       - name: dind
-        image: "docker:27.5.1-dind"
+        image: "harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1-dind"
         env:
           - name: DOCKER_TLS_CERTDIR
             value: ""

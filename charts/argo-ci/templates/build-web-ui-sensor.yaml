@@ -116,7 +116,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: "node:22-bookworm"
+                      image: "harbor.build.chorus-tre.ch/docker_proxy/library/node:22-bookworm"
                       command: [sh, -e, -c]
                       args:
                         - >-
