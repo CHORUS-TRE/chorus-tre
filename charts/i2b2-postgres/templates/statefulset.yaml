@@ -75,14 +75,11 @@ spec:
               done
               if [ ! -f /var/lib/postgresql/data/init_done ]; then
                 echo "[Sidecar] Applying initial DB updates..."
-                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} <<EOF
-                UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/QueryToolService/' WHERE CELL_ID = 'CRC';
-                UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/OntologyService/' WHERE CELL_ID = 'ONT';
-                UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/WorkplaceService/' WHERE CELL_ID = 'WORK';
-                UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/FRService/' WHERE CELL_ID = 'FRC';
-                UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/IMService/' WHERE CELL_ID = 'IM';
-                COMMIT;
-EOF
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/QueryToolService/' WHERE CELL_ID = 'CRC';"
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/OntologyService/' WHERE CELL_ID = 'ONT';"
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/WorkplaceService/' WHERE CELL_ID = 'WORK';"
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/FRService/' WHERE CELL_ID = 'FRC';"
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/IMService/' WHERE CELL_ID = 'IM';"
                 touch /var/lib/postgresql/data/init_done
                 echo "[Sidecar] Patch complete. Exiting."
               else
