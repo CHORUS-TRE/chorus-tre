@@ -30,6 +30,7 @@ spec:
       serviceAccountName: {{ include "i2b2-postgres.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -50,10 +51,46 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+
+        - name: pg-postupdate-sidecar
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.sidecar.pgPassword.existingSecret }}
+                  key: {{ .Values.sidecar.pgPassword.key }}
+          volumeMounts:
+            - name: {{ (index .Values.volumeClaimTemplates 0).name }}
+              mountPath: /var/lib/postgresql/data
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              echo "[Sidecar] Waiting for PostgreSQL to be ready..."
+              until pg_isready -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -U {{ .Values.sidecar.pgUser }}; do
+                echo "[Sidecar] Not ready, retrying in 5s..."
+                sleep 5
+              done
+              if [ ! -f /var/lib/postgresql/data/init_done ]; then
+                echo "[Sidecar] Applying initial DB updates..."
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/QueryToolService/' WHERE CELL_ID = 'CRC';"
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/OntologyService/' WHERE CELL_ID = 'ONT';"
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/WorkplaceService/' WHERE CELL_ID = 'WORK';"
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/FRService/' WHERE CELL_ID = 'FRC';"
+                psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/IMService/' WHERE CELL_ID = 'IM';"
+                touch /var/lib/postgresql/data/init_done
+                echo "[Sidecar] Patch complete. Exiting."
+              else
+                echo "[Sidecar] Patch already applied. Nothing to do. Exiting."
+              fi
+
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -66,6 +103,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
   volumeClaimTemplates:
     {{- range .Values.volumeClaimTemplates }}
     - metadata:
