@@ -118,7 +118,7 @@ tolerations: []
 
 affinity: {}
 
-job:
+sidecar:
   pgUser: "i2b2"
   pgDB: "I2B2PM"
   pgPassword:
