@@ -65,6 +65,10 @@ spec:
             - name: {{ (index .Values.volumeClaimTemplates 0).name }}
               mountPath: /var/lib/postgresql/data
           command: ["/bin/bash", "-c"]
+          livenessProbe:
+            {{- toYaml .Values.sidecar.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.sidecar.readinessProbe | nindent 12 }}
           args:
             - |
               set -e
