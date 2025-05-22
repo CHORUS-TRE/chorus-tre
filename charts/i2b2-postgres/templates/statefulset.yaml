@@ -85,9 +85,11 @@ spec:
                 psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/FRService/' WHERE CELL_ID = 'FRC';"
                 psql -U {{ .Values.sidecar.pgUser }} -h 127.0.0.1 -p {{ .Values.service.port }} -d {{ .Values.sidecar.pgDB }} -c "UPDATE I2B2PM.PM_CELL_DATA SET URL = '{{ .Values.sidecar.wildflyURL }}/i2b2/services/IMService/' WHERE CELL_ID = 'IM';"
                 touch /var/lib/postgresql/data/init_done
-                echo "[Sidecar] Patch complete. Exiting."
+                echo "[Sidecar] Patch complete. Sleeping forever."
+                tail -f /dev/null
               else
-                echo "[Sidecar] Patch already applied. Nothing to do. Exiting."
+                echo "[Sidecar] Patch already applied. Nothing to do. Sleeping forever."
+                tail -f /dev/null
               fi
 
       {{- with .Values.volumes }}
