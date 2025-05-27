@@ -5,7 +5,7 @@ maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch
 
-version: 0.0.7
+version: 0.0.8
 dependencies:
   - name: matomo
     version: 9.3.8
