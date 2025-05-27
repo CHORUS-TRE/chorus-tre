@@ -76,7 +76,7 @@ readinessProbe:
     command:
     - /bin/sh
     - -c
-    - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "I2B2PM"
+    - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "i2b2"
   failureThreshold: 6
   initialDelaySeconds: 120
   periodSeconds: 10
@@ -88,7 +88,7 @@ livenessProbe:
     command:
     - /bin/sh
     - -c
-    - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "I2B2PM"
+    - exec pg_isready -U "i2b2" -h 127.0.0.1 -p 5432 -d "i2b2"
   failureThreshold: 6
   initialDelaySeconds: 120
   periodSeconds: 10
@@ -118,10 +118,36 @@ tolerations: []
 
 affinity: {}
 
-job:
+sidecar:
   pgUser: "i2b2"
-  pgDB: "I2B2PM"
+  pgDB: "i2b2"
   pgPassword:
     existingSecret: i2b2-postgres-secret
     key: postgres-password
   wildflyURL: "http://chorus-env-i2b2-wildfly:8080"
+  readinessProbe:
+    exec:
+      command:
+      - /bin/bash
+      - -c
+      - |
+        test -f /var/lib/postgresql/data/init_done
+    failureThreshold: 6
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 10
+  livenessProbe:
+    exec:
+      command:
+        - /bin/bash
+        - -c
+        - |
+          if [ -f /var/lib/postgresql/data/init_done ]; then exit 0; fi
+          if ps aux | grep '[p]sql' > /dev/null; then exit 0; fi
+          exit 1
+    failureThreshold: 6
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 10
