@@ -4,8 +4,8 @@ maintainers:
   - name: luanamartelli
     email: luana.martelli@chuv.ch
 name: trivy-operator
-version: 0.0.1
+version: 0.0.2
 dependencies:
   - name: trivy-operator
-    version: 0.25.0
+    version: 0.28.1
     repository: https://aquasecurity.github.io/helm-charts/
