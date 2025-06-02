@@ -25,10 +25,28 @@ resource "helm_release" "ingress_nginx" {
   depends_on = [kubernetes_namespace.ingress_nginx]
 }
 
-resource "time_sleep" "wait_for_lb" {
-  depends_on = [ helm_release.ingress_nginx ]
+resource "null_resource" "wait_for_lb_ip" {
+  depends_on = [helm_release.ingress_nginx]
 
-  create_duration = "30s"
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+    set -e
+    for i in {1..30}; do
+      IP=$(kubectl get svc ${var.cluster_name}-ingress-nginx-controller -n ${local.ingress_nginx_namespace} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      if [ ! -z $IP ]; then
+        exit 0
+      fi
+      echo "Waiting for LoadBalancer IP..."
+      sleep 10
+    done
+    echo "Timed out waiting for LoadBalancer IP" >&2
+    exit 1
+    EOT
+  }
 }
 
 data "kubernetes_service" "loadbalancer" {
@@ -37,14 +55,14 @@ data "kubernetes_service" "loadbalancer" {
     namespace = local.ingress_nginx_namespace
   }
 
-  depends_on = [ time_sleep.wait_for_lb ]
+  depends_on = [ null_resource.wait_for_lb_ip ]
+}
+
+output "loadbalancer_ip" {
+  value = data.kubernetes_service.loadbalancer.status.0.load_balancer.0.ingress.0.ip
+  depends_on = [ null_resource.wait_for_lb_ip ]
 }
 
 output "ingress_nginx_namespace" {
   value = local.ingress_nginx_namespace
-}
-
-output "loadbalancer_ip" {
-  value = try(data.kubernetes_service.loadbalancer.status.0.load_balancer.0.ingress.0.ip,
-              "Failed to retrieve loadbalancer IP address")
 }
