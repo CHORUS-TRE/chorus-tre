@@ -95,9 +95,19 @@ module "argo_cd" {
   harbor_robot_password                 = module.harbor_config.argocd_robot_password
 }
 
+provider "argocd" {
+  alias       = "argocdadmin_provider"
+  username    = module.argo_cd.argocd_username
+  password    = module.argo_cd.argocd_password
+  server_addr = join("", [replace(module.argo_cd.argocd_url, "https://", ""), ":443"])
+}
 
 module "argocd_config" {
   source = "../modules/argo_cd_config"
+
+  providers = {
+    argocd = argocd.argocdadmin_provider
+  }
 
   argocd_helm_values_path = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
   app_project_path        = "../../../argocd/appproject/chorus-build-t.yaml"
