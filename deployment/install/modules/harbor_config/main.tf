@@ -2,30 +2,17 @@ locals {
   harbor_values = file("${path.module}/${var.harbor_helm_values_path}")
   harbor_values_parsed = yamldecode(local.harbor_values)
   harbor_namespace = local.harbor_values_parsed.harbor.namespace
-    oidc_secret = [
-    for env in local.harbor_values_parsed.harbor.core.extraEnvVars : env
-    if env.name == "CONFIG_OVERWRITE_JSON"
-  ][0].valueFrom.secretKeyRef
-  oidc_config = <<EOT
-  {
-  "auth_mode": "oidc_auth",
-  "primary_auth_mode": "true",
-  "oidc_name": "Keycloak",
-  "oidc_endpoint": "${var.oidc_endpoint}",
-  "oidc_client_id": "${var.oidc_client_id}",
-  "oidc_client_secret": "${var.oidc_client_secret}",
-  "oidc_groups_claim": "groups",
-  "oidc_admin_group": "${var.oidc_admin_group}",
-  "oidc_scope": "openid,profile,offline_access,email",
-  "oidc_verify_cert": "false",
-  "oidc_auto_onboard": "true",
-  "oidc_user_claim": "name"
-  }
-  EOT
-} #TODO: set oidc_verify_cert to "true"
+}
 
+data "harbor_projects" "existing_projects" {}
+
+output "existing_projects" {
+  value = data.harbor_projects.existing_projects
+}
+
+# TODO: check if project exists already
 resource "harbor_project" "projects" {
-  for_each = toset(var.harbor_projects)
+  for_each = setsubtract(toset(var.harbor_projects), toset([for project in data.harbor_projects.existing_projects.projects : project.name]))
 
   name                   = each.key
   vulnerability_scanning = "false"
@@ -34,6 +21,8 @@ resource "harbor_project" "projects" {
 resource "random_password" "argocd_robot_password" {
   length  = 12
   special = false
+  upper   = true
+  lower   = true
 }
 
 resource "harbor_robot_account" "argocd" {
@@ -115,6 +104,8 @@ resource "harbor_robot_account" "argocd" {
     kind = "project"
     namespace = var.harbor_projects[1] # charts
   }
+
+  depends_on = [ harbor_project.projects ]
 }
 
 resource "harbor_registry" "docker_hub" {
@@ -127,19 +118,4 @@ output "argocd_robot_password" {
   value = random_password.argocd_robot_password.result
   description = "Password of the robot user used by ArgoCD"
   sensitive = true
-}
-
-resource "kubernetes_secret" "oidc_secret" {
-  metadata {
-    name = local.oidc_secret.name
-    namespace = local.harbor_namespace
-  }
-
-  data = {
-    "${local.oidc_secret.key}" = local.oidc_config
-  }
-
-  lifecycle {
-    ignore_changes = [ data ]
-  }
 }

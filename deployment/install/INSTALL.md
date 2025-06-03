@@ -14,12 +14,18 @@
 │   └── deployment
 │       └── install
 │           ├── INSTALL.md
-│           ├── main.tf
 │           ├── modules
 │           │   ├── argo_cd
 │           │   └── ...
-│           ├── provider.tf
-│           └── variables.tf
+│           ├── stage_01
+│           │   ├── main.tf
+│           │   ├── provider.tf
+│           │   └── variables.tf
+│           ├── stage_02
+│           │   ├── main.tf
+│           │   ├── provider.tf
+│           │   └── variables.tf
+│           └── terraform.tfvars
 └── environment-template
     └── chorus-build
         ├── argo-cd
@@ -51,73 +57,45 @@ Required repositories
     scripts/init_helm_charts.sh
     ```
 
-1. Initialize terraform:
+1. Stage 1: Unitialize, plan and apply
 
     ```
+    cd stage_01
     terraform init
+    terraform plan -var-file="../terraform.tfvars" -out="stage_01.plan"
+    terraform apply "stage_01.plan"
+    cd ..
     ```
 
 > **_NOTE:_** We need to install the different CRDs before being able to plan the creation of custom resource objects, therefore the installation requires multiple steps
 
-1. Save the first step of the execution plan:
+1. Make sure the ```stage_01_output.yaml``` file appeared
 
-    ```
-    terraform plan \
-    -target=module.ingress_nginx \
-    -target=module.certificate_authorities \
-    -target=module.keycloak \
-    -out=chorus_step1.plan
-    ```
+1. Update your DNS with the loadbalancer IP address
 
-1. Apply the saved plan:
-
+1. Stage 2: Unitialize, plan and apply
     ```
-    terraform apply chorus_step1.plan
+    cd stage_02
+    terraform init
+    terraform plan -var-file="../terraform.tfvars" -out="stage_02.plan"
+    terraform apply "stage_02.plan"
+    cd ..
     ```
 
-1. Retrieve the loadbalancer IP address
+1. Make sure the ```stage_02_output.yaml``` file appeared
 
-    ```
-    terraform output loadbalancer_ip
-    ```
-
-1. Update your DNS server with using the loadbalancer IP address
-
-1. Save the second part of the execution plan:
-
-    ```
-    terraform plan \
-    -target=module.ingress_nginx \
-    -target=module.certificate_authorities \
-    -target=module.keycloak \
-    -target=module.keycloak_config \
-    -target=module.harbor \
-    -target=module.harbor_config \
-    -target=module.argo_cd \
-    -target=module.argo_cd_config \
-    -out=chorus_step2.plan
-    ```
-
-1. Apply the saved plan:
-
-    ```
-    terraform apply chorus_step2.plan
-    ```
-
-> **_NOTE:_** If something goes wrong with the output variables, you can run
-```terraform apply -refresh-only``` to trigger the output again
-
-1. Display sensitive output (e.g. argocd_password)
-    ```
-    terraform output argocd_password
-    ```
+1. Find all the URLs, username and password needed in the ```stage_02_output.yaml``` file
 
 ## Uninstall
 
 1. Destroy the infrastructure
 
     ```
-    terraform destroy
+    cd stage_02
+    terraform destroy -var-file="../terraform.tfvars"
+    cd ../stage_01
+    terraform destroy -var-file="../terraform.tfvars"
+    cd ..
     ```
 
 1. Make sure the uninstallation was successful
@@ -131,8 +109,5 @@ Required repositories
     # Expected output: system-level charts only (e.g. kube-***)
     ```
 
-1. In case resources were not cleaned up correctly
-    ```
-    helm uninstall problematic-chart -n problematic-namespace
-    kubectl delete namespace problematic-namespace
-    ```
+> **_NOTE:_** If something goes wrong during the uninstallation, you can run
+```./scripts/nuke.sh``` to destroy everything without relying on Terraform

@@ -7,3 +7,4 @@
 **/terraform.tfstate.backup
 **/chorus.plan
 **/*.plan
+**/*_output.yaml

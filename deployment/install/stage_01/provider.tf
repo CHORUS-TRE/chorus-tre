@@ -1,27 +1,27 @@
 terraform {
   required_providers {
     kubernetes = {
-      source = "hashicorp/kubernetes"
+      source  = "hashicorp/kubernetes"
       version = "2.36.0"
     }
     helm = {
-      source = "hashicorp/helm"
+      source  = "hashicorp/helm"
       version = "2.17.0"
     }
     http = {
-      source = "registry.terraform.io/hashicorp/http"
+      source  = "registry.terraform.io/hashicorp/http"
       version = "3.5.0"
     }
     random = {
-      source = "registry.terraform.io/hashicorp/random"
+      source  = "registry.terraform.io/hashicorp/random"
       version = "3.7.2"
     }
     harbor = {
-      source = "goharbor/harbor"
+      source  = "goharbor/harbor"
       version = "3.10.21"
     }
     keycloak = {
-      source = "keycloak/keycloak"
+      source  = "keycloak/keycloak"
       version = "5.2.0"
     }
   }

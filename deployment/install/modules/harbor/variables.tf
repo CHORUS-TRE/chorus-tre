@@ -47,3 +47,23 @@ variable "harbor_cache_helm_values_path" {
   description = "Path to the Harbor cache Helm chart values (e.g. Valkey)"
   type        = string
 }
+
+variable "oidc_endpoint" {
+  description = "OIDC server endpoint"
+  type        = string
+}
+
+variable "oidc_client_id" {
+  description = "OIDC client ID"
+  type        = string
+}
+
+variable "oidc_client_secret" {
+  description = "OIDC client secret"
+  type        = string
+}
+
+variable "oidc_admin_group" {
+  description = "OIDC admin group"
+  type        = string
+}

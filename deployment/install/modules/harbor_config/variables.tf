@@ -13,22 +13,3 @@ variable "harbor_projects" {
     type = list(string)
 }
 
-variable "oidc_endpoint" {
-  description = "OIDC server endpoint"
-  type        = string
-}
-
-variable "oidc_client_id" {
-  description = "OIDC client ID"
-  type        = string
-}
-
-variable "oidc_client_secret" {
-  description = "OIDC client secret"
-  type        = string
-}
-
-variable "oidc_admin_group" {
-  description = "OIDC admin group"
-  type        = string
-}
