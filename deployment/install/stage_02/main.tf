@@ -84,7 +84,6 @@ module "harbor_config" {
   }
 
   harbor_helm_values_path = "../../${var.helm_values_path}/${var.harbor_chart_name}/values.yaml"
-  harbor_projects         = var.harbor_projects
   argocd_robot_username   = var.argocd_harbor_robot_username
 }
 
@@ -152,7 +151,6 @@ output "argocd_password" {
   value     = module.argo_cd.argocd_password
   sensitive = true
 }
-
 
 locals {
   output = {
