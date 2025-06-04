@@ -7,9 +7,3 @@ variable "argocd_robot_username" {
   description = "Username of the robot to be used by ArgoCD"
   type        = string
 }
-
-variable "harbor_projects" {
-    description = "List of Harbor projects"
-    type = list(string)
-}
-
