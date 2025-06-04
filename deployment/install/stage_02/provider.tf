@@ -25,7 +25,7 @@ terraform {
       version = "5.2.0"
     }
     argocd = {
-      source = "argoproj-labs/argocd"
+      source  = "argoproj-labs/argocd"
       version = "7.8.2"
     }
   }
