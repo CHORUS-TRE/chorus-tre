@@ -55,12 +55,6 @@ variable "harbor_chart_name" {
   default     = "harbor"
 }
 
-variable "harbor_projects" {
-  description = "Harbor projects"
-  type        = list(string)
-  default     = ["apps", "charts"]
-}
-
 variable "github_environments_repository_url" {
   description = "Environments repository URL"
   type        = string
