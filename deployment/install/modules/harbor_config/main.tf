@@ -4,15 +4,8 @@ locals {
   harbor_namespace = local.harbor_values_parsed.harbor.namespace
 }
 
-data "harbor_projects" "existing_projects" {}
-
-output "existing_projects" {
-  value = data.harbor_projects.existing_projects
-}
-
-# TODO: check if project exists already
 resource "harbor_project" "projects" {
-  for_each = setsubtract(toset(var.harbor_projects), toset([for project in data.harbor_projects.existing_projects.projects : project.name]))
+  for_each = toset([ "apps", "charts" ])
 
   name                   = each.key
   vulnerability_scanning = "false"
@@ -66,7 +59,7 @@ resource "harbor_robot_account" "argocd" {
       resource = "repository"
     }
     kind = "project"
-    namespace = var.harbor_projects[0] # apps
+    namespace = "apps"
   }
   permissions {
     access {
@@ -102,7 +95,7 @@ resource "harbor_robot_account" "argocd" {
       resource = "repository"
     }
     kind = "project"
-    namespace = var.harbor_projects[1] # charts
+    namespace = "charts"
   }
 
   depends_on = [ harbor_project.projects ]
