@@ -62,9 +62,15 @@ variable "harbor_projects" {
 }
 
 variable "github_environments_repository_url" {
-  description = "URL of the environments repository"
+  description = "Environments repository URL"
   type        = string
   default     = "https://github.com/CHORUS-TRE/environments"
+}
+
+variable "github_environments_repository_revision" {
+  description = "Environments repository revision"
+  type        = string
+  default     = "HEAD"
 }
 
 variable "github_environments_repository_secret" {
