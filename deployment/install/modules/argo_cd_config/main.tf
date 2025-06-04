@@ -3,8 +3,6 @@ locals {
   argocd_values = file("${path.module}/${var.argocd_helm_values_path}")
   argocd_values_parsed = yamldecode(local.argocd_values)
   argocd_namespace = local.argocd_values_parsed.argo-cd.namespaceOverride
-  app_project = yamldecode(file("${path.module}/${var.app_project_path}"))
-  application_set = yamldecode(file("${path.module}/${var.application_set_path}"))
   argocd_oidc_secret = "argocd-oidc"
 }
 
@@ -25,29 +23,18 @@ resource "kubernetes_secret" "argocd_secret" {
   }
 }
 
-/*
-resource "kubernetes_manifest" "app_project" {
-    manifest = local.app_project
-}
-
-resource "kubernetes_manifest" "application_set" {
-    manifest = local.application_set
-}
-*/
-
-# TODO: find a way to replace "chorus-build-test" dynamically
 resource "argocd_project" "chorus_build_test" {
   metadata {
-    name = "chorus-build-t"
+    name = var.cluster_name
     namespace = local.argocd_namespace
   }
 
   spec {
-    description = "chorus-build-test"
+    description = var.cluster_name
     source_repos = [ "*" ]
     destination {
       server    = "https://kubernetes.default.svc"
-      name = "chorus-build-t"
+      name = "in-cluster"
       namespace = "*"
     }
     # TODO: restrict 
@@ -67,7 +54,7 @@ resource "argocd_project" "chorus_build_test" {
 
 resource "argocd_application_set" "chorus_build_test" {
   metadata {
-    name = "chorus-build-t"
+    name = var.cluster_name
     namespace = local.argocd_namespace
   }
 
@@ -79,10 +66,10 @@ resource "argocd_application_set" "chorus_build_test" {
     go_template_options = [ "missingkey=error" ]
     generator {
       git {
-        repo_url = "https://github.com/CHORUS-TRE/environments.git"
-        revision = "feat/helm-chart-install" # TODO: replace with "HEAD"
+        repo_url = var.github_environments_repository_url
+        revision = var.github_environments_repository_revision
         file {
-          path = "chorus-build-t/*/config.json"
+          path = "${var.cluster_name}/*/config.json"
         }
       }
     }
@@ -118,25 +105,26 @@ resource "argocd_application_set" "chorus_build_test" {
       metadata {
         name = "{{index .path.segments 0}}-{{.path.basename}}"
         labels = { 
-          stepName = "{{ if hasKey . 'stepName' }}{{ .stepName }}{{ else }}application{{ end }}"
+          stepName = "{{ if hasKey . \"stepName\" }}{{ .stepName }}{{ else }}application{{ end }}"
         }
       }
       spec {
+        project = var.cluster_name
         source {
-          repo_url = "harbor.build-t.chorus-tre.ch"
-          chart = "charts/{{ trimPrefix 'charts/' .chart }}"
+          repo_url = var.helm_chart_repository_url
+          chart = "charts/{{ trimPrefix \"charts/\" .chart }}"
           target_revision = "{{.version}}"
           helm {
             value_files = [ "$values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml" ]
           }
         }
         source {
-          repo_url = "https://github.com/CHORUS-TRE/environments.git"
-          target_revision = "feat/helm-chart-install" # TODO: replace with "HEAD"
+          repo_url = var.github_environments_repository_url
+          target_revision = var.github_environments_repository_revision
           ref = "values"
         }
         destination {
-          name = "chorus-build-t"
+          name = "in-cluster"
           namespace = "{{.namespace}}"
         }
         sync_policy {
@@ -147,10 +135,11 @@ resource "argocd_application_set" "chorus_build_test" {
           sync_options = [
             "CreateNamespace=true",
             "preserveResourcesOnDeletion=true",
-            "ServerSideApply={{if hasKey . 'serverSideApply' }}{{ .serverSideApply }}{{ else }}false{{ end }}"
+            "ServerSideApply={{if hasKey . \"serverSideApply\" }}{{ .serverSideApply }}{{ else }}false{{ end }}"
           ]
         }
       }
     }
   }
+  depends_on = [ argocd_project.chorus_build_test ]
 }
