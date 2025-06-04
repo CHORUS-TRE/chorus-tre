@@ -9,8 +9,8 @@ locals {
   harbor_keycloak_client_secret = local.stage_01_output.harbor_keycloak_client_secret
   argocd_keycloak_client_secret = local.stage_01_output.argocd_keycloak_client_secret
 
-  argocd_chart_yaml        = yamldecode(file("../${var.helm_chart_path}/${var.argocd_chart_name}/Chart.yaml"))
-  valkey_chart_yaml        = yamldecode(file("../${var.helm_chart_path}/${var.valkey_chart_name}/Chart.yaml"))
+  argocd_chart_yaml = yamldecode(file("../${var.helm_chart_path}/${var.argocd_chart_name}/Chart.yaml"))
+  valkey_chart_yaml = yamldecode(file("../${var.helm_chart_path}/${var.valkey_chart_name}/Chart.yaml"))
 
   harbor_keycloak_client_config = {
     "${var.harbor_keycloak_client_id}" = {
@@ -42,6 +42,11 @@ provider "keycloak" {
   username  = local.keycloak_username
   password  = local.keycloak_password
   url       = local.keycloak_url
+  # Ignoring certificate errors
+  # because it might take some times
+  # for certificates to be signed
+  # by a trusted authority
+  tls_insecure_skip_verify = true
 }
 
 module "keycloak_config" {
@@ -64,6 +69,11 @@ provider "harbor" {
   url      = local.harbor_url
   username = local.harbor_username
   password = local.harbor_password
+  # Ignoring certificate errors
+  # because it might take some times
+  # for certificates to be signed
+  # by a trusted authority
+  insecure = true
 }
 
 module "harbor_config" {
@@ -74,8 +84,8 @@ module "harbor_config" {
   }
 
   harbor_helm_values_path = "../../${var.helm_values_path}/${var.harbor_chart_name}/values.yaml"
-  harbor_projects = var.harbor_projects
-  argocd_robot_username = var.argocd_harbor_robot_username
+  harbor_projects         = var.harbor_projects
+  argocd_robot_username   = var.argocd_harbor_robot_username
 }
 
 module "argo_cd" {
@@ -100,6 +110,11 @@ provider "argocd" {
   username    = module.argo_cd.argocd_username
   password    = module.argo_cd.argocd_password
   server_addr = join("", [replace(module.argo_cd.argocd_url, "https://", ""), ":443"])
+  # Ignoring certificate errors
+  # because it might take some times
+  # for certificates to be signed
+  # by a trusted authority
+  insecure = true
 }
 
 module "argocd_config" {
@@ -109,14 +124,16 @@ module "argocd_config" {
     argocd = argocd.argocdadmin_provider
   }
 
-  argocd_helm_values_path = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
-  app_project_path        = "../../../argocd/appproject/chorus-build-t.yaml"
-  application_set_path    = "../../../argocd/applicationset/applicationset-chorus-build-t.yaml"
-  oidc_endpoint           = join("/", [local.keycloak_url, "realms", var.keycloak_realm])
-  oidc_client_id          = var.argocd_keycloak_client_id
-  oidc_client_secret      = local.argocd_keycloak_client_secret
+  argocd_helm_values_path                 = "../../${var.helm_values_path}/${var.argocd_chart_name}/values.yaml"
+  cluster_name                            = var.cluster_name
+  oidc_endpoint                           = join("/", [local.keycloak_url, "realms", var.keycloak_realm])
+  oidc_client_id                          = var.argocd_keycloak_client_id
+  oidc_client_secret                      = local.argocd_keycloak_client_secret
+  helm_chart_repository_url               = local.harbor_url
+  github_environments_repository_url      = var.github_environments_repository_url
+  github_environments_repository_revision = var.github_environments_repository_revision
 
-  depends_on = [ module.argo_cd ]
+  depends_on = [module.argo_cd]
 }
 
 # Outputs
