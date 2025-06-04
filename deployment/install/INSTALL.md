@@ -57,7 +57,7 @@ Required repositories
     scripts/init_helm_charts.sh
     ```
 
-1. Stage 1: Unitialize, plan and apply
+1. Stage 1: Initialize, plan and apply
 
     ```
     cd stage_01
@@ -67,13 +67,17 @@ Required repositories
     cd ..
     ```
 
-> **_NOTE:_** We need to install the different CRDs before being able to plan the creation of custom resource objects, therefore the installation requires multiple steps
+> **_NOTE:_** The ```terraform apply``` command can take several minutes to complete
 
 1. Make sure the ```stage_01_output.yaml``` file appeared
 
 1. Update your DNS with the loadbalancer IP address
 
-1. Stage 2: Unitialize, plan and apply
+1. Make sure you can access the Harbor and Keycloak services in the browser, using the URLs described in the ```stage_01_output.yaml``` file
+
+> **_NOTE:_** It takes some time for the certificates to be signed and trusted, hence TLS server verification is currently disabled. If you chose to enable the verification, you might hit the following error: ```tls: failed to verify certificate: x509: certificate signed by unknown authority```
+
+1. Stage 2: Initialize, plan and apply
     ```
     cd stage_02
     terraform init
