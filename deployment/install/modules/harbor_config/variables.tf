@@ -7,3 +7,8 @@ variable "argocd_robot_username" {
   description = "Username of the robot to be used by ArgoCD"
   type        = string
 }
+
+variable "argoci_robot_username" {
+  description = "Username of the robot to be used by ArgoCI"
+  type        = string
+}

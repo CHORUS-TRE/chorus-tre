@@ -79,6 +79,12 @@ variable "argocd_harbor_robot_username" {
   default     = "argo-cd"
 }
 
+variable "argoci_harbor_robot_username" {
+  description = "Harbor robot username used by ArgoCI"
+  type        = string
+  default     = "argo-ci"
+}
+
 variable "keycloak_realm" {
   description = "Keycloak realm name"
   type        = string
