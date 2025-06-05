@@ -111,7 +111,7 @@ resource "argocd_application_set" "chorus_build_test" {
       spec {
         project = var.cluster_name
         source {
-          repo_url = var.helm_chart_repository_url
+          repo_url = replace(var.helm_chart_repository_url, "https://", "")
           chart = "charts/{{ trimPrefix \"charts/\" .chart }}"
           target_revision = "{{.version}}"
           helm {
