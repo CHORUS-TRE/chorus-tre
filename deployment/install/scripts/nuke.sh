@@ -2,6 +2,16 @@
 
 cluster_name=chorus-build-t
 
+# PROMETHEUS
+kubie ns prometheus
+kubectl delete deployment $cluster_name-prometheus-blackbox-exporter
+kubectl delete ns prometheus
+
+# TRIVY
+kubie ns trivy-system
+kubectl delete deployment $cluster_name-trivy-operator
+kubectl delete ns trivy-system
+
 # ARGOCD
 kubie ns argocd
 helm uninstall $cluster_name-argo-cd $cluster_name-argo-cd-cache
