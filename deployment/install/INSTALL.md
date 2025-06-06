@@ -59,8 +59,8 @@ Required repositories
 1. Pull the necessary Helm charts
 
     ```
-    chmod +x ./scripts/pull_helm_charts.sh && \
-    ./scripts/pull_helm_charts.sh ../../charts
+    chmod +x ./scripts/pull_helm_charts_dependencies.sh && \
+    ./scripts/pull_helm_charts_dependencies.sh ../../charts
     ```
 
 1. Stage 1: Initialize, plan and apply
