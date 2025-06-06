@@ -56,7 +56,7 @@ Required repositories
     Edit this file as needed.
 
 
-1. Pull the necessary Helm charts
+1. Pull the necessary Helm charts dependencies
 
     ```
     chmod +x ./scripts/pull_helm_charts_dependencies.sh && \
