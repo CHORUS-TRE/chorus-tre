@@ -94,7 +94,7 @@ resource "null_resource" "helm_push" {
   provisioner "local-exec" {
     command = <<EOT
     chmod +x ../scripts/push_helm_charts.sh && \
-    ../scripts/push_helm_charts.sh --debug ${path.module}/../${var.helm_chart_path} ${replace(local.harbor_url, "https://", "")} ${local.harbor_username} ${local.harbor_password}
+    ../scripts/push_helm_charts.sh ${path.module}/../${var.helm_chart_path} ${replace(local.harbor_url, "https://", "")} ${local.harbor_username} ${local.harbor_password}
     EOT
   }
   triggers = {
@@ -132,6 +132,30 @@ provider "argocd" {
   insecure = true
 }
 
+resource "null_resource" "wait_for_argocd" {
+  depends_on = [ module.argo_cd ]
+
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+      set -e
+      for i in {1..30}; do
+        if curl -s -f -o /dev/null ${module.argo_cd.argocd_url}/healthz; then
+          exit 0
+        else
+          echo "Waiting for ArgoCD..."
+          sleep 10
+        fi
+      done
+      echo "Timed out waiting for ArgoCD" >&2
+      exit 1
+    EOT
+  }
+}
+
 module "argocd_config" {
   source = "../modules/argo_cd_config"
 
@@ -148,7 +172,7 @@ module "argocd_config" {
   github_environments_repository_url      = var.github_environments_repository_url
   github_environments_repository_revision = var.github_environments_repository_revision
 
-  depends_on = [module.argo_cd]
+  depends_on = [ module.argo_cd ]
 }
 
 # Outputs
