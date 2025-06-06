@@ -15,17 +15,14 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     exit 0
 fi
 
-echo "Pulling the Helm charts needed by the Terraform scripts"
+charts_path=$1
+charts=$(find $charts_path -maxdepth 1 -mindepth 1 -type d)
 
-chart_rel_path="../../charts"
-chart_names='ingress-nginx cert-manager argo-cd valkey keycloak postgresql harbor'
-
-for chart_name in $chart_names; do
-    echo -e ".\t $chart_name"
+for chart in $charts; do
+    echo -e ".\t $(basename $chart)"
     # Pull the chart
     if [[ "$1" != "--no-pull" ]]; then
-        #pull_cmd="cd $chart_rel_path/$chart_name && helm dependency update && cd -"
-        pull_cmd="helm dependency update $chart_rel_path/$chart_name"
+        pull_cmd="helm dependency update $chart"
         if [[ $debug == true ]]; then
             eval "$pull_cmd"
         else

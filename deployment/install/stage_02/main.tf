@@ -83,9 +83,24 @@ module "harbor_config" {
     harbor = harbor.harboradmin-provider
   }
 
-  harbor_helm_values_path = "../../${var.helm_values_path}/${var.harbor_chart_name}/values.yaml"
-  argocd_robot_username   = var.argocd_harbor_robot_username
-  argoci_robot_username   = var.argoci_harbor_robot_username
+  harbor_helm_values_path   = "../../${var.helm_values_path}/${var.harbor_chart_name}/values.yaml"
+  argocd_robot_username     = var.argocd_harbor_robot_username
+  argoci_robot_username     = var.argoci_harbor_robot_username
+}
+
+# Push charts
+
+resource "null_resource" "helm_push" {
+  provisioner "local-exec" {
+    command = <<EOT
+    chmod +x ../scripts/push_helm_charts.sh && \
+    ../scripts/push_helm_charts.sh --debug ${path.module}/../${var.helm_chart_path} ${replace(local.harbor_url, "https://", "")} ${local.harbor_username} ${local.harbor_password}
+    EOT
+  }
+  triggers = {
+    always_run = timestamp()
+  }
+  depends_on = [ module.harbor_config ]
 }
 
 module "argo_cd" {
@@ -129,7 +144,7 @@ module "argocd_config" {
   oidc_endpoint                           = join("/", [local.keycloak_url, "realms", var.keycloak_realm])
   oidc_client_id                          = var.argocd_keycloak_client_id
   oidc_client_secret                      = local.argocd_keycloak_client_secret
-  helm_chart_repository_url               = local.harbor_url
+  helm_chart_repository_url               = replace(local.harbor_url, "https://", "")
   github_environments_repository_url      = var.github_environments_repository_url
   github_environments_repository_revision = var.github_environments_repository_revision
 
@@ -154,7 +169,7 @@ output "argocd_password" {
 }
 
 output "harbor_argoci_robot_password" {
-  value     = module.argo_cd.argoci_robot_password
+  value     = module.harbor_config.argoci_robot_password
   sensitive = true
 }
 
@@ -163,7 +178,7 @@ locals {
     argocd_url      = module.argo_cd.argocd_url
     argocd_username = module.argo_cd.argocd_username
     argocd_password = module.argo_cd.argocd_password
-    harbor_argoci_robot_password = module.argo_cd.argoci_robot_password
+    harbor_argoci_robot_password = module.harbor_config.argoci_robot_password
   }
 }
 

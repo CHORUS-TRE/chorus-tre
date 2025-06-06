@@ -50,13 +50,6 @@ Required repositories
 
     Edit this file as needed.
 
-1. Pull the necessary Helm charts and copy over their versions
-
-    ```
-    chmod +x scripts/init_helm_charts.sh && \
-    scripts/init_helm_charts.sh
-    ```
-
 1. Stage 1: Initialize, plan and apply
 
     ```
