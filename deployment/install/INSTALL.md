@@ -85,7 +85,7 @@ Required repositories
 
 1. Stage 2: Initialize, plan and apply
     ```
-    cd stage_02
+    cd ../stage_02
     terraform init
     terraform plan -var-file="../terraform.tfvars" -out="stage_02.plan"
     terraform apply "stage_02.plan"
