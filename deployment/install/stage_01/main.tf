@@ -17,8 +17,6 @@ module "ingress_nginx" {
   chart_version    = local.ingress_nginx_chart_yaml.version
   helm_chart_path  = "../../${var.helm_chart_path}/${var.ingress_nginx_chart_name}"
   helm_values_path = "../../${var.helm_values_path}/${var.ingress_nginx_chart_name}/values.yaml"
-
-  depends_on = [ null_resource.helm_pull ]
 }
 
 module "certificate_authorities" {
@@ -32,8 +30,6 @@ module "certificate_authorities" {
   cert_manager_helm_values_path = "../../${var.helm_values_path}/${var.cert_manager_chart_name}/values.yaml"
   selfsigned_helm_chart_path    = "../../${var.helm_chart_path}/${var.selfsigned_chart_name}"
   selfsigned_helm_values_path   = "../../${var.helm_values_path}/${var.selfsigned_chart_name}/values.yaml"
-
-  depends_on = [ null_resource.helm_pull ]
 }
 
 module "keycloak" {
@@ -48,7 +44,6 @@ module "keycloak" {
   keycloak_db_helm_values_path = "../../${var.helm_values_path}/${var.keycloak_chart_name}-db/values.yaml"
 
   depends_on = [
-    null_resource.helm_pull,
     module.certificate_authorities,
     module.ingress_nginx,
   ]
@@ -83,7 +78,6 @@ module "harbor" {
   oidc_admin_group              = var.harbor_keycloak_oidc_admin_group
 
   depends_on = [
-    null_resource.helm_pull,
     module.certificate_authorities,
     module.ingress_nginx
   ]
