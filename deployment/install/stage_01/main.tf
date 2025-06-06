@@ -8,17 +8,6 @@ locals {
   harbor_chart_yaml        = yamldecode(file("../${var.helm_chart_path}/${var.harbor_chart_name}/Chart.yaml"))
 }
 
-# Pull charts
-
-resource "null_resource" "helm_pull" {
-  provisioner "local-exec" {
-    command = <<EOT
-    chmod +x ../scripts/pull_helm_charts.sh && \
-    ../scripts/pull_helm_charts.sh ${path.module}/../${var.helm_chart_path}
-    EOT
-  }
-}
-
 # Install charts
 
 module "ingress_nginx" {

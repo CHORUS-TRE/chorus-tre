@@ -42,6 +42,11 @@ Required repositories
 
 ## Install
 
+1. Change into the "install" directory
+    ```
+    cd ./deployment/install
+    ```
+
 1. Set variables for your usecase:
 
     ```
@@ -49,6 +54,14 @@ Required repositories
     ```
 
     Edit this file as needed.
+
+
+1. Pull the necessary Helm charts
+
+    ```
+    chmod +x ./scripts/pull_helm_charts.sh && \
+    ./scripts/pull_helm_charts.sh ../../charts
+    ```
 
 1. Stage 1: Initialize, plan and apply
 
