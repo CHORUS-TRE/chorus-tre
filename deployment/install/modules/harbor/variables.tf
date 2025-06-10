@@ -67,3 +67,8 @@ variable "oidc_admin_group" {
   description = "OIDC admin group"
   type        = string
 }
+
+variable "harbor_admin_username" {
+  description = "Harbor admin username"
+  type        = string
+}

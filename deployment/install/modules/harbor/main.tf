@@ -24,7 +24,6 @@ locals {
   harbor_existing_registry_http_secret = local.harbor_values_parsed.harbor.registry.existingSecret
   harbor_existing_registry_http_secret_key = local.harbor_values_parsed.harbor.registry.existingSecretKey
   harbor_existing_registry_credentials_secret = local.harbor_values_parsed.harbor.registry.credentials.existingSecret
-  harbor_admin_username = "admin"
   harbor_registry_admin_username = "admin"
 
   oidc_secret = [
@@ -406,7 +405,7 @@ data "kubernetes_secret" "harbor_admin_password" {
 }
 
 output "harbor_username" {
-  value = local.harbor_admin_username
+  value = var.harbor_admin_username
   description = "Harbor username"
 }
 
