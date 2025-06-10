@@ -9,6 +9,7 @@ resource "harbor_project" "projects" {
 
   name                   = each.key
   vulnerability_scanning = "false"
+  force_destroy = true
 }
 
 # ArgoCD robot account
