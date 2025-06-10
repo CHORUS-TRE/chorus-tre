@@ -76,6 +76,7 @@ module "harbor" {
   oidc_client_secret            = random_password.harbor_keycloak_client_secret.result
   oidc_endpoint                 = join("/", [module.keycloak.keycloak_url, "realms", var.keycloak_realm])
   oidc_admin_group              = var.harbor_keycloak_oidc_admin_group
+  harbor_admin_username         = var.harbor_admin_username
 
   depends_on = [
     module.certificate_authorities,
@@ -115,32 +116,7 @@ output "keycloak_url" {
   "Failed to retrieve Keycloak URL")
 }
 
-output "keycloak_username" {
-  value = try(module.keycloak.keycloak_username,
-  "Failed to retrieve Keycloak admin username")
-}
-
 output "keycloak_password" {
   value     = module.keycloak.keycloak_password
   sensitive = true
-}
-
-locals {
-  output = {
-    loadbalancer_ip               = module.ingress_nginx.loadbalancer_ip
-    harbor_url                    = module.harbor.harbor_url
-    harbor_url_admin_login        = module.harbor.harbor_url_admin_login
-    harbor_password               = module.harbor.harbor_password
-    harbor_username               = module.harbor.harbor_username
-    keycloak_url                  = module.keycloak.keycloak_url
-    keycloak_username             = module.keycloak.keycloak_username
-    keycloak_password             = module.keycloak.keycloak_password
-    harbor_keycloak_client_secret = random_password.harbor_keycloak_client_secret.result
-    argocd_keycloak_client_secret = random_password.argocd_keycloak_client_secret.result
-  }
-}
-
-resource "local_file" "stage_01_output" {
-  filename = "../stage_01_output.yaml"
-  content  = yamlencode(local.output)
 }
