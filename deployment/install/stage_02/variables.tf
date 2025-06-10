@@ -58,7 +58,7 @@ variable "harbor_chart_name" {
 variable "github_environments_repository_url" {
   description = "Environments repository URL"
   type        = string
-  default     = "https://github.com/CHORUS-TRE/environments"
+  default     = "https://github.com/CHORUS-TRE/environment-template"
 }
 
 variable "github_environments_repository_revision" {
@@ -85,10 +85,21 @@ variable "argoci_harbor_robot_username" {
   default     = "argo-ci"
 }
 
+variable "keycloak_chart_name" {
+  description = "Keycloak Helm chart folder name"
+  type        = string
+  default     = "keycloak"
+}
+
 variable "keycloak_realm" {
   description = "Keycloak realm name"
   type        = string
   default     = "build"
+}
+
+variable "keycloak_admin_username" {
+  description = "Keycloak admin username"
+  type        = string
 }
 
 variable "harbor_keycloak_client_id" {
@@ -125,4 +136,9 @@ variable "argocd_keycloak_base_url" {
   description = "ArgoCD base URL or home URL for the Keycloak auth server to redirect to"
   type        = string
   default     = "/applications"
+}
+
+variable "harbor_admin_username" {
+  description = "Harbor admin username"
+  type        = string
 }
