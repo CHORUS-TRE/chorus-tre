@@ -1,7 +1,9 @@
 kubeconfig_path = "~/.kube/config"
 kubeconfig_context = "chorus-build"
 
+harbor_admin_username = "admin"
+keycloak_admin_username = "admin"
 cluster_name = "chorus-build"
 helm_values_path = "../../../environment-template/chorus-build"
-github_environments_repository_pat = "github_pat_example"
 keycloak_username = "admin"
+harbor_admin_username = "admin"
