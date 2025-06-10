@@ -33,6 +33,7 @@ resource "null_resource" "wait_for_lb_ip" {
   }
 
   provisioner "local-exec" {
+    quiet = true
     command = <<EOT
     set -e
     for i in {1..30}; do
