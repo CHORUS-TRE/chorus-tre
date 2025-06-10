@@ -79,13 +79,15 @@ Required repositories
 
 > **_NOTE:_** The ```terraform apply``` command can take several minutes to complete
 
-1. Make sure the ```stage_01_output.yaml``` file appeared
+1. Fetch the loadbalancer IP address using ```terraform output loadbalancer_ip```
 
 1. Update your DNS with the loadbalancer IP address
 
-1. Make sure you can access the Harbor and Keycloak services in the browser, using the URLs described in the ```stage_01_output.yaml``` file
+1. Fetch the Harbor URL using ```terraform output keycloak_url```
 
-> **_NOTE:_** It takes some time for the certificates to be signed and trusted, hence TLS server verification is currently disabled. If you chose to enable the verification, you might hit the following error: ```tls: failed to verify certificate: x509: certificate signed by unknown authority```
+1. Make sure you can access the Harbor in the browser, then proceed with stage 2
+
+> **_NOTE:_** It takes some time for the certificates to be signed and trusted, hence TLS server verification is currently disabled for providers used in stage 2. If you chose to enable the verification, you might hit the following error: ```tls: failed to verify certificate: x509: certificate signed by unknown authority```
 
 1. Stage 2: Initialize, plan and apply
     ```
