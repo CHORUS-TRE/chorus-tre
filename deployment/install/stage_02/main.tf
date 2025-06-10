@@ -1,13 +1,22 @@
 locals {
-  stage_01_output               = yamldecode(file("../stage_01_output.yaml"))
-  harbor_password               = local.stage_01_output.harbor_password
-  harbor_url                    = local.stage_01_output.harbor_url
-  harbor_username               = local.stage_01_output.harbor_username
-  keycloak_password             = local.stage_01_output.keycloak_password
-  keycloak_url                  = local.stage_01_output.keycloak_url
-  keycloak_username             = local.stage_01_output.keycloak_username
-  harbor_keycloak_client_secret = local.stage_01_output.harbor_keycloak_client_secret
-  argocd_keycloak_client_secret = local.stage_01_output.argocd_keycloak_client_secret
+  harbor_values = file("../${var.helm_values_path}/${var.harbor_chart_name}/values.yaml")
+  harbor_values_parsed = yamldecode(local.harbor_values)
+  harbor_namespace = local.harbor_values_parsed.harbor.namespace
+  harbor_existing_admin_password_secret = local.harbor_values_parsed.harbor.existingSecretAdminPassword
+  harbor_existing_admin_password_secret_key = local.harbor_values_parsed.harbor.existingSecretAdminPasswordKey
+  harbor_admin_password = data.kubernetes_secret.harbor_existing_admin_password.data["${local.harbor_existing_admin_password_secret_key}"]
+  harbor_url = local.harbor_values_parsed.harbor.externalURL
+  harbor_existing_oidc_secret = local.harbor_values_parsed.harbor.core.extraEnvVars.0.valueFrom.secretKeyRef.name
+  harbor_existing_oidc_secret_key = local.harbor_values_parsed.harbor.core.extraEnvVars.0.valueFrom.secretKeyRef.key
+  harbor_keycloak_client_secret = jsondecode(data.kubernetes_secret.harbor_oidc.data["${local.harbor_existing_oidc_secret_key}"]).oidc_client_secret
+
+  keycloak_values = file("../${var.helm_values_path}/${var.keycloak_chart_name}/values.yaml")
+  keycloak_values_parsed = yamldecode(local.keycloak_values)
+  keycloak_namespace = local.keycloak_values_parsed.keycloak.namespaceOverride
+  keycloak_existing_admin_password_secret = local.keycloak_values_parsed.keycloak.auth.existingSecret
+  keycloak_existing_admin_password_secret_key = local.keycloak_values_parsed.keycloak.auth.passwordSecretKey
+  keycloak_admin_password = data.kubernetes_secret.keycloak_existing_admin_password.data["${local.keycloak_existing_admin_password_secret_key}"]
+  keycloak_url = "https://${local.keycloak_values_parsed.keycloak.ingress.hostname}"
 
   argocd_chart_yaml = yamldecode(file("../${var.helm_chart_path}/${var.argocd_chart_name}/Chart.yaml"))
   valkey_chart_yaml = yamldecode(file("../${var.helm_chart_path}/${var.valkey_chart_name}/Chart.yaml"))
@@ -25,7 +34,7 @@ locals {
   }
   argocd_keycloak_client_config = {
     "${var.argocd_keycloak_client_id}" = {
-      client_secret       = local.argocd_keycloak_client_secret
+      client_secret       = random_password.argocd_keycloak_client_secret.result
       root_url            = module.argo_cd.argocd_url
       base_url            = var.argocd_keycloak_base_url
       admin_url           = module.argo_cd.argocd_url
@@ -36,11 +45,37 @@ locals {
   }
 }
 
+resource "random_password" "argocd_keycloak_client_secret" {
+  length  = 32
+  special = false
+}
+
+data "kubernetes_secret" "harbor_existing_admin_password" {
+  metadata {
+    name = local.harbor_existing_admin_password_secret
+    namespace = local.harbor_namespace
+  }
+}
+
+data "kubernetes_secret" "keycloak_existing_admin_password" {
+  metadata {
+    name = local.keycloak_existing_admin_password_secret
+    namespace = local.keycloak_namespace
+  }
+}
+
+data "kubernetes_secret" "harbor_oidc" {
+  metadata {
+    name = local.harbor_existing_oidc_secret
+    namespace = local.harbor_namespace
+  }
+}
+
 provider "keycloak" {
   alias     = "kcadmin-provider"
   client_id = "admin-cli"
-  username  = local.keycloak_username
-  password  = local.keycloak_password
+  username  = var.keycloak_admin_username
+  password  = local.keycloak_admin_password
   url       = local.keycloak_url
   # Ignoring certificate errors
   # because it might take some times
@@ -56,7 +91,7 @@ module "keycloak_config" {
     keycloak = keycloak.kcadmin-provider
   }
 
-  admin_id   = local.keycloak_username
+  admin_id   = var.keycloak_admin_username
   realm_name = var.keycloak_realm
   clients_config = merge(
     local.harbor_keycloak_client_config,
@@ -67,8 +102,8 @@ module "keycloak_config" {
 provider "harbor" {
   alias    = "harboradmin-provider"
   url      = local.harbor_url
-  username = local.harbor_username
-  password = local.harbor_password
+  username = var.harbor_admin_username
+  password = local.harbor_admin_password
   # Ignoring certificate errors
   # because it might take some times
   # for certificates to be signed
@@ -92,9 +127,21 @@ module "harbor_config" {
 
 resource "null_resource" "helm_push" {
   provisioner "local-exec" {
+    quiet = true
     command = <<EOT
-    chmod +x ../scripts/push_helm_charts.sh && \
-    ../scripts/push_helm_charts.sh ${path.module}/../${var.helm_chart_path} ${replace(local.harbor_url, "https://", "")} ${local.harbor_username} ${local.harbor_password}
+    chorus_tre_release=${var.chorus_tre_release}
+    harbor_url=${replace(local.harbor_url, "https://", "")}
+    harbor_admin_username=${var.harbor_admin_username}
+    harbor_admin_password=${local.harbor_admin_password}
+
+    if [[ $chorus_tre_release == "local" ]]; then
+      path_to_charts=${path.module}/../${var.helm_chart_path}
+      chmod +x ../scripts/push_local_helm_charts.sh && \
+      ../scripts/push_local_helm_charts.sh $path_to_charts $harbor_url $harbor_admin_username $harbor_admin_password
+    else
+      chmod +x ../scripts/push_release_helm_charts.sh && \
+      ../scripts/push_release_helm_charts.sh $chorus_tre_release $harbor_url $harbor_admin_username $harbor_admin_password
+    fi
     EOT
   }
   triggers = {
@@ -140,10 +187,12 @@ resource "null_resource" "wait_for_argocd" {
   }
 
   provisioner "local-exec" {
+    quiet = true
     command = <<EOT
       set -e
       for i in {1..30}; do
         if curl -s -f -o /dev/null ${module.argo_cd.argocd_url}/healthz; then
+          sleep 10
           exit 0
         else
           echo "Waiting for ArgoCD..."
@@ -167,7 +216,7 @@ module "argocd_config" {
   cluster_name                            = var.cluster_name
   oidc_endpoint                           = join("/", [local.keycloak_url, "realms", var.keycloak_realm])
   oidc_client_id                          = var.argocd_keycloak_client_id
-  oidc_client_secret                      = local.argocd_keycloak_client_secret
+  oidc_client_secret                      = random_password.argocd_keycloak_client_secret.result
   helm_chart_repository_url               = replace(local.harbor_url, "https://", "")
   github_environments_repository_url      = var.github_environments_repository_url
   github_environments_repository_revision = var.github_environments_repository_revision
@@ -199,14 +248,22 @@ output "harbor_argoci_robot_password" {
 
 locals {
   output = {
+    harbor_admin_username        = var.harbor_admin_username
+    harbor_admin_password        = local.harbor_admin_password
+    harbor_url                   = local.harbor_url
+    harbor_argoci_robot_password = module.harbor_config.argoci_robot_password
+
+    keycloak_admin_username   = var.keycloak_admin_username
+    keycloak_admin_password   = local.keycloak_admin_password
+    keycloak_url              = local.keycloak_url
+
     argocd_url      = module.argo_cd.argocd_url
     argocd_username = module.argo_cd.argocd_username
     argocd_password = module.argo_cd.argocd_password
-    harbor_argoci_robot_password = module.harbor_config.argoci_robot_password
   }
 }
 
 resource "local_file" "stage_02_output" {
-  filename = "../stage_02_output.yaml"
-  content  = yamlencode(merge(local.output, local.stage_01_output))
+  filename = "../output.yaml"
+  content  = yamlencode(local.output)
 }
