@@ -47,7 +47,7 @@ Required repositories
     cd ./deployment/install
     ```
 
-1. Set variables for your usecase:
+1. Set variables for your usecase
 
     ```
     cp terraform.tfvars.example terraform.tfvars
@@ -55,6 +55,10 @@ Required repositories
 
     Edit this file as needed.
 
+1. Set sensitive variables for your usecase
+    ```
+    export TF_VAR_github_environments_repository_pat=<github_pat_example>
+    ```
 
 1. Pull the necessary Helm charts dependencies
 
