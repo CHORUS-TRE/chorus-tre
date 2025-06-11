@@ -23,6 +23,7 @@ variable "kubeconfig_context" {
 variable "github_environments_repository_pat" {
   description = "Fine-grained personal access token (PAT) to access the environments repository"
   type        = string
+  sensitive   = true
 }
 
 variable "helm_chart_path" {
