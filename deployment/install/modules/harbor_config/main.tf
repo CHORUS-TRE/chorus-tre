@@ -631,7 +631,7 @@ resource "null_resource" "push_images" {
     set -e
 
     chmod +x ${path.module}/scripts/push_container_images.sh && \
-    ${path.module}/scripts/push_container_images.sh --debug $chorus_charts_revision $harbor_url $harbor_admin_username $harbor_admin_password
+    ${path.module}/scripts/push_container_images.sh --debug $chorus_images_revision $harbor_url $harbor_admin_username $harbor_admin_password
     EOT
   }
   triggers = {
