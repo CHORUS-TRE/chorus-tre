@@ -4,7 +4,7 @@ locals {
   argocd_values_parsed = yamldecode(local.argocd_values)
   argocd_namespace = local.argocd_values_parsed.argo-cd.namespaceOverride
   argocd_oidc_config = yamldecode(local.argocd_values_parsed.argo-cd.configs.cm["oidc.config"])
-  argocd_oidc_secret = regex("\\$(.*?):", local.argocd_oidc_config.clientSecret)
+  argocd_oidc_secret = regex("\\$(.*?):", local.argocd_oidc_config.clientSecret).0
 }
 
 resource "kubernetes_secret" "argocd_secret" {
@@ -21,6 +21,31 @@ resource "kubernetes_secret" "argocd_secret" {
     "keycloak.issuer"        = var.oidc_endpoint
     "keycloak.clientId"      = var.oidc_client_id
     "keycloak.clientSecret"  = var.oidc_client_secret
+  }
+}
+
+resource "null_resource" "wait_for_argocd_server" {
+
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    quiet = true
+    command = <<EOT
+      set -e
+      for i in {1..30}; do
+        READY=$(kubectl get pods -n ${local.argocd_namespace} -l app.kubernetes.io/name=argocd-server -o jsonpath="{.items[0].status.containerStatuses[0].ready}")
+        if [ "$READY" = "true" ]; then
+          exit 0
+        else
+          echo "Waiting for ArgoCD gRPC API... ($i)"
+          sleep 10
+        fi
+      done
+      echo "Timed out waiting for ArgoCD gRPC API" >&2
+      exit 1
+    EOT
   }
 }
 
@@ -50,6 +75,8 @@ resource "argocd_project" "chorus_build_test" {
       kind = "*"
     }
   }
+
+  depends_on = [ null_resource.wait_for_argocd_server ]
 }
 
 
