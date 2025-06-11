@@ -20,7 +20,7 @@ repo_username=$3
 repo_password=$4
 repo_name=chorus-tre
 
-helm_reg_login_cmd="helm registry login oci://$remote_repository --username $repo_username --password $repo_password"
+helm_reg_login_cmd="helm registry login oci://$remote_repository --username $repo_username --password $repo_password --insecure"
 if [[ $debug == true ]]; then
     $helm_reg_login_cmd
 else
@@ -66,7 +66,7 @@ packages=$(find $packages_path -type f)
 
 for package in $packages
 do
-    helm_push_cmd="helm push $package oci://$remote_repository/charts"
+    helm_push_cmd="helm push $package oci://$remote_repository/charts --insecure-skip-tls-verify"
     if [[ $debug == true ]]; then
         $helm_push_cmd
     else
