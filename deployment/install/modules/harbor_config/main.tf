@@ -598,24 +598,18 @@ resource "harbor_registry" "docker_hub" {
 
 # Helm charts
 
-resource "null_resource" "helm_push" {
+resource "null_resource" "push_charts" {
   provisioner "local-exec" {
     quiet = true
     command = <<EOT
-    set -e
-    chorus_tre_release=${var.chorus_tre_release}
+    set -ex
+    chorus_charts_revision=${var.chorus_charts_revision}
     harbor_url=${replace(local.harbor_url, "https://", "")}
     harbor_admin_username=${var.harbor_admin_username}
     harbor_admin_password=${var.harbor_admin_password}
 
-    if [[ $chorus_tre_release == "local" ]]; then
-      path_to_charts=${path.module}/${var.helm_chart_path}
-      chmod +x ${path.module}/scripts/push_local_helm_charts.sh && \
-      ${path.module}/scripts/push_local_helm_charts.sh $path_to_charts $harbor_url $harbor_admin_username $harbor_admin_password
-    else
-      chmod +x ${path.module}/scripts/push_release_helm_charts.sh && \
-      ${path.module}/scripts/push_release_helm_charts.sh $chorus_tre_release $harbor_url $harbor_admin_username $harbor_admin_password
-    fi
+    chmod +x ${path.module}/scripts/push_release_helm_charts.sh && \
+    ${path.module}/scripts/push_release_helm_charts.sh $chorus_charts_revision $harbor_url $harbor_admin_username $harbor_admin_password
     EOT
   }
   triggers = {
@@ -626,7 +620,26 @@ resource "null_resource" "helm_push" {
 
 # Container images
 
-# TODO...
+# TODO: discuss whether images should be built from scratch
+# or if we can previously add (some of) them to a public registry
+
+/*
+resource "null_resource" "push_images" {
+  provisioner "local-exec" {
+    #quiet = true
+    command = <<EOT
+    set -e
+
+    chmod +x ${path.module}/scripts/push_container_images.sh && \
+    ${path.module}/scripts/push_container_images.sh --debug $chorus_charts_revision $harbor_url $harbor_admin_username $harbor_admin_password
+    EOT
+  }
+  triggers = {
+    always_run = timestamp()
+  }
+  depends_on = [ harbor_project.projects ]
+}
+*/
 
 # Outputs
 
