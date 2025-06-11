@@ -27,13 +27,12 @@ data "kubernetes_secret" "existing_secret_argocd_cache" {
   depends_on = [ kubernetes_namespace.argocd ]
 }
 
-# Generate a random password (only if needed)
 resource "random_password" "redis_password" {
   length  = 32
   special = false
 }
 
-# Create Kubernetes secret using existing password (if found) or generate a new one
+# Create Kubernetes secret using existing password (if found) or using the randomly generated one
 resource "kubernetes_secret" "argocd_cache" {
   metadata {
     name = local.argocd_cache_existing_secret
@@ -41,13 +40,14 @@ resource "kubernetes_secret" "argocd_cache" {
   }
 
   data = {
+    # TODO: double check why user is empty string (copied from chorus-build)
     "${local.argocd_cache_existing_user_key}"   = ""
     "${local.argocd_cache_existing_secret_key}" = try(data.kubernetes_secret.existing_secret_argocd_cache.data["${local.argocd_cache_existing_secret_key}"],
                                                       random_password.redis_password.result)
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -66,9 +66,7 @@ resource "kubernetes_secret" "environments_repository_credentials" {
     type     = "git"
   }
 
-  depends_on = [
-    kubernetes_namespace.argocd
-  ]
+  depends_on = [ kubernetes_namespace.argocd ]
 }
 
 resource "kubernetes_secret" "oci-build" {
@@ -89,9 +87,7 @@ resource "kubernetes_secret" "oci-build" {
     username  = join("", ["robot$", var.harbor_robot_username])
   }
 
-  depends_on = [
-    kubernetes_namespace.argocd
-  ]
+  depends_on = [ kubernetes_namespace.argocd ]
 }
 
 
@@ -158,7 +154,7 @@ resource "helm_release" "argocd_cache" {
   ]
 
   lifecycle {
-    ignore_changes = [values]
+    ignore_changes = [ values ]
   }
 }
 
@@ -179,8 +175,9 @@ resource "helm_release" "argocd" {
     helm_release.argocd_cache
   ]
 
+  # TODO: double check why we want to ignor changes
   lifecycle {
-    ignore_changes = [values]
+    ignore_changes = [ values ]
   }
 }
 
@@ -203,6 +200,7 @@ output "argocd_grpc_url" {
 }
 
 output "argocd_username" {
+  # admin username cannot be modified in the chart, only enabled/disabled
   value = "admin"
   description = "ArgoCD username"
 }
