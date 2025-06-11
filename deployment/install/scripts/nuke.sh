@@ -6,6 +6,7 @@ cluster_name=chorus-build-t
 kubie ns prometheus
 kubectl delete deployment $cluster_name-prometheus-blackbox-exporter
 kubectl delete ns prometheus
+kubectl delete $(kubectl get crds -oname | grep coreos.com)
 
 # TRIVY
 kubie ns trivy-system
