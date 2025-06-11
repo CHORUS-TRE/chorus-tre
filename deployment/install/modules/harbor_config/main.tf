@@ -602,7 +602,7 @@ resource "null_resource" "push_charts" {
   provisioner "local-exec" {
     quiet = true
     command = <<EOT
-    set -ex
+    set -e
     chorus_charts_revision=${var.chorus_charts_revision}
     harbor_url=${replace(local.harbor_url, "https://", "")}
     harbor_admin_username=${var.harbor_admin_username}
