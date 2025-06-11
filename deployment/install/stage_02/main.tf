@@ -129,6 +129,7 @@ resource "null_resource" "helm_push" {
   provisioner "local-exec" {
     quiet = true
     command = <<EOT
+    set -e
     chorus_tre_release=${var.chorus_tre_release}
     harbor_url=${replace(local.harbor_url, "https://", "")}
     harbor_admin_username=${var.harbor_admin_username}
@@ -180,7 +181,6 @@ provider "argocd" {
 }
 
 resource "null_resource" "wait_for_argocd" {
-  depends_on = [ module.argo_cd ]
 
   triggers = {
     always_run = timestamp()
@@ -191,11 +191,11 @@ resource "null_resource" "wait_for_argocd" {
     command = <<EOT
       set -e
       for i in {1..30}; do
-        if curl -s -f -k -o /dev/null ${module.argo_cd.argocd_url}/healthz; then
-          sleep 10
+        status=$(curl -skf -o /dev/null -w "%%{http_code}" ${module.argo_cd.argocd_url}/healthz)
+        if [ "$status" -eq 200 ]; then
           exit 0
         else
-          echo "Waiting for ArgoCD..."
+          echo "Waiting for ArgoCD... ($i)"
           sleep 10
         fi
       done
@@ -203,6 +203,8 @@ resource "null_resource" "wait_for_argocd" {
       exit 1
     EOT
   }
+
+  depends_on = [ module.argo_cd ]
 }
 
 module "argocd_config" {
@@ -221,7 +223,10 @@ module "argocd_config" {
   github_environments_repository_url      = var.github_environments_repository_url
   github_environments_repository_revision = var.github_environments_repository_revision
 
-  depends_on = [ module.argo_cd ]
+  depends_on = [
+    module.argo_cd,
+    null_resource.wait_for_argocd
+  ]
 }
 
 # Outputs
