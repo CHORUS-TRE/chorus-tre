@@ -118,7 +118,7 @@ module "harbor_config" {
     harbor = harbor.harboradmin-provider
   }
 
-  chorus_tre_release        = var.chorus_tre_release
+  chorus_charts_revision    = var.chorus_charts_revision
   harbor_admin_username     = var.harbor_admin_username
   harbor_admin_password     = local.harbor_admin_password
   helm_chart_path           = "../../${var.helm_chart_path}"
