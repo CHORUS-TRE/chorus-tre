@@ -22,11 +22,11 @@ resource "helm_release" "ingress_nginx" {
   wait       = true
   values = [ local.helm_values ]
 
-  depends_on = [kubernetes_namespace.ingress_nginx]
+  depends_on = [ kubernetes_namespace.ingress_nginx ]
 }
 
 resource "null_resource" "wait_for_lb_ip" {
-  depends_on = [helm_release.ingress_nginx]
+  depends_on = [ helm_release.ingress_nginx ]
 
   triggers = {
     always_run = timestamp()
