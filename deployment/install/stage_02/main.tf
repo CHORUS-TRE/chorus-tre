@@ -191,7 +191,7 @@ resource "null_resource" "wait_for_argocd" {
     command = <<EOT
       set -e
       for i in {1..30}; do
-        if curl -s -f -o /dev/null ${module.argo_cd.argocd_url}/healthz; then
+        if curl -s -f -k -o /dev/null ${module.argo_cd.argocd_url}/healthz; then
           sleep 10
           exit 0
         else
