@@ -12,3 +12,24 @@ variable "argoci_robot_username" {
   description = "Username of the robot to be used by ArgoCI"
   type        = string
 }
+
+variable "chorus_tre_release" {
+  description = "CHORUS-TRE release from which to get the Helm charts to upload to Harbor (use 'local' to upload the charts found in the current repository)"
+  type        = string
+}
+
+variable "harbor_admin_username" {
+  description = "Harbor admin username"
+  type        = string
+}
+
+variable "harbor_admin_password" {
+  description = "Harbor admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "helm_chart_path" {
+  description = "Path to the repository storing the Helm charts"
+  type        = string
+}

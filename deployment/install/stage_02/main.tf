@@ -118,37 +118,13 @@ module "harbor_config" {
     harbor = harbor.harboradmin-provider
   }
 
+  chorus_tre_release        = var.chorus_tre_release
+  harbor_admin_username     = var.harbor_admin_username
+  harbor_admin_password     = local.harbor_admin_password
+  helm_chart_path           = "../../${var.helm_chart_path}"
   harbor_helm_values_path   = "../../${var.helm_values_path}/${var.harbor_chart_name}/values.yaml"
   argocd_robot_username     = var.argocd_harbor_robot_username
   argoci_robot_username     = var.argoci_harbor_robot_username
-}
-
-# Push charts
-
-resource "null_resource" "helm_push" {
-  provisioner "local-exec" {
-    quiet = true
-    command = <<EOT
-    set -e
-    chorus_tre_release=${var.chorus_tre_release}
-    harbor_url=${replace(local.harbor_url, "https://", "")}
-    harbor_admin_username=${var.harbor_admin_username}
-    harbor_admin_password=${local.harbor_admin_password}
-
-    if [[ $chorus_tre_release == "local" ]]; then
-      path_to_charts=${path.module}/../${var.helm_chart_path}
-      chmod +x ../scripts/push_local_helm_charts.sh && \
-      ../scripts/push_local_helm_charts.sh $path_to_charts $harbor_url $harbor_admin_username $harbor_admin_password
-    else
-      chmod +x ../scripts/push_release_helm_charts.sh && \
-      ../scripts/push_release_helm_charts.sh $chorus_tre_release $harbor_url $harbor_admin_username $harbor_admin_password
-    fi
-    EOT
-  }
-  triggers = {
-    always_run = timestamp()
-  }
-  depends_on = [ module.harbor_config ]
 }
 
 module "argo_cd" {
