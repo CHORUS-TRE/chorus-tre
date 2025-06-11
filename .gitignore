@@ -8,4 +8,5 @@
 **/chorus.plan
 **/*.plan
 **/*_output.yaml
+**/*output.yaml
 **/tmp
