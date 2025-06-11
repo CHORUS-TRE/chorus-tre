@@ -3,7 +3,8 @@ locals {
   argocd_values = file("${path.module}/${var.argocd_helm_values_path}")
   argocd_values_parsed = yamldecode(local.argocd_values)
   argocd_namespace = local.argocd_values_parsed.argo-cd.namespaceOverride
-  argocd_oidc_secret = "argocd-oidc"
+  argocd_oidc_config = yamldecode(local.argocd_values_parsed.argo-cd.configs.cm["oidc.config"])
+  argocd_oidc_secret = regex("\\$(.*?):", local.argocd_oidc_config.clientSecret)
 }
 
 resource "kubernetes_secret" "argocd_secret" {
