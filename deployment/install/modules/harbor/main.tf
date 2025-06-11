@@ -162,7 +162,7 @@ resource "random_password" "salt" {
   special = false
 }
 
-# Create Kubernetes secret using existing password (if found) or generate a new one
+# Create Kubernetes secret using existing password (if found) or using randomly generated one
 resource "kubernetes_secret" "harbor_db_secret" {
   metadata {
     name = local.harbor_db_existing_secret
@@ -176,7 +176,7 @@ resource "kubernetes_secret" "harbor_db_secret" {
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -186,14 +186,15 @@ resource "kubernetes_secret" "harbor_secret" {
     namespace = local.harbor_namespace
   }
 
-  # Key is hardcoded because it has to be "secret"
+  # Helm chart does not allow to change the secret key
+  # which is why "secret" is hardoced here
   data = {
         "secret" = try(data.kubernetes_secret.existing_secret_harbor.data["secret"],
                        random_password.harbor_secret.result)
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -203,14 +204,15 @@ resource "kubernetes_secret" "harbor_secret_secret_key" {
     namespace = local.harbor_namespace
   }
 
-  # Key is hardcoded because it has to be "secretKey"
+  # Helm chart does not allow to change the secret key
+  # which is why "secretKey" is hardoced here
   data = {
         "secretKey" = try(data.kubernetes_secret.existing_secret_secret_key_harbor.data["secretKey"],
                           random_password.harbor_secret_secret_key.result)
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -226,7 +228,7 @@ resource "kubernetes_secret" "harbor_xsrf_secret" {
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -242,7 +244,7 @@ resource "kubernetes_secret" "harbor_admin_password_secret" {
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -258,7 +260,7 @@ resource "kubernetes_secret" "harbor_jobservice_secret" {
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -274,7 +276,7 @@ resource "kubernetes_secret" "harbor_registry_http_secret" {
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -289,8 +291,9 @@ resource "kubernetes_secret" "harbor_registry_credentials_secret" {
     namespace = local.harbor_namespace
   }
 
-  # Keys are hardcoded because they have to be
-  # "REGISTRY_PASSWD" and "REGISTRY_HTPASSWD"
+  # Helm chart does not allow to change the secret key
+  # which is why "REGISTRY_PASSWD" and
+  # "REGISTRY_HTPASSWD" are hardoced here
   data = {
         "REGISTRY_PASSWD"       = try(data.kubernetes_secret.existing_registry_credentials_secret_harbor.data["REGISTRY_PASSWD"],
                                       random_password.harbor_registry_passwd.result)
@@ -299,7 +302,7 @@ resource "kubernetes_secret" "harbor_registry_credentials_secret" {
   }
 
   lifecycle {
-    ignore_changes = [data]
+    ignore_changes = [ data ]
   }
 }
 
@@ -349,7 +352,7 @@ resource "helm_release" "harbor_cache" {
   ]
 
   lifecycle {
-    ignore_changes = [values]
+    ignore_changes = [ values ]
   }
 }
 
