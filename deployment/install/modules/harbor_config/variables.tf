@@ -13,8 +13,8 @@ variable "argoci_robot_username" {
   type        = string
 }
 
-variable "chorus_tre_release" {
-  description = "CHORUS-TRE release from which to get the Helm charts to upload to Harbor (use 'local' to upload the charts found in the current repository)"
+variable "chorus_charts_revision" {
+  description = "Revision of the CHORUS-TRE/chorus-tre repository to get the Helm charts to upload to Harbor"
   type        = string
 }
 
