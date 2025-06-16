@@ -1,0 +1,69 @@
+{{- range .Values.environments }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ .name | quote }}
+  namespace: argocd
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: {{ .envRepoURL | quote }}
+        revision: HEAD
+        files:
+          - path: {{ printf "\"%s/*/config.json\"" .name }}
+  strategy:
+    type: RollingSync
+    rollingSync:
+      steps:
+        - matchExpressions:
+            - key: stepName
+              operator: In
+              values:
+                - infrastructure
+        - matchExpressions:
+            - key: stepName
+              operator: In
+              values:
+                - database
+          maxUpdate: 20% # don't break them all at once.
+        - matchExpressions:
+            - key: stepName
+              operator: In
+              values:
+                - application
+          maxUpdate: 20% # don't break them all at once
+  template:
+    metadata:
+      name: {{ print "{{index .path.segments 0}}-{{.path.basename}}" | quote }}
+      labels:
+        stepName: {{ printf "'{{ if hasKey . \"stepName\" }}{{ .stepName }}{{ else }}application{{ end }}'" }}
+    spec:
+      project: {{ .name | quote }}
+      sources:
+        - repoURL: {{ .registryURL | quote }}
+          chart: {{ print "'charts/{{ trimPrefix \"charts/\" .chart }}'" }}
+          targetRevision: {{ printf "\"{{.version}}\"" }}
+          helm:
+            valueFiles:
+              - {{ print "$values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml" }}
+        - repoURL: {{ .envRepoURL | quote }}
+          targetRevision: HEAD
+          ref: values
+
+      destination:
+        name: {{ .cluster | quote }}
+        namespace: {{ printf "\"{{.namespace}}\"" }}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - preserveResourcesOnDeletion=true
+          - {{ printf "'ServerSideApply={{if hasKey . \"serverSideApply\" }}{{ .serverSideApply }}{{ else }}false{{ end }}'" }}
+{{- end }}

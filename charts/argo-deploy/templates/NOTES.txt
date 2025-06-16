@@ -1,0 +1,20 @@
+The following Argo CD resources have been deployed:
+
+{{- range .Values.environments }}
+
+Environment: {{ .name }}
+
+  - AppProject:       {{ .name }}
+  - ApplicationSet:   {{ .name }}
+
+{{- end }}
+
+To verify these resources, run:
+
+  kubectl get appprojects,applicationsets -n argocd
+
+Or open the Argo CD dashboard and search for:
+
+{{- range .Values.environments }}
+  - {{ .name }}
+{{- end }}

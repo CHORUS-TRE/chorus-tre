@@ -1,0 +1,28 @@
+# Default values for argo-deploy.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+environments:
+  - name: chorus-build
+    description: CHORUS switch kaas build
+    envRepoURL: https://github.com/CHORUS-TRE/environments.git
+    registryURL: harbor.build.chorus-tre.ch
+    cluster: chorus-build
+
+  - name: chorus-qa
+    description: CHORUS switch kaas qa
+    envRepoURL: https://github.com/CHORUS-TRE/environments.git
+    registryURL: harbor.build.chorus-tre.ch
+    cluster: chorus-qa
+
+  - name: chorus-dev
+    description: CHORUS switch kaas dev
+    envRepoURL: https://github.com/CHORUS-TRE/environments.git
+    registryURL: harbor.build.chorus-tre.ch
+    cluster: chorus-dev
+
+  - name: chorus-exodev
+    description: CHORUS exoscale dev
+    envRepoURL: https://github.com/CHORUS-TRE/environments.git
+    registryURL: harbor.build.chorus-tre.ch
+    cluster: chorus-exodev
