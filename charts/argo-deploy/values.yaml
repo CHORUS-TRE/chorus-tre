@@ -6,11 +6,11 @@ environments:
   - name: chorus-build
     description: CHORUS build
     envRepoURL: https://github.com/CHORUS-TRE/environment-template.git
-    registryURL: harbor.chorus-tre.local
+    registryURL: harbor.build.chorus-tre.local
     cluster: chorus-build
 
   - name: chorus
     description: CHORUS
     envRepoURL: https://github.com/CHORUS-TRE/environment-template.git
-    registryURL: harbor.chorus-tre.local
+    registryURL: harbor.build.chorus-tre.local
     cluster: chorus
