@@ -4,7 +4,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: {{ .name | quote }}
-  namespace: argocd
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
