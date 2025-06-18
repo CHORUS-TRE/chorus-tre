@@ -1,0 +1,13 @@
+juicefs-csi-driver:
+  metrics:
+    enabled: false
+    port: 8080
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+      servicePort: 8080
+  dashboard:
+    auth:
+      enabled: true
+      existingSecret: "juicefs-dashboard-secret"
