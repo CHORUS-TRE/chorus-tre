@@ -22,7 +22,7 @@ juicefs-csi-driver:
       paths:
       - path: /
         pathType: ImplementationSpecific
-    tls: []
+    tls:
       - secretName: juicefs-dashboard-tls
         hosts:
           - juicefs-dashboard.chorus-tre.local
