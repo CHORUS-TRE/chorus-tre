@@ -12,7 +12,7 @@ spec:
   generators:
     - git:
         repoURL: {{ .envRepoURL | quote }}
-        revision: HEAD
+        revision: {{ .envRepoRevision | default "HEAD" | quote }}
         files:
           - path: {{ printf "\"%s/*/config.json\"" .name }}
   strategy:
@@ -51,7 +51,7 @@ spec:
             valueFiles:
               - {{ print "$values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml" }}
         - repoURL: {{ .envRepoURL | quote }}
-          targetRevision: HEAD
+          targetRevision: {{ .envRepoRevision | default "HEAD" | quote }}
           ref: values
 
       destination:
