@@ -4,8 +4,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: {{ .name | quote }}
-  annotations:
-    argocd.argoproj.io/skip-reconcile: "true"
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
