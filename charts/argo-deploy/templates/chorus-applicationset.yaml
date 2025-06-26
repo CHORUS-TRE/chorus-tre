@@ -5,7 +5,7 @@ kind: ApplicationSet
 metadata:
   name: {{ .name | quote }}
   annotations:
-    argocd.argoproj.io/skip-reconcile: true
+    argocd.argoproj.io/skip-reconcile: "true"
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
