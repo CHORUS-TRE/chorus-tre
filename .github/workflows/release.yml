@@ -32,3 +32,4 @@ jobs:
           oci_password: ${{ secrets.HARBOR_ROBOT_PASSWORD }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           charts_dir: charts
+          skip_gh_release: false

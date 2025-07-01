@@ -1,0 +1,27 @@
+juicefs-csi-driver:
+  metrics:
+    enabled: true
+    port: 8080
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+      servicePort: 8080
+  dashboard:
+    auth:
+      enabled: true
+      existingSecret: "juicefs-dashboard-secret"
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+      - host: "juicefs-dashboard.chorus-tre.local"
+        paths:
+        - path: /
+          pathType: ImplementationSpecific
+      tls:
+        - secretName: juicefs-dashboard-tls
+          hosts:
+            - juicefs-dashboard.chorus-tre.local

@@ -1,7 +1,9 @@
+{{- range .Values.environments }}
+---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: chorus-dev
+  name: {{ .name | quote }}
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
@@ -9,10 +11,10 @@ spec:
   goTemplateOptions: ["missingkey=error"]
   generators:
     - git:
-        repoURL: "https://github.com/CHORUS-TRE/environments.git"
-        revision: HEAD
+        repoURL: {{ .envRepoURL | quote }}
+        revision: {{ .envRepoRevision | default "HEAD" | quote }}
         files:
-          - path: "chorus-dev/*/config.json"
+          - path: {{ printf "\"%s/*/config.json\"" .name }}
   strategy:
     type: RollingSync
     rollingSync:
@@ -36,30 +38,31 @@ spec:
           maxUpdate: 20% # don't break them all at once
   template:
     metadata:
-      name: "{{index .path.segments 0}}-{{.path.basename}}"
+      name: {{ print "{{index .path.segments 0}}-{{.path.basename}}" | quote }}
       labels:
-        stepName: '{{ if hasKey . "stepName" }}{{ .stepName }}{{ else }}application{{ end }}'
+        stepName: {{ printf "'{{ if hasKey . \"stepName\" }}{{ .stepName }}{{ else }}application{{ end }}'" }}
     spec:
-      project: chorus-dev
+      project: {{ .name | quote }}
       sources:
-        - repoURL: "harbor.build.chorus-tre.ch"
-          chart: 'charts/{{ trimPrefix "charts/" .chart }}'
-          targetRevision: "{{.version}}" # Take version from config.json
+        - repoURL: {{ .registryURL | quote }}
+          chart: {{ print "'charts/{{ trimPrefix \"charts/\" .chart }}'" }}
+          targetRevision: {{ printf "\"{{.version}}\"" }}
           helm:
             valueFiles:
-              - $values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml
-        - repoURL: "https://github.com/CHORUS-TRE/environments.git"
-          targetRevision: HEAD
+              - {{ print "$values/{{index .path.segments 0}}/{{.path.basename}}/values.yaml" }}
+        - repoURL: {{ .envRepoURL | quote }}
+          targetRevision: {{ .envRepoRevision | default "HEAD" | quote }}
           ref: values
 
       destination:
-        name: chorus-dev
-        namespace: "{{.namespace}}" # Take namespace from config.json
+        name: {{ .cluster | quote }}
+        namespace: {{ printf "\"{{.namespace}}\"" }}
       syncPolicy:
         automated:
-          prune: true # Optionally enable pruning for resources not defined in Git
+          prune: true
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
-          - 'ServerSideApply={{ if hasKey . "serverSideApply" }}{{ .serverSideApply }}{{ else }}false{{ end }}'
+          - {{ printf "'ServerSideApply={{if hasKey . \"serverSideApply\" }}{{ .serverSideApply }}{{ else }}false{{ end }}'" }}
+{{- end }}
