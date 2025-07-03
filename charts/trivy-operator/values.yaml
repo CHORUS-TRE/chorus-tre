@@ -5,6 +5,13 @@ trivy-operator:
     enabled: true
   trivy:
     ignoreUnfixed: true
+    resources:
+      requests:
+        cpu: 500m
+        memory: 500M
+      limits:
+        cpu: 1000m
+        memory: 1000M
   operator:
     metricsVulnIdEnabled: true
     metricsClusterComplianceInfo: true
