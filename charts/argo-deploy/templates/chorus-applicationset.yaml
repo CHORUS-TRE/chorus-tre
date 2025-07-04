@@ -15,8 +15,6 @@ spec:
         revision: {{ .envRepoRevision | default "HEAD" | quote }}
         files:
           - path: {{ printf "\"%s/*/config.json\"" .name }}
-          - path: {{ printf "\"%s/argo-deploy/config.json\"" .name }}
-            exclude: true
   strategy:
     type: RollingSync
     rollingSync:
@@ -67,4 +65,9 @@ spec:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
           - {{ printf "'ServerSideApply={{if hasKey . \"serverSideApply\" }}{{ .serverSideApply }}{{ else }}false{{ end }}'" }}
+      ignoreDifferences:
+        - group: ""
+          kind: ApplicationSet
+          jqPathExpressions:
+            - .spec.template.syncPolicy.automated.selfHeal
 {{- end }}
