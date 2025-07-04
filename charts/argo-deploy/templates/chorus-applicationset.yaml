@@ -69,5 +69,5 @@ spec:
         - group: ""
           kind: ApplicationSet
           jqPathExpressions:
-            - .spec.template.syncPolicy.automated.selfHeal
+            - .spec.template.spec.syncPolicy.automated.selfHeal
 {{- end }}
