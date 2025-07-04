@@ -7,6 +7,9 @@ metadata:
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
@@ -65,9 +68,4 @@ spec:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
           - {{ printf "'ServerSideApply={{if hasKey . \"serverSideApply\" }}{{ .serverSideApply }}{{ else }}false{{ end }}'" }}
-      ignoreDifferences:
-        - group: ""
-          kind: ApplicationSet
-          jqPathExpressions:
-            - .spec.template.spec.syncPolicy.automated.selfHeal
 {{- end }}
