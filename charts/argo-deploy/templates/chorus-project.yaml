@@ -1,10 +1,11 @@
+{{- $namespaceOverride := .Values.namespaceOverride }}
 {{- range .Values.environments }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: {{ .name | quote }}
-  namespace: argocd 
+  namespace:  {{ $namespaceOverride | default "argocd" | quote }} 
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
