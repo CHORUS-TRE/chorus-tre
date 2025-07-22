@@ -1,4 +1,3 @@
-{{- if .Values.server.sso.enabled }}
 apiVersion: v1
 kind: Secret
 metadata:
