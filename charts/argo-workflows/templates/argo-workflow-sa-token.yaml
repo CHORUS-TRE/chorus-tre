@@ -6,4 +6,3 @@ metadata:
   annotations:
     kubernetes.io/service-account.name: argo-workflow
 type: kubernetes.io/service-account-token
-{{- end}}
