@@ -1,0 +1,10 @@
+{{- if index .Values "argo-workflows" "server" "sso" "enabled" }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argo-workflow.service-account-token
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: argo-workflow
+type: kubernetes.io/service-account-token
+{{- end}}

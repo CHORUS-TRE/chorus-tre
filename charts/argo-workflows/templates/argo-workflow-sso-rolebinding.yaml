@@ -1,0 +1,15 @@
+{{- if index .Values "argo-workflows" "server" "sso" "enabled" }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-workflow-sso-rolebinding
+  namespace: argo
+subjects:
+  - kind: ServiceAccount
+    name: argo-workflow
+    namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-workflow-sso-role
+{{- end }}
