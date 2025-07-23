@@ -1,8 +1,8 @@
 valkey:
   architecture: standalone
 
-  master:
-    resourcesPreset: micro
+  primary:
+    resourcesPreset: small
 
     # See: https://github.com/bitnami/charts/blob/main/bitnami/valkey/README.md#host-kernel-settings
     #podSecurityContext:
@@ -17,6 +17,7 @@ valkey:
     replicaCount: 0
 
   metrics:
+    resourcesPreset: "small"
     enabled: true
 
     serviceMonitor:
