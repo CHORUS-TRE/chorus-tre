@@ -39,7 +39,7 @@ postgresql:
 
   primary:
     # See: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
-    resourcesPreset: "large"
+    resourcesPreset: "small"
     persistence:
       size: 1Gi
 
