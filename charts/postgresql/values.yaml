@@ -32,7 +32,7 @@ postgresql:
 
   metrics:
     enabled: true
-    resourcesPreset: "nano"
+    resourcesPreset: "micro"
 
     serviceMonitor:
       enabled: true
@@ -40,6 +40,8 @@ postgresql:
   primary:
     # See: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
     resourcesPreset: "small"
+    persistence:
+      size: 1Gi
 
   readReplicas:
     resourcesPreset: "nano"
