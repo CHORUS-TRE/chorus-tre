@@ -1,0 +1,51 @@
+{{- /* Render CiliumNetworkPolicy only if enabled and L7 WAF is ON */}}
+{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.enabled_l7_waf }}
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "didata.fullname" . }}-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "didata.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "didata.selectorLabels" . | nindent 6 }}
+  # Define ingress rules (L3/L4 + L7)
+  ingress:
+  {{- if .Values.networkPolicy.ingress }}
+    {{- /* Use the structure from values.yaml, assuming it's compatible or adapted for Cilium */}}
+    {{- /* L7 rules need to be defined within 'toPorts' -> 'rules' -> 'http' */}}
+    {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+    # Example L7 Rule Placeholder (add under ports: -> rules: -> http:)
+    # rules:
+    #   http:
+    #   - method: "GET"
+    #     path: "/specific-path"
+  {{- else }}
+    # Default Deny Ingress if .Values.networkPolicy.ingress is empty
+    []
+  {{- end }}
+
+  # Define egress rules (L3/L4 + DNS by default)
+  egress:
+  # Always allow DNS egress to kube-dns
+  - toEndpoints:
+    - matchLabels:
+        # Adjust if your kube-dns labels are different
+        k8s:io.kubernetes.pod.namespace: kube-system
+        k8s-app: kube-dns
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  # Add specific egress rules defined in values.yaml
+  {{- if .Values.networkPolicy.egress }}
+    {{- /* Adapt K8s policy format to Cilium if needed (e.g., using toEndpoints, toServices, toCIDRsets) */}}
+    {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
+  {{- end }}
+  # Note: If .Values.networkPolicy.egress is empty (besides DNS), Cilium's default egress behavior applies (often allow-all).
+  # For default-deny egress (except DNS), ensure no other egress rules are defined.
+{{- end }}
