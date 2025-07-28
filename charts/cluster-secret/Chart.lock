@@ -1,6 +1,0 @@
-dependencies:
-- name: cluster-secret
-  repository: https://charts.clustersecret.com/
-  version: 0.5.2
-digest: sha256:f74d0df8ef3a9b9162043c4166d0da1f68b49a8df0192dddb5203cd3f68eb8a2
-generated: "2025-05-20T12:40:46.732701931Z"
