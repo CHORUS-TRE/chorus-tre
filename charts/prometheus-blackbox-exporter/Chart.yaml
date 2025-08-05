@@ -6,7 +6,7 @@ maintainers:
     email: nathalie.casati@chuv.ch
   - name: floriansipp
     email: florian.sipp@chuv.ch
-version: 0.0.6
+version: 0.0.7
 dependencies:
   - name: prometheus-blackbox-exporter
     version: 9.8.0
