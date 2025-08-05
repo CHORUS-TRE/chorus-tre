@@ -8,8 +8,8 @@ maintainers:
   - name: floriansipp
     email: florian.sipp@chuv.ch
 name: prometheus-operator-crds
-version: 0.0.6
+version: 0.0.7
 dependencies:
   - name: prometheus-operator-crds
-    version: 16.0.1
+    version: 22.0.1
     repository: https://prometheus-community.github.io/helm-charts
