@@ -4,7 +4,7 @@ description: A Helm chart for JuiceFS CSI Driver.
 version: 0.0.5
 dependencies:
   - name: juicefs-csi-driver
-    version: 0.29.0
+    version: 0.29.1
     repository: https://juicedata.github.io/charts/
 
 maintainers:
