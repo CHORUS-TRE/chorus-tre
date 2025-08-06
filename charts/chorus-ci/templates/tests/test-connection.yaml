@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "chorus-ci.fullname" . }}-test-connection"
+  labels:
+    {{- include "chorus-ci.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: harbor.build.chorus-tre.ch/docker_proxy/library/busybox
+      command: ['wget']
+      args: ['{{ include "chorus-ci.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

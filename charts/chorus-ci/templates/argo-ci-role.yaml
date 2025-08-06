@@ -1,0 +1,49 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chorus-ci-role
+  namespace: argo
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  - workflowtaskresults
+  verbs:
+  - list
+  - update
+  - create
+  - get
+  - watch
+  - delete
+  - patch
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflowtemplates
+  - workfloweventbindings
+  - eventsources
+  - sensors
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - patch
+  - list
+  - get
+  - watch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  - pods/log
+  verbs:
+  - watch
+  - get
+  - list
