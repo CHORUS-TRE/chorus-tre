@@ -1,11 +1,11 @@
-{{- $fullName := include "argo-ci.fullname" . -}}
+{{- $fullName := include "chorus-ci.fullname" . -}}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
   name: {{ $fullName }}-helm-publish-template
   labels:
-    {{- include "argo-ci.labels" . | nindent 4 }}
+    {{- include "chorus-ci.labels" . | nindent 4 }}
 spec:
   arguments:
     artifacts:

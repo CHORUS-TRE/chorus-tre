@@ -1,4 +1,4 @@
-# Default values for argo-ci.
+# Default values for chorus-ci.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -24,21 +24,21 @@ webhookEvents:
 
     # That secret must contain the following keys:
     # - token (a GitHub pat), and secret (the webhook secret).
-    secretName: argo-ci-github-images
+    secretName: chorus-ci-github-images
 
   - name: chorus-web-ui
     repositories:
       - owner: chorus-tre
         names:
           - chorus-web-ui
-    secretName: argo-ci-github-chorus-web-ui
+    secretName: chorus-ci-github-chorus-web-ui
 
   - name: chorus-backend
     repositories:
       - owner: chorus-tre
         names:
           - chorus-backend
-    secretName: argo-ci-github-chorus-backend
+    secretName: chorus-ci-github-chorus-backend
 
 githubSecrets:
   chorus-backend: argo-workflows-github-chorus-backend
@@ -86,7 +86,7 @@ ingress:
   tls:
     - hosts:
         - webhook-ci.build.chorus-tre.local
-      secretName: argo-ci-tls
+      secretName: chorus-ci-tls
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

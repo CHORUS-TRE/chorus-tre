@@ -1,10 +1,10 @@
-{{- $fullName := include "argo-ci.fullname" . -}}
+{{- $fullName := include "chorus-ci.fullname" . -}}
 apiVersion: argoproj.io/v1alpha1
 kind: EventBus
 metadata:
   name: {{ $fullName }}-default
   labels:
-    {{- include "argo-ci.labels" . | nindent 4 }}
+    {{- include "chorus-ci.labels" . | nindent 4 }}
 spec:
   jetstream:
     version: "2.10.10"

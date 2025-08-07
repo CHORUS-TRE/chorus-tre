@@ -1,10 +1,10 @@
-{{- $fullName := include "argo-ci.fullname" . -}}
+{{- $fullName := include "chorus-ci.fullname" . -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ $fullName }}-github-eventsource-svc
   labels:
-    {{- include "argo-ci.labels" . | nindent 4 }}
+    {{- include "chorus-ci.labels" . | nindent 4 }}
 spec:
   ports:
   - port: 8080

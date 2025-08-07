@@ -1,11 +1,11 @@
-{{- $fullName := include "argo-ci.fullname" . -}}
-{{- $serviceAccountName := include "argo-ci.serviceAccountName" . -}}
+{{- $fullName := include "chorus-ci.fullname" . -}}
+{{- $serviceAccountName := include "chorus-ci.serviceAccountName" . -}}
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
   name: {{ $fullName }}-build-images
   labels:
-    {{- include "argo-ci.labels" . | nindent 4 }}
+    {{- include "chorus-ci.labels" . | nindent 4 }}
 spec:
   eventBusName: {{ $fullName }}-default
   template:

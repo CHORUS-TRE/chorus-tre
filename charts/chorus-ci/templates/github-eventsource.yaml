@@ -1,4 +1,4 @@
-{{- $fullName := include "argo-ci.fullname" . -}}
+{{- $fullName := include "chorus-ci.fullname" . -}}
 {{- $targetPort := .Values.service.targetPort -}}
 {{- $ingressHost := .Values.ingress.hosts | mustFirst -}}
 ---
@@ -7,7 +7,7 @@ kind: EventSource
 metadata:
   name: {{ $fullName }}-github
   labels:
-    {{- include "argo-ci.labels" . | nindent 4 }}
+    {{- include "chorus-ci.labels" . | nindent 4 }}
 spec:
   eventBusName: {{ $fullName }}-default
   github:
