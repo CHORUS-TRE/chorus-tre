@@ -1,7 +1,7 @@
 apiVersion: v2
 description: A Helm chart for cert-manager
 name: cert-manager
-version: 0.0.13
+version: 0.0.14
 dependencies:
   - name: cert-manager
     version: v1.18.2
