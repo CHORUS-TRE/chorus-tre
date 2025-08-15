@@ -4,7 +4,7 @@ maintainers:
   - name: luanamartelli
     email: luana.martelli@chuv.ch
 name: trivy-operator
-version: 0.0.3
+version: 0.0.4
 dependencies:
   - name: trivy-operator
     version: 0.30.0
