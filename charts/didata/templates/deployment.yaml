@@ -45,6 +45,16 @@ spec:
               value: {{ .Values.env.url }}
             - name: ROUTER_BASE
               value: {{ .Values.env.router_base }}
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: didata-mariadb-secret
+                  key: mariadb-password
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: didata-mariadb-secret
+                  key: mariadb-root-password
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -61,9 +71,94 @@ spec:
                 command:
                   - /bin/sh
                   - -c
-                  - > 
-                    cp {{ .Values.secret.env_path_source }} {{ .Values.secret.env_path_dest }};
+                  - |
+                    set -euo pipefail
+
+                    # 1. Copy .env and set correct ownership
+                    cp {{ .Values.secret.env_path_source }} {{ .Values.secret.env_path_dest }}
                     chown didata:didata {{ .Values.secret.env_path_dest }}
+
+                    # 2. Wait MariaDB to become ready
+                    echo "Waiting for MariaDB to be ready..."
+                    until MYSQL_PWD="{{ .Values.secret.mariadb_password }}" \
+                          mysqladmin ping -h chorus-exodev-didata-db-mariadb -P 3306 -u didata --silent; do
+                      echo "Waiting for MySQL to be ready..."
+                      sleep 1
+                    done
+                    echo "MariaDB is ready."
+
+                    # 3. Run Laravel init script using expect
+                    cat <<'EOF' > /tmp/init_expect.sh
+                    #!/usr/bin/expect -f
+                    set timeout -1
+                    spawn sh -c "script -q -c 'php artisan didata:init --no-ansi | tee /tmp/artisan.log' /dev/null"
+
+                    # Prompt 1: Initial TUI confirmation
+                    expect {
+                        "Are you sure you want to run this command?" {
+                            sleep 0.5
+                            send "\033\[D"
+                            sleep 0.2
+                            send "\r"
+                        }
+                    }
+
+                    # Prompt 2: Override secret key
+                    expect {
+                        "Are you sure you want to override the secret key?" {
+                            sleep 0.5
+                            send "no\r"
+                        }
+                    }
+
+                    # Prompt 3: TUI confirmation again
+                    expect {
+                        "Are you sure you want to run this command?" {
+                            sleep 0.5
+                            send "\033\[D"
+                            sleep 0.2
+                            send "\r"
+                        }
+                    }
+
+                    # Prompt 4: Default config for Subject and Storage
+                    expect {
+                        "Do you want to add Default configuration for Subject and Storage?" {
+                            sleep 0.5
+                            send "no\r"
+                        }
+                    }
+
+                    # Prompt 5: Default config for Study
+                    expect {
+                        "Do you want to add default configuration for Study?" {
+                            sleep 0.5
+                            send "no\r"
+                        }
+                    }
+
+                    # Prompt 6: Maintenance mode
+                    expect {
+                        "Do you want to set the app in maintenance Mode" {
+                            sleep 0.5
+                            send "no\r"
+                        }
+                    }
+
+                    expect eof
+                    EOF
+
+                    chmod +x /tmp/init_expect.sh
+                    expect /tmp/init_expect.sh
+ 
+                    # Step 4: Run optimize
+                    php artisan optimize
+
+                    # Step 5: Grant DB privileges
+                    exec env MYSQL_PWD="{{ .Values.secret.mariadb_root_password }}" \
+                      mysql -h chorus-exodev-didata-db-mariadb -P 3306 -uroot \
+                      -e "GRANT ALL PRIVILEGES ON didata.* TO 'didata'@'%' IDENTIFIED BY '{{ .Values.secret.mariadb_password }}'; FLUSH PRIVILEGES;"
+
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
