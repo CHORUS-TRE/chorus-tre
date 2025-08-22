@@ -87,7 +87,16 @@ spec:
                     done
                     echo "MariaDB is ready."
 
-                    # 3. Run Laravel init script using expect
+                    # 3. Check if DB is already initialized
+                    TABLE_COUNT=$(mariadb -udidata -p"${MARIADB_PASSWORD}" -h chorus-exodev-didata-db-mariadb didata \
+                    -Nse "select count(*) from information_schema.TABLES where table_schema = 'didata';")
+
+                    if [ "$TABLE_COUNT" -ne 0 ]; then
+                      echo "Database already initialized (found $TABLE_COUNT tables), skipping Laravel init."
+                      exit 0
+                    fi
+
+                    # 4. Run Laravel init script using expect
                     cat <<'EOF' > /tmp/init_expect.sh
                     #!/usr/bin/expect -f
                     set timeout -1
@@ -151,10 +160,10 @@ spec:
                     chmod +x /tmp/init_expect.sh
                     expect /tmp/init_expect.sh
  
-                    # Step 4: Run optimize
+                    # 5. Run optimize
                     php artisan optimize
 
-                    # Step 5: Grant DB privileges
+                    # 6. Grant DB privileges
                     exec env MYSQL_PWD="{{ .Values.secret.mariadb_root_password }}" \
                       mysql -h chorus-exodev-didata-db-mariadb -P 3306 -uroot \
                       -e "GRANT ALL PRIVILEGES ON didata.* TO 'didata'@'%' IDENTIFIED BY '{{ .Values.secret.mariadb_password }}'; FLUSH PRIVILEGES;"
