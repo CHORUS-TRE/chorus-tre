@@ -17,6 +17,7 @@ env:
 secret:
   env_path_source: "/var/didata/env/didata.env"
   env_path_dest: "/var/www/html/.env"
+  mariadb_secret_name: "didata-mariadb-secret"
 
 imagePullSecrets:
   - name: regcred-didata

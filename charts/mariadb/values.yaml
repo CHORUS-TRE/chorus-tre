@@ -26,3 +26,4 @@ mariadb:
       certManager:
         existingIssuer: CHANGEME-issuer
         existingIssuerKind: ClusterIssuer
+  initdbScriptsConfigMap: "mariadb-initdb"
