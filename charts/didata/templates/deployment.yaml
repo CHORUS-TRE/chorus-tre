@@ -82,19 +82,19 @@ spec:
                     fi
 
                     echo "1. Copy .env and set correct ownership"
-                    cp {{ .Values.podstart.env_path_source }} {{ .Values.podstart.env_path_dest }}
-                    chown didata:didata {{ .Values.podstart.env_path_dest }}
+                    cp {{ .Values.secret.env_path_source }} {{ .Values.secret.env_path_dest }}
+                    chown didata:didata {{ .Values.secret.env_path_dest }}
 
                     echo "2. Wait MariaDB to become ready..."
                     until MYSQL_PWD="${MARIADB_PASSWORD}" \
-                          mysqladmin ping -h {{ .Values.podstart.mariadb_host }} -P 3306 -u didata --silent; do
+                          mysqladmin ping -h {{ .Values.external_db_host }} -P 3306 -u didata --silent; do
                       echo "Waiting for MySQL to be ready..."
                       sleep 1
                     done
                     echo "MariaDB is ready."
 
                     echo "3. Check if DB is already initialized"
-                    TABLE_COUNT=$(mariadb -u didata -p"${MARIADB_PASSWORD}" -h {{ .Values.podstart.mariadb_host }} didata \
+                    TABLE_COUNT=$(mariadb -u didata -p"${MARIADB_PASSWORD}" -h {{ .Values.external_db_host }} didata \
                     -Nse "select count(*) from information_schema.TABLES where table_schema = 'didata';")
 
                     if [ "$TABLE_COUNT" -ne 0 ]; then
@@ -171,7 +171,7 @@ spec:
 
                     echo "6. Grant DB privileges"
                     SQL="GRANT ALL PRIVILEGES ON didata.* TO 'didata'@'%' IDENTIFIED BY '${MARIADB_PASSWORD}'; FLUSH PRIVILEGES;"
-                    MYSQL_PWD="${MARIADB_ROOT_PASSWORD}" mysql -h {{ .Values.podstart.mariadb_host }} -P 3306 -u root -e "$SQL"
+                    MYSQL_PWD="${MARIADB_ROOT_PASSWORD}" mariadb -h {{ .Values.external_db_host }} -P 3306 -u root -e "$SQL"
                     
                     echo "Deployment all done."
 

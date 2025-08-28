@@ -14,10 +14,11 @@ env:
   url: "https://didata.chorus-tre.local"
   router_base: "/"
 
-podstart:
+secret:
   env_path_source: "/var/didata/env/didata.env"
   env_path_dest: "/var/www/html/.env"
-  mariadb_host: "chorus-didata-db-mariadb"
+
+external_db_host: "chorus-didata-db-mariadb"
 
 imagePullSecrets:
   - name: regcred-didata
