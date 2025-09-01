@@ -1,7 +1,6 @@
 mariadb:
   auth:
-    username: "bn_matomo"
-    database: "bitnami_matomo"
+    existingSecret: "mariadb-secret"
   primary:
     livenessProbe:
       timeoutSeconds: 10
