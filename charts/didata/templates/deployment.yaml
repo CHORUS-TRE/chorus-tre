@@ -48,12 +48,12 @@ spec:
             - name: MARIADB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: didata-mariadb-secret
+                  name: mariadb-secret
                   key: mariadb-password
             - name: MARIADB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: didata-mariadb-secret
+                  name: mariadb-secret
                   key: mariadb-root-password
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
