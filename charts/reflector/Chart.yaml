@@ -1,0 +1,12 @@
+apiVersion: v2
+name: reflector
+description: A Helm chart to deploy Reflector.
+version: 0.0.2
+dependencies:
+  - name: reflector
+    version: 9.1.24
+    repository: https://emberstack.github.io/helm-charts
+
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch

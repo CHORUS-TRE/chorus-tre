@@ -1,0 +1,27 @@
+{{- $namespaceOverride := .Values.namespaceOverride }}
+{{- range .Values.environments }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ .name | quote }}
+  namespace:  {{ $namespaceOverride | default "argocd" | quote }} 
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: {{ .description | quote }}
+  sourceRepos:
+    - "*"
+  destinations:
+    - name: {{ .cluster | quote }}
+      namespace: "*"
+  permitOnlyProjectScopedClusters: false
+  clusterResourceBlacklist: []
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceBlacklist: []
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+{{- end }}

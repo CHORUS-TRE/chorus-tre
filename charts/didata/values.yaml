@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: harbor.build.chorus-tre.local/services/didata
+  repository: didata/didata
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -18,8 +18,10 @@ secret:
   env_path_source: "/var/didata/env/didata.env"
   env_path_dest: "/var/www/html/.env"
 
+external_db_host: "chorus-didata-db-mariadb"
+
 imagePullSecrets:
-  - name: regcred
+  - name: regcred-didata
 nameOverride: ""
 fullnameOverride: ""
 

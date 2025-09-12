@@ -1,0 +1,63 @@
+juicefs-csi-driver:
+  globalConfig:
+    enabled: true
+    manageByHelm: true
+    enableNodeSelector: false
+    mountPodPatch:
+      - pvcSelector:
+          matchLabels:
+            use-juicefs: "true"
+        mountOptions:
+          - cache-dir=/mnt/jfs-cache
+          - cache-size=307200
+          - writeback
+          - prefetch=4
+        # (Optional) Clean up cache when mount pod exits
+        annotations:
+          juicefs-clean-cache: "true"
+        # (Optional) Delay Pod deletion to flush writeback cache safely
+        terminationGracePeriodSeconds: 300
+        lifecycle:
+          preStop:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  echo "Waiting for writeback uploads to complete..."
+                  # This assumes staging_dir path exists
+                  staging="$(grep CacheDir ${MOUNT_POINT}/.config | cut -d\" -f4)/rawstaging/"
+                  while [ -d "$staging" ] && [ "$(ls -A $staging)" ]; do
+                    echo "Staging files present, waiting..."
+                    sleep 5
+                  done
+                  umount -l ${MOUNT_POINT}
+                  rmdir ${MOUNT_POINT}
+                  exit 0
+
+  metrics:
+    enabled: true
+    port: 8080
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+      servicePort: 8080
+  dashboard:
+    auth:
+      enabled: true
+      existingSecret: "juicefs-dashboard-secret"
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+      - host: "juicefs-dashboard.chorus-tre.local"
+        paths:
+        - path: /
+          pathType: ImplementationSpecific
+      tls:
+        - secretName: juicefs-dashboard-tls
+          hosts:
+            - juicefs-dashboard.chorus-tre.local

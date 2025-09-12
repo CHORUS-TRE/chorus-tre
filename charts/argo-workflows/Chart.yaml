@@ -7,8 +7,8 @@ maintainers:
   - name: floriansipp
     email: florian.sipp@chuv.ch
 
-version: 0.0.18
+version: 0.0.21
 dependencies:
   - name: argo-workflows
-    version: 0.45.2
+    version: 0.45.21
     repository: https://argoproj.github.io/argo-helm
