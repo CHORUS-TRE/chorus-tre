@@ -1,0 +1,3 @@
+juicefs-s3-gateway:
+  secret:
+    enabled: false
