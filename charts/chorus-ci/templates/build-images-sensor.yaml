@@ -50,8 +50,8 @@ spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
                         requests:
-                          storage: 60Gi
-                      storageClassName: ceph-corbo-rbd-hdd
+                          storage: {{ .Values.workflows.steps.build.storageRequest | quote }} 
+                      storageClassName: {{ .Values.workflows.steps.build.storageClassName | quote }}
 
                 volumes:
                   - name: docker-config
