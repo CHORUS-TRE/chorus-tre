@@ -1,4 +1,7 @@
 valkey:
+  image:
+    repository: bitnamilegacy/valkey
+
   architecture: standalone
 
   primary:
