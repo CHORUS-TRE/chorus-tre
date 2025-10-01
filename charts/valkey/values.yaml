@@ -24,10 +24,14 @@ valkey:
     replicaCount: 0
 
   metrics:
+    image:
+      repository: bitnamilegacy/redis-exporter
+
     resourcesPreset: "small"
     enabled: true
 
     serviceMonitor:
       enabled: true
+
     podMonitor:
       enabled: true
