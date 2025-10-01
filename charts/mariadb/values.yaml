@@ -1,4 +1,9 @@
 mariadb:
+  image:
+    repository: bitnamilegacy/mariadb
+  global:
+    security:
+      allowInsecureImages: true
   auth:
     existingSecret: "mariadb-secret"
   primary:
@@ -8,6 +13,8 @@ mariadb:
       timeoutSeconds: 10
   metrics:
     enabled: false
+    image: 
+      repository: bitnamilegacy/mysqld-exporter
     serviceMonitor:
       enabled: false
     extraArgs:
