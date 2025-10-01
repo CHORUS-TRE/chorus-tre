@@ -2,6 +2,10 @@ valkey:
   image:
     repository: bitnamilegacy/valkey
 
+  global:
+    security:
+      allowInsecureImages: true
+
   architecture: standalone
 
   primary:
