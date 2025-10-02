@@ -1,4 +1,4 @@
-{{- if .Values.networkPolicy.enabled }}
+{{- if and .Values.networkPolicy.enabled (not .Values.networkPolicy.enabled_l7_waf) }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -26,11 +26,13 @@ spec:
   {{- else }}
   # Default Deny Egress: Empty egress list means deny all unless explicitly allowed
   - to:
-    - namespaceSelector: {}
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
     ports:
     - protocol: UDP
-      port: 53 # Allow DNS resolution cluster-wide
+      port: 53 # Allow DNS resolution to kube-system
     - protocol: TCP
-      port: 53 # Allow DNS resolution cluster-wide
+      port: 53 # Allow DNS resolution to kube-system
   {{- end }}
 {{- end }}

@@ -28,24 +28,20 @@ spec:
   {{- end }}
 
   # Define egress rules (L3/L4 + DNS by default)
+  # Note: CiliumNetworkPolicy uses different format than K8s NetworkPolicy
+  # For L7 WAF mode, define specific Cilium egress rules in environment-specific values
   egress:
-  # Always allow DNS egress to kube-dns
+  # Always allow DNS resolution to kube-system
   - toEndpoints:
     - matchLabels:
-        # Adjust if your kube-dns labels are different
         k8s:io.kubernetes.pod.namespace: kube-system
-        k8s-app: kube-dns
     toPorts:
     - ports:
       - port: "53"
         protocol: UDP
       - port: "53"
         protocol: TCP
-  # Add specific egress rules defined in values.yaml
-  {{- if .Values.networkPolicy.egress }}
-    {{- /* Adapt K8s policy format to Cilium if needed (e.g., using toEndpoints, toServices, toCIDRsets) */}}
-    {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
-  {{- end }}
-  # Note: If .Values.networkPolicy.egress is empty (besides DNS), Cilium's default egress behavior applies (often allow-all).
-  # For default-deny egress (except DNS), ensure no other egress rules are defined.
+      rules:
+        dns:
+        - matchPattern: "*"
 {{- end }}

@@ -88,7 +88,17 @@ networkPolicy:
     #       headers:
     #       - 'Content-Type: application/json'
   egress:
-  # For standard NetworkPolicy
+  # Always allow DNS resolution to kube-system (required for service discovery)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow egress to MariaDB database
   - to:
     - podSelector:
         matchLabels:
@@ -159,13 +169,13 @@ autoscaling:
 # Additional volumes on the output Deployment definition.
 volumes:
   - name: didata-logs
-    emptyDir:
+#      emptyDir: # Not allowed with persistentVolumeClaim
     persistentVolumeClaim:
-    claimName: didata-logs-pvc
+      claimName: didata-logs-pvc
   - name: didata-user-storage
-    emptyDir:
+#      emptyDir: # Not allowed with persistentVolumeClaim
     persistentVolumeClaim:
-    claimName: didata-user-storage-pvc
+      claimName: didata-user-storage-pvc
   - name: didata-env
     secret:
       secretName: didata-env
