@@ -34,7 +34,7 @@ jobs:
         MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
 
         # Extract the chart directories from the modified files
-        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u)
+        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u | tr '\n' ' ')
 
         # Check if any charts were modified
         if [ -z "$MODIFIED_CHARTS" ]; then
@@ -94,4 +94,3 @@ jobs:
             helm template $chart
           fi
         done
-
