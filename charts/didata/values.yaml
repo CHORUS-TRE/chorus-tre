@@ -103,7 +103,6 @@ networkPolicy:
     - podSelector:
         matchLabels:
           app.kubernetes.io/name: mariadb
-          app.kubernetes.io/instance: chorus-dev-didata-db
           app.kubernetes.io/component: primary
     ports:
     - protocol: TCP
