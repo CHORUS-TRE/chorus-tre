@@ -6,8 +6,8 @@ maintainers:
     email: nathalie.casati@chuv.ch
   - name: floriansipp
     email: florian.sipp@chuv.ch
-version: 0.0.7
+version: 0.0.8
 dependencies:
   - name: prometheus-blackbox-exporter
-    version: 11.2.0
+    version: 11.3.1
     repository: https://prometheus-community.github.io/helm-charts
