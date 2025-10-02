@@ -18,6 +18,8 @@ secret:
   env_path_source: "/var/didata/env/didata.env"
   env_path_dest: "/var/www/html/.env"
 
+external_db_host: "chorus-didata-db-mariadb"
+
 imagePullSecrets:
   - name: regcred-didata
 nameOverride: ""

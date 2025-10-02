@@ -45,6 +45,16 @@ spec:
               value: {{ .Values.env.url }}
             - name: ROUTER_BASE
               value: {{ .Values.env.router_base }}
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: mariadb-password
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: mariadb-root-password
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -61,9 +71,110 @@ spec:
                 command:
                   - /bin/sh
                   - -c
-                  - > 
-                    cp {{ .Values.secret.env_path_source }} {{ .Values.secret.env_path_dest }};
+                  - |
+                    set -euo pipefail
+
+                    exec > /var/log/poststart.log 2>&1
+
+                    echo "0. Ensure expect is installed"
+                    if ! command -v expect >/dev/null 2>&1; then
+                      apt-get update -q && apt-get install -y -q expect
+                    fi
+
+                    echo "1. Copy .env and set correct ownership"
+                    cp {{ .Values.secret.env_path_source }} {{ .Values.secret.env_path_dest }}
                     chown didata:didata {{ .Values.secret.env_path_dest }}
+
+                    echo "2. Wait MariaDB to become ready..."
+                    until MYSQL_PWD="${MARIADB_PASSWORD}" \
+                          mysqladmin ping -h {{ .Values.external_db_host }} -P 3306 -u didata --silent; do
+                      echo "Waiting for MySQL to be ready..."
+                      sleep 1
+                    done
+                    echo "MariaDB is ready."
+
+                    echo "3. Check if DB is already initialized"
+                    TABLE_COUNT=$(mariadb -u didata -p"${MARIADB_PASSWORD}" -h {{ .Values.external_db_host }} didata \
+                    -Nse "select count(*) from information_schema.TABLES where table_schema = 'didata';")
+
+                    if [ "$TABLE_COUNT" -ne 0 ]; then
+                      echo "Database already initialized (found $TABLE_COUNT tables), skipping Laravel init."
+                      exit 0
+                    fi
+
+                    echo "4. Run Laravel init script using expect"
+                    cat <<'EOF' > /tmp/init_expect.sh
+                    #!/usr/bin/expect -f
+                    set timeout -1
+                    spawn sh -c "script -q -c 'php artisan didata:init --no-ansi | tee /tmp/artisan.log' /dev/null"
+
+                    # Prompt 1: Initial TUI confirmation
+                    expect {
+                        "Are you sure you want to run this command?" {
+                            sleep 0.5
+                            send "\033\[D"
+                            sleep 0.2
+                            send "\r"
+                        }
+                    }
+
+                    # Prompt 2: Override secret key
+                    expect {
+                        "Are you sure you want to override the secret key?" {
+                            sleep 0.5
+                            send "no\r"
+                        }
+                    }
+
+                    # Prompt 3: TUI confirmation again
+                    expect {
+                        "Are you sure you want to run this command?" {
+                            sleep 0.5
+                            send "\033\[D"
+                            sleep 0.2
+                            send "\r"
+                        }
+                    }
+
+                    # Prompt 4: Default config for Subject and Storage
+                    expect {
+                        "Do you want to add Default configuration for Subject and Storage?" {
+                            sleep 0.5
+                            send "no\r"
+                        }
+                    }
+
+                    # Prompt 5: Default config for Study
+                    expect {
+                        "Do you want to add default configuration for Study?" {
+                            sleep 0.5
+                            send "no\r"
+                        }
+                    }
+
+                    # Prompt 6: Maintenance mode
+                    expect {
+                        "Do you want to set the app in maintenance Mode" {
+                            sleep 0.5
+                            send "no\r"
+                        }
+                    }
+
+                    expect eof
+                    EOF
+
+                    chmod +x /tmp/init_expect.sh
+                    expect /tmp/init_expect.sh
+ 
+                    echo "5. Run optimize"
+                    php artisan optimize
+
+                    echo "6. Grant DB privileges"
+                    SQL="GRANT ALL PRIVILEGES ON didata.* TO 'didata'@'%' IDENTIFIED BY '${MARIADB_PASSWORD}'; FLUSH PRIVILEGES;"
+                    MYSQL_PWD="${MARIADB_ROOT_PASSWORD}" mariadb -h {{ .Values.external_db_host }} -P 3306 -u root -e "$SQL"
+                    
+                    echo "Deployment all done."
+
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

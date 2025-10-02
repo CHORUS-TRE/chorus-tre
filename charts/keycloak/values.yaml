@@ -1,4 +1,9 @@
 keycloak:
+  image:
+    repository: bitnamilegacy/keycloak
+  global:
+    security:
+      allowInsecureImages: true
   ## @param namespaceOverride String to fully override common.names.namespace
   ##
   namespaceOverride: ""
