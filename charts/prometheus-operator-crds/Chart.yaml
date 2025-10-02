@@ -8,7 +8,7 @@ maintainers:
   - name: floriansipp
     email: florian.sipp@chuv.ch
 name: prometheus-operator-crds
-version: 0.0.7
+version: 0.0.8
 dependencies:
   - name: prometheus-operator-crds
     version: 22.0.2
