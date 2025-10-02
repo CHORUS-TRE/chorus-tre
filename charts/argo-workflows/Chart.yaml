@@ -7,7 +7,7 @@ maintainers:
   - name: floriansipp
     email: florian.sipp@chuv.ch
 
-version: 0.0.21
+version: 0.0.22
 dependencies:
   - name: argo-workflows
     version: 0.45.26
