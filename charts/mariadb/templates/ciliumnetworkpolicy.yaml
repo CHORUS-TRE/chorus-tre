@@ -1,0 +1,34 @@
+{{- if and .Values.chorusNetworkPolicy.enabled .Values.chorusNetworkPolicy.enabled_l7_waf }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-mariadb-chorus
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: mariadb
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: mariadb
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  ingress:
+  # Default: Allow ingress from same namespace only on MySQL port
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: {{ .Release.Namespace | quote }}
+    toPorts:
+    - ports:
+      - port: "3306"
+        protocol: TCP
+  {{- with .Values.chorusNetworkPolicy.ingress }}
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- if .Values.chorusNetworkPolicy.egress }}
+  egress:
+    {{- toYaml .Values.chorusNetworkPolicy.egress | nindent 2 }}
+  {{- else }}
+  egress: [] # Deny all egress for database (empty array = no rules)
+  {{- end }}
+{{- end }} 
