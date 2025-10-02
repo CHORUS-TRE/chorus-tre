@@ -1,10 +1,10 @@
 apiVersion: v2
 description: A reverse proxy that provides authentication with Google, Github or other providers.
 name: oauth2-proxy
-version: 0.0.12
+version: 0.0.13
 dependencies:
   - name: oauth2-proxy
-    version: 7.16.0
+    version: 7.18.0
     repository: https://oauth2-proxy.github.io/manifests
 
 maintainers:
