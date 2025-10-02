@@ -1,4 +1,9 @@
 matomo:
+  image:
+    repository: bitnamilegacy/matomo
+  global:
+    security:
+      allowInsecureImages: true
   matomoUsername: chorus
   matomoWebsiteName: chorus
   matomoWebsiteHost: https://matomo.chorus-tre.local
