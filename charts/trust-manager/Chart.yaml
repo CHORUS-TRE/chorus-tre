@@ -1,10 +1,10 @@
 apiVersion: v2
 description: trust-manager is the easiest way to manage TLS trust bundles in Kubernetes clusters.
 name: trust-manager
-version: 0.0.5
+version: 0.0.6
 dependencies:
   - name: trust-manager
-    version: v0.18.0
+    version: v0.19.0
     repository: https://charts.jetstack.io
 
 maintainers:
