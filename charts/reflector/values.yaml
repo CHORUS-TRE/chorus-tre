@@ -1,3 +1,0 @@
-reflector:
-  image:
-    repository: harbor.build.chorus-tre.ch/docker_proxy/emberstack/kubernetes-reflector
