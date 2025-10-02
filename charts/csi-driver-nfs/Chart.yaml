@@ -1,7 +1,7 @@
 apiVersion: v2
 name: csi-driver-nfs
 description: CSI NFS Driver for Kubernetes
-version: 0.0.1
+version: 0.0.2
 dependencies:
   - name: csi-driver-nfs
     version: 4.11.0
