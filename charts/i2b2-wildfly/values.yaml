@@ -44,6 +44,51 @@ service:
   http: 8080
   api: 9990
 
+networkPolicy:
+  enabled: true
+  # Enable L7 Web Application Firewall for advanced HTTP traffic control
+  enabled_l7_waf: false
+  # Note: When enabled_l7_waf is true, a CiliumNetworkPolicy is created instead of standard K8s NetworkPolicy
+  ingress:
+  # Allow ingress-nginx and i2b2-frontend to access wildfly
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/component: controller
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: i2b2-frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # CRITICAL: Always allow DNS resolution to kube-system (required for service discovery)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow egress to PostgreSQL database (i2b2-postgres)
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: i2b2-postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+
 ingress:
   enabled: true
   className: "nginx"
