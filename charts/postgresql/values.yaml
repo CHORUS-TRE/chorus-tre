@@ -1,3 +1,12 @@
+# Custom Chorus NetworkPolicy configuration
+chorusNetworkPolicy:
+  enabled: true
+  enabled_l7_waf: false
+  # Default ingress: Allow from same namespace only
+  ingress: []
+  # Default egress: Deny all (databases don't initiate outbound connections)
+  egress: []
+
 postgresql:
   image:
     repository: bitnamilegacy/postgresql
@@ -50,13 +59,18 @@ postgresql:
     serviceMonitor:
       enabled: true
 
+  # Disable Bitnami's NetworkPolicy (we use custom Chorus NetworkPolicy templates)
   primary:
+    networkPolicy:
+      enabled: false
     # See: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
     resourcesPreset: "small"
     persistence:
       size: 1Gi
 
   readReplicas:
+    networkPolicy:
+      enabled: false
     resourcesPreset: "nano"
 
 certificate:
