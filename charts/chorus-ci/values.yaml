@@ -40,6 +40,12 @@ webhookEvents:
           - chorus-backend
     secretName: chorus-ci-github-chorus-backend
 
+workflows:
+  steps:
+    build:
+      storageClassName: ""
+      storageRequest: ""
+
 githubSecrets:
   chorus-backend: argo-workflows-github-chorus-backend
   chorus-web-ui: argo-workflows-github-chorus-web-ui
