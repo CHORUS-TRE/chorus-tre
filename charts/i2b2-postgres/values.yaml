@@ -1,6 +1,15 @@
-# Default values for i2b2-wildfly.
+# Default values for i2b2-postgres.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+# Custom Chorus NetworkPolicy configuration
+chorusNetworkPolicy:
+  enabled: true
+  enabled_l7_waf: false
+  # Default ingress: Allow from same namespace only
+  ingress: []
+  # Default egress: Deny all (databases don't initiate outbound connections)
+  egress: []
 
 replicaCount: 1
 
