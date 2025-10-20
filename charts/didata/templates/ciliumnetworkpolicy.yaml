@@ -44,4 +44,7 @@ spec:
       rules:
         dns:
         - matchPattern: "*"
+  {{- if .Values.networkPolicy.egress }}
+    {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
+  {{- end }}
 {{- end }}
