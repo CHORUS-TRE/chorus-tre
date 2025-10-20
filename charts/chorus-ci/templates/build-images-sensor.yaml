@@ -171,9 +171,6 @@ spec:
                         securityContext:
                           privileged: true
                         mirrorVolumeMounts: true
-                        volumeMounts:
-                          - name: build-storage
-                            mountPath: /var/lib/docker
 
           parameters:
             - src:
