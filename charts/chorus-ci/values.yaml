@@ -22,13 +22,13 @@ workflow:
     backend:
       storageClassName: ""
       storageRequest: ""
-    web-ui:
+    webui:
       storageClassName: ""
       storageRequest: ""
     images:
       storageClassName: ""
       storageRequest: ""
-    workbench-operator:
+    workbenchOperator:
       storageClassName: ""
       storageRequest: ""
 
