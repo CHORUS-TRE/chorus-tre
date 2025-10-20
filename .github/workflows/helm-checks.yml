@@ -94,3 +94,4 @@ jobs:
             helm template $chart
           fi
         done
+
