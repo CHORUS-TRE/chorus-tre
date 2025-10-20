@@ -170,6 +170,17 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-workbench-operator
+
+                volumeClaimTemplates:
+                  - metadata:
+                      name: build-storage
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.workflow.storage.workbenchOperator.storageRequest | default .Values.workflow.storage.default.storageRequest | quote }}
+                      storageClassName: {{ .Values.workflow.storage.workbenchOperator.storageClassName | default .Values.workflow.storage.default.storageClassName | quote }}
+
                 volumes:
                   - name: docker-config
                     secret:
