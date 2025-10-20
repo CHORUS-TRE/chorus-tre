@@ -24,14 +24,14 @@ spec:
   {{- if .Values.networkPolicy.egress }}
   {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
   {{- end }}
-  # Default Deny Egress: Empty egress list means deny all unless explicitly allowed
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kube-system
-    ports:
-    - protocol: UDP
-      port: 53 # Allow DNS resolution to kube-system
-    - protocol: TCP
-      port: 53 # Allow DNS resolution to kube-system
+    # Always allow DNS resolution to kube-system
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+      ports:
+      - protocol: UDP
+        port: 53 # Allow DNS resolution to kube-system
+      - protocol: TCP
+        port: 53 # Allow DNS resolution to kube-system
 {{- end }}
