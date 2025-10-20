@@ -1,4 +1,7 @@
 postgresql:
+  image:
+    repository: bitnamilegacy/postgresql
+
   global:
     postgresql:
       auth:
@@ -14,6 +17,9 @@ postgresql:
         #  adminPasswordKey: "postgres-password"
         #  userPasswordKey: "password"
 
+    security:
+      allowInsecureImages: true
+
   tls:
     enabled: false
 
@@ -28,10 +34,17 @@ postgresql:
     # Required by TLS
     enabled: true
 
+    image:
+      repository: bitnamilegacy/os-shell
+
     resourcesPreset: "nano"
 
   metrics:
     enabled: true
+
+    image:
+      repository: bitnamilegacy/postgres-exporter
+
     resourcesPreset: "micro"
 
     serviceMonitor:

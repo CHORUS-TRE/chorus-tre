@@ -1,6 +1,6 @@
 dependencies:
 - name: trivy-operator
   repository: https://aquasecurity.github.io/helm-charts/
-  version: 0.29.3
-digest: sha256:6f6758d7b2e41da94286e75192afa5ac056b557e2a34775450b76b2a13711c85
-generated: "2025-07-29T14:54:54.507899452Z"
+  version: 0.31.0
+digest: sha256:5a71d5ff43d5e36ea500c5dcade70cddc874621ad49ffe7c10ba202a14b9c87f
+generated: "2025-10-02T10:24:48.613471054Z"
