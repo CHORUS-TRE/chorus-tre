@@ -34,8 +34,7 @@ jobs:
         MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
 
         # Extract the chart directories from the modified files
-        # Keep this bug and do not add  | tr '\n' ' ' because it will break the CD - one chart at once please
-        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u) 
+        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u)
 
         # Check if any charts were modified
         if [ -z "$MODIFIED_CHARTS" ]; then
