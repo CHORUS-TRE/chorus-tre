@@ -70,16 +70,6 @@ networkPolicy:
     - protocol: TCP
       port: 8080
   egress:
-  # CRITICAL: Always allow DNS resolution to kube-system (required for service discovery)
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kube-system
-    ports:
-    - protocol: UDP
-      port: 53
-    - protocol: TCP
-      port: 53
   # Allow egress to PostgreSQL database (i2b2-postgres)
   - to:
     - podSelector:
