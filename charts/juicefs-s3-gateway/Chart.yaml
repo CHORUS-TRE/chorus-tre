@@ -1,7 +1,7 @@
 apiVersion: v2
 name: juicefs-s3-gateway
 description: A Helm chart for JuiceFS S3 Gateway.
-version: 0.0.2
+version: 0.0.3
 dependencies:
   - name: juicefs-s3-gateway
     version: 0.11.3

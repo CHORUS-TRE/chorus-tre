@@ -1,0 +1,30 @@
+{{- if and .Values.chorusNetworkPolicy.enabled .Values.chorusNetworkPolicy.enabled_l7_waf }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-postgresql-chorus
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: i2b2-postgres
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: i2b2-postgres
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  ingress:
+  # Default: Allow ingress from same namespace only on PostgreSQL port
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: {{ .Release.Namespace | quote }}
+    toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+  {{- with .Values.chorusNetworkPolicy.ingress }}
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  egress: [] # Deny all egress for database (empty array = no rules)
+{{- end }}
+

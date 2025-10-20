@@ -1,0 +1,37 @@
+{{- if and .Values.chorusNetworkPolicy.enabled (not .Values.chorusNetworkPolicy.enabled_l7_waf) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-mariadb-chorus
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/name: mariadb
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mariadb
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Default: Allow ingress from same namespace only on MySQL port
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: {{ .Release.Namespace | quote }}
+    ports:
+    - protocol: TCP
+      port: 3306
+  {{- with .Values.chorusNetworkPolicy.ingress }}
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- if .Values.chorusNetworkPolicy.egress }}
+  egress:
+    {{- toYaml .Values.chorusNetworkPolicy.egress | nindent 2 }}
+  {{- else }}
+  egress: [] # Deny all egress for database (empty array = no rules)
+  {{- end }}
+{{- end }} 
