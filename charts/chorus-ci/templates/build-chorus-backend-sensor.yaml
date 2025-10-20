@@ -182,6 +182,17 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-backend
+
+                volumeClaimTemplates:
+                  - metadata:
+                      name: build-storage
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.workflow.storage.backend.storageRequest | default .Values.workflow.storage.default.storageRequest | quote }}
+                      storageClassName: {{ .Values.workflow.storage.backend.storageClassName | default .Values.workflow.storage.default.storageClassName | quote }}
+
                 volumes:
                   - name: docker-config
                     secret:
@@ -189,6 +200,7 @@ spec:
                       items:
                         - key: .dockerconfigjson
                           path: config.json
+
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -196,6 +208,7 @@ spec:
                     - name: ref
                     - name: sha
                     - name: tag
+
                 templates:
                   - name: build-chorus-backend
                     steps:
