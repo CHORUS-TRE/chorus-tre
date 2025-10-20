@@ -44,6 +44,9 @@ spec:
       rules:
         dns:
         - matchPattern: "*"
+  {{- if .Values.networkPolicy.egress }}
+    {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
+  {{- end }}
   # Additional egress rules (e.g., database) should be defined in environment-specific values.yaml
   # using Cilium-specific format (toEndpoints, not K8s 'to' format)
 {{- end }} 
