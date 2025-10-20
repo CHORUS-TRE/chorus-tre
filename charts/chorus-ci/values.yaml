@@ -14,6 +14,24 @@ sensor:
   dockerConfig:
     secretName: registry-dockerconfigjson-secret
 
+workflow:
+  storage:
+    default:
+      storageClassName: ""
+      storageRequest: "80Gi"
+    backend:
+      storageClassName: ""
+      storageRequest: ""
+    web-ui:
+      storageClassName: ""
+      storageRequest: ""
+    images:
+      storageClassName: ""
+      storageRequest: ""
+    workbench-operator:
+      storageClassName: ""
+      storageRequest: ""
+
 # Creates the webhook and matching events on the GibHub EventSource.
 webhookEvents:
   - name: ci
@@ -39,12 +57,6 @@ webhookEvents:
         names:
           - chorus-backend
     secretName: chorus-ci-github-chorus-backend
-
-workflows:
-  steps:
-    build:
-      storageClassName: ""
-      storageRequest: ""
 
 githubSecrets:
   chorus-backend: argo-workflows-github-chorus-backend

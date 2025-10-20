@@ -50,8 +50,8 @@ spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
                         requests:
-                          storage: {{ .Values.workflows.steps.build.storageRequest | quote }}
-                      storageClassName: {{ .Values.workflows.steps.build.storageClassName | quote }}
+                          storage: {{ .Values.workflow.storage.images.storageRequest | default .Values.workflow.storage.default.storageRequest | quote }}
+                      storageClassName: {{ .Values.workflow.storage.images.storageClassName | default .Values.workflow.storage.default.storageClassName | quote }}
 
                 volumes:
                   - name: docker-config
