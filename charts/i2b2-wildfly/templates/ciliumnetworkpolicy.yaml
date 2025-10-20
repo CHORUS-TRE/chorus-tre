@@ -1,0 +1,49 @@
+{{- /* Render CiliumNetworkPolicy only if enabled and L7 WAF is ON */}}
+{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.enabled_l7_waf }}
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "i2b2-wildfly.fullname" . }}-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "i2b2-wildfly.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "i2b2-wildfly.selectorLabels" . | nindent 6 }}
+  # Define ingress rules (L3/L4 + L7)
+  ingress:
+  {{- if .Values.networkPolicy.ingress }}
+    {{- /* Use the structure from values.yaml, assuming it's compatible or adapted for Cilium */}}
+    {{- /* L7 rules need to be defined within 'toPorts' -> 'rules' -> 'http' */}}
+    {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+    # Example L7 Rule Placeholder (add under ports: -> rules: -> http:)
+    # rules:
+    #   http:
+    #   - method: "GET"
+    #     path: "/specific-path"
+  {{- else }}
+    # Default Deny Ingress if .Values.networkPolicy.ingress is empty
+    []
+  {{- end }}
+
+  # Define egress rules (L3/L4 + DNS by default)
+  # Note: CiliumNetworkPolicy uses different format than K8s NetworkPolicy
+  # For L7 WAF mode, define specific Cilium egress rules in environment-specific values
+  egress:
+  # Always allow DNS resolution to kube-system
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kube-system
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+      rules:
+        dns:
+        - matchPattern: "*"
+  # Additional egress rules (e.g., database) should be defined in environment-specific values.yaml
+  # using Cilium-specific format (toEndpoints, not K8s 'to' format)
+{{- end }} 
