@@ -43,16 +43,6 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
 
-                volumeClaimTemplates:
-                  - metadata:
-                      name: build-storage
-                    spec:
-                      accessModes: ["ReadWriteOnce"]
-                      resources:
-                        requests:
-                          storage: {{ .Values.workflow.storage.images.storageRequest | default .Values.workflow.storage.default.storageRequest | quote }}
-                      storageClassName: {{ .Values.workflow.storage.images.storageClassName | default .Values.workflow.storage.default.storageClassName | quote }}
-
                 volumes:
                   - name: docker-config
                     secret:
@@ -77,12 +67,27 @@ spec:
                       - - name: get-paths
                           template: get-paths
 
+                      - - name: generate-volume
+                          template: generate-volume
+                          arguments:
+                            parameters:
+                            - name: pvc-name
+                              value: "{{`{{item}}`}}-pvc"
+                            - name: pvc-size
+                              value: {{ .Values.workflow.storage.images.storageRequest | default .Values.workflow.storage.default.storageRequest | quote }}
+                            - name: storage-class-name
+                              value: {{ .Values.workflow.storage.images.storageClassName | default .Values.workflow.storage.default.storageClassName | quote }}
+                            # This loop over the paths from get-paths
+                          withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
+
                       - - name: docker-build
                           template: docker-build
                           arguments:
                             parameters:
                               - name: path
                                 value: "{{`{{item}}`}}"
+                              - name: pvc-name
+                                value: "{{`{{item}}`}}-pvc"
                           # This loop over the paths from get-paths
                           withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
 
@@ -115,10 +120,34 @@ spec:
 
                         json.dump(list(set(keep_matching(paths, patterns))), sys.stdout)
 
+                  - name: generate-volume
+                    inputs:
+                      parameters:
+                        - name: pvc-name
+                        - name: pvc-size
+                        - name: storage-class-name
+                    resource:
+                      action: create
+                      setOwnerReference: true
+                      successCondition: status.phase == Bound
+                      failureCondition: status.phase == Lost
+                      manifest: |
+                        apiVersion: v1
+                        kind: PersistentVolumeClaim
+                        metadata:
+                          name: "{{`{{inputs.parameters.pvc-name}}`}}"
+                        spec:
+                          accessModes: ['ReadWriteOnce']
+                          resources:
+                            requests:
+                              storage: "{{`{{inputs.parameters.pvc-size}}`}}"
+                          storageClassName: "{{`{{inputs.parameters.storage-class-name}}`}}"
+
                   - name: docker-build
                     inputs:
                       parameters:
                         - name: path
+                        - name: pvc-name
                       artifacts:
                         - name: images
                           path: /src
@@ -133,12 +162,16 @@ spec:
                               key: password
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
+                    volumes:
+                      - name: docker-data
+                        persistentVolumeClaim:
+                          claimName: "{{`{{inputs.parameters.pvc-name}}`}}"
                     container:
                       image: harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
-                        - name: build-storage
+                        - name: docker-data
                           mountPath: /var/lib/docker
                       env:
                           # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
