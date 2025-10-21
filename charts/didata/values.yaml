@@ -57,46 +57,65 @@ service:
 networkPolicy:
   enabled: true
   # Enable L7 Web Application Firewall for advanced HTTP traffic control
-  enabled_l7_waf: false
+  enabled_l7_waf: true
   # Note: When enabled_l7_waf is true, a CiliumNetworkPolicy is created instead of standard K8s NetworkPolicy
-  # Cilium policies have different structure for L7 rules, especially for HTTP traffic control
+  # In this chart, it is mandatory to use due to "apt-get update -q && apt-get install -y -q expect" at runtime
+  # See https://github.com/CHORUS-TRE/chorus-tre/blob/master/charts/didata/templates/deployment.yaml#L68-L176
   ingress:
-  # For standard NetworkPolicy
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: ingress-nginx
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/name: ingress-nginx
-          app.kubernetes.io/component: controller
-    ports:
-    - protocol: TCP
-      port: 80
-    # L7 rules will be applied when enabled_l7_waf is true
-    # For CiliumNetworkPolicy, L7 rules should be structured as:
-    # toPorts:
-    # - ports:
-    #   - port: "80"
-    #     protocol: TCP
-    #   rules:
-    #     http:
-    #     - method: "GET"
-    #       path: "/api/v1/public"
-    #     - method: "POST"
-    #       path: "/api/v1/login"
-    #       headers:
-    #       - 'Content-Type: application/json'
+  # # For standard NetworkPolicy
+  # - from:
+  #   - namespaceSelector:
+  #       matchLabels:
+  #         kubernetes.io/metadata.name: ingress-nginx
+  #     podSelector:
+  #       matchLabels:
+  #         app.kubernetes.io/name: ingress-nginx
+  #         app.kubernetes.io/component: controller
+  #   ports:
+  #   - protocol: TCP
+  #     port: 80
+  # For CiliumNetworkPolicy, select pods from ingress-nginx namespace
+  - fromEndpoints:
+    - matchLabels:
+        # Note: 'k8s:' prefix is not used here as per Cilium's label selection
+        kubernetes.io/metadata.name: ingress-nginx
+        app.kubernetes.io/name: ingress-nginx
+        app.kubernetes.io/component: controller
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
   egress:
   # Allow egress to MariaDB database
-  - to:
-    - podSelector:
-        matchLabels:
-          app.kubernetes.io/name: mariadb
-          app.kubernetes.io/component: primary
-    ports:
-    - protocol: TCP
-      port: 3306
+  # - to:
+  #   - podSelector:
+  #       matchLabels:
+  #         app.kubernetes.io/name: mariadb
+  #         app.kubernetes.io/component: primary
+  #   ports:
+  #   - protocol: TCP
+  #     port: 3306
+  - toEndpoints:
+    - matchLabels:
+        app.kubernetes.io/name: mariadb
+        app.kubernetes.io/component: primary
+    toPorts:
+    - ports:
+      - port: "3306"
+        protocol: TCP
+  # Allow L7 egress for apt-get to Debian and Microsoft package repositories
+  - toFQDNs:
+    - matchName: deb.debian.org
+    - matchName: packages.microsoft.com
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
+      - port: "443"
+        protocol: TCP
+      rules:
+        http:
+        - {}
   # For CiliumNetworkPolicy, egress rules may use additional selectors like:
   # - toEndpoints:  # For pods
   # - toServices:   # For services
