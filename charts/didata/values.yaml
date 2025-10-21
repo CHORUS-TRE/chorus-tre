@@ -116,20 +116,6 @@ networkPolicy:
       rules:
         http:
         - {}
-  # For CiliumNetworkPolicy, egress rules may use additional selectors like:
-  # - toEndpoints:  # For pods
-  # - toServices:   # For services
-  # - toCIDR:       # For IP ranges
-  # - toCIDRSet:    # For multiple IP ranges
-  # - toFQDNs:      # For DNS names
-  # Example:
-  # - toEndpoints:
-  #   - matchLabels:
-  #       app.kubernetes.io/name: redis
-  #   toPorts:
-  #   - ports:
-  #     - port: "6379"
-  #       protocol: TCP
 
 ingress:
   enabled: true
