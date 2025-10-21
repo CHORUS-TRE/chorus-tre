@@ -54,6 +54,64 @@ service:
   type: ClusterIP
   port: 80
 
+networkPolicy:
+  enabled: true
+  # Enable L7 Web Application Firewall for advanced HTTP traffic control
+  enabled_l7_waf: false
+  # Note: When enabled_l7_waf is true, a CiliumNetworkPolicy is created instead of standard K8s NetworkPolicy
+  # Cilium policies have different structure for L7 rules, especially for HTTP traffic control
+  ingress:
+  # For standard NetworkPolicy
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/component: controller
+    ports:
+    - protocol: TCP
+      port: 80
+    # L7 rules will be applied when enabled_l7_waf is true
+    # For CiliumNetworkPolicy, L7 rules should be structured as:
+    # toPorts:
+    # - ports:
+    #   - port: "80"
+    #     protocol: TCP
+    #   rules:
+    #     http:
+    #     - method: "GET"
+    #       path: "/api/v1/public"
+    #     - method: "POST"
+    #       path: "/api/v1/login"
+    #       headers:
+    #       - 'Content-Type: application/json'
+  egress:
+  # Allow egress to MariaDB database
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: mariadb
+          app.kubernetes.io/component: primary
+    ports:
+    - protocol: TCP
+      port: 3306
+  # For CiliumNetworkPolicy, egress rules may use additional selectors like:
+  # - toEndpoints:  # For pods
+  # - toServices:   # For services
+  # - toCIDR:       # For IP ranges
+  # - toCIDRSet:    # For multiple IP ranges
+  # - toFQDNs:      # For DNS names
+  # Example:
+  # - toEndpoints:
+  #   - matchLabels:
+  #       app.kubernetes.io/name: redis
+  #   toPorts:
+  #   - ports:
+  #     - port: "6379"
+  #       protocol: TCP
+
 ingress:
   enabled: true
   className: "nginx"
@@ -100,13 +158,13 @@ autoscaling:
 # Additional volumes on the output Deployment definition.
 volumes:
   - name: didata-logs
-    emptyDir:
+#      emptyDir: # Not allowed with persistentVolumeClaim
     persistentVolumeClaim:
-    claimName: didata-logs-pvc
+      claimName: didata-logs-pvc
   - name: didata-user-storage
-    emptyDir:
+#      emptyDir: # Not allowed with persistentVolumeClaim
     persistentVolumeClaim:
-    claimName: didata-user-storage-pvc
+      claimName: didata-user-storage-pvc
   - name: didata-env
     secret:
       secretName: didata-env
