@@ -72,7 +72,7 @@ spec:
                           arguments:
                             parameters:
                             - name: pvc-name
-                              value: "{{`{{item | replace \"/\" \"-\"}}`-pvc}}"
+                              value: "{{`{{item | replace \"/\" \"-\"}}`}}-pvc"
                             - name: pvc-size
                               value: {{ .Values.workflow.storage.images.storageRequest | default .Values.workflow.storage.default.storageRequest | quote }}
                             - name: storage-class-name
@@ -87,7 +87,7 @@ spec:
                               - name: path
                                 value: "{{`{{item}}`}}"
                               - name: pvc-name
-                                value: "{{`{{item | replace \"/\" \"-\"}}`-pvc}}"
+                                value: "{{`{{item | replace \"/\" \"-\"}}`}}-pvc"
                           # This loop over the paths from get-paths
                           withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
 
