@@ -119,7 +119,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: {{ .Values.chorusWebui.node.repository }}:{{ .Values.chorusWebui.node.tag }}
+                      image: {{ .Values.global.imageRegistry }}/node:{{ .Values.chorusWebui.node.tag }}
                       command: [sh, -e, -c]
                       args:
                         - >-

@@ -120,7 +120,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: {{ .Values.chorusWorkbenchOperator.golang.repository }}:{{ .Values.chorusWorkbenchOperator.golang.tag }}
+                      image: {{ .Values.global.imageRegistry }}/golang:{{ .Values.chorusWorkbenchOperator.golang.tag }}
                       command: [sh, -e, -c]
                       args:
                         - make test
