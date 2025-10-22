@@ -16,21 +16,46 @@ sensor:
 
 workflow:
   dockerDataStorage:
-    default:
-      storageClassName: ""
-      storageRequest: "80Gi"
-    backend:
-      storageClassName: ""
-      storageRequest: ""
-    webui:
-      storageClassName: ""
-      storageRequest: ""
-    images:
-      storageClassName: ""
-      storageRequest: ""
-    workbenchOperator:
-      storageClassName: ""
-      storageRequest: ""
+    storageClassName: ""
+    storageRequest: "80Gi"
+
+chorusWorkbenchOperator:
+  dockerDataStorage:
+    storageClassName: ""
+    storageRequest: ""
+  golang:
+    repository: "harbor.build.chorus-tre.ch/docker_proxy/library/golang"
+    tag: "1.25-bookworm"
+
+chorusBackend:
+  dockerDataStorage:
+    storageClassName: ""
+    storageRequest: ""
+  golang:
+    repository: "harbor.build.chorus-tre.ch/docker_proxy/library/golang"
+    tag: "1.24.3-bookworm"
+
+chorusWebui:
+  dockerDataStorage:
+    storageClassName: ""
+    storageRequest: ""
+  node:
+    repository: "harbor.build.chorus-tre.ch/docker_proxy/library/node"
+    tag: "22-bookworm"
+
+chorusImages:
+  dockerDataStorage:
+    storageClassName: ""
+    storageRequest: ""
+  python:
+    repository: "harbor.build.chorus-tre.ch/docker_proxy/library/python"
+    tag: "3.12-alpine"
+  docker:
+    repository: "harbor.build.chorus-tre.ch/docker_proxy/library/docker"
+    tag: "28.1.1"
+  dind:
+    repository: "harbor.build.chorus-tre.ch/docker_proxy/library/docker"
+    tag: "28.1.1-dind"
 
 # Creates the webhook and matching events on the GibHub EventSource.
 webhookEvents:
