@@ -50,7 +50,7 @@ spec:
       volumeMounts:
         - name: docker-config
           mountPath: /.docker
-        - name: build-storage
+        - name: docker-data
           mountPath: /var/lib/docker
       env:
           # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
