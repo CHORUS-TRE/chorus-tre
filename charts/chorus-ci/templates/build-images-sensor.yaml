@@ -72,7 +72,7 @@ spec:
                           arguments:
                             parameters:
                             - name: pvc-name
-                              value: "{{`{{item | replace \"/\" \"-\"}}`}}-pvc"
+                              value: "{{`{{item.pvc_name}}`}}"
                             - name: pvc-size
                               value: {{ .Values.workflow.storage.images.storageRequest | default .Values.workflow.storage.default.storageRequest | quote }}
                             - name: storage-class-name
@@ -85,9 +85,9 @@ spec:
                           arguments:
                             parameters:
                               - name: path
-                                value: "{{`{{item}}`}}"
+                                value: "{{`{{item.path}}`}}"
                               - name: pvc-name
-                                value: "{{`{{item | replace \"/\" \"-\"}}`}}-pvc"
+                                value: "{{`{{item.pvc_name}}`}}"
                           # This loop over the paths from get-paths
                           withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
 
@@ -115,7 +115,10 @@ spec:
                           for x in strs:
                             for p in patterns:
                               if m := p.match(x):
-                                yield m.group(1)
+                                yield {
+                                  'path': m.group(1),
+                                  'pvc_name': m.group(1).replace("/", "-") + "-pvc"
+                                }
                                 break
 
                         json.dump(list(set(keep_matching(paths, patterns))), sys.stdout)
