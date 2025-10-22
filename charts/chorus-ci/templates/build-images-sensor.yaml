@@ -44,7 +44,7 @@ spec:
                 entrypoint: build-images
 
                 ttlStrategy:
-                  secondsAfterSuccess: 120
+                  secondsAfterSuccess: 300
 
                 volumes:
                   - name: docker-config
