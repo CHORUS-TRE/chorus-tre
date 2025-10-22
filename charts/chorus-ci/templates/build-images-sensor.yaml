@@ -121,7 +121,16 @@ spec:
                                 }
                                 break
 
-                        json.dump(list(set(keep_matching(paths, patterns))), sys.stdout)
+                        results = list(keep_matching(paths, patterns))
+                        # Deduplicate by 'path' key
+                        seen = set()
+                        unique_results = []
+                        for item in results:
+                            if item['path'] not in seen:
+                                seen.add(item['path'])
+                                unique_results.append(item)
+
+                        json.dump(unique_results, sys.stdout)
 
                   - name: generate-volume
                     inputs:
