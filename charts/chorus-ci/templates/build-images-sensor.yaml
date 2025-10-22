@@ -43,6 +43,9 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
 
+                ttlStrategy:
+                  secondsAfterSuccess: 120
+
                 volumes:
                   - name: docker-config
                     secret:
