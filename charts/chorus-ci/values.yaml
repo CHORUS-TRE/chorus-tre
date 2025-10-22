@@ -55,9 +55,6 @@ chorusImages:
   docker:
     repository: "harbor.build.chorus-tre.ch/docker_proxy/library/docker"
     tag: "28.1.1"
-  dind:
-    repository: "harbor.build.chorus-tre.ch/docker_proxy/library/docker"
-    tag: "28.1.1-dind"
 
 # Creates the webhook and matching events on the GibHub EventSource.
 webhookEvents:
