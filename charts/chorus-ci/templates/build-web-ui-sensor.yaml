@@ -188,8 +188,8 @@ spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
                         requests:
-                          storage: {{ .Values.workflow.dockerDataStorage.webui.storageRequest | default .Values.workflow.dockerDataStorage.default.storageRequest | quote }}
-                      storageClassName: {{ .Values.workflow.dockerDataStorage.webui.storageClassName | default .Values.workflow.dockerDataStorage.default.storageClassName | quote }}
+                          storage: {{ .Values.chorusWebui.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                      storageClassName: {{ .Values.chorusWebui.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
 
                 volumes:
                   - name: docker-config

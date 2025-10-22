@@ -77,9 +77,9 @@ spec:
                             - name: pvc-name
                               value: "{{`{{item.pvc_name}}`}}"
                             - name: pvc-size
-                              value: {{ .Values.workflow.dockerDataStorage.images.storageRequest | default .Values.workflow.dockerDataStorage.default.storageRequest | quote }}
+                              value: {{ .Values.chorusImages.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
                             - name: storage-class-name
-                              value: {{ .Values.workflow.dockerDataStorage.images.storageClassName | default .Values.workflow.dockerDataStorage.default.storageClassName | quote }}
+                              value: {{ .Values.chorusImages.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
                             # This loop over the paths from get-paths
                           withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
 
