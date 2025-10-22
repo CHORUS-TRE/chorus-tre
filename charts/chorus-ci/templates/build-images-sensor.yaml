@@ -43,8 +43,10 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
 
+                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
                 ttlStrategy:
-                  secondsAfterSuccess: 300
+                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
+                {{- end }}
 
                 volumes:
                   - name: docker-config

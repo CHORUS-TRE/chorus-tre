@@ -60,8 +60,10 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: pnpm-test
 
+                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
                 ttlStrategy:
-                  secondsAfterSuccess: 300
+                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
+                {{- end }}
 
                 arguments:
                   parameters:
@@ -178,8 +180,10 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-web-ui
 
+                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
                 ttlStrategy:
-                  secondsAfterSuccess: 300
+                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
+                {{- end }}
 
                 volumeClaimTemplates:
                   - metadata:

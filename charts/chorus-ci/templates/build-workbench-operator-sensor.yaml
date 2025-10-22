@@ -61,8 +61,10 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: make-test
 
+                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
                 ttlStrategy:
-                  secondsAfterSuccess: 300
+                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
+                {{- end }}
 
                 arguments:
                   parameters:
@@ -174,8 +176,10 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-workbench-operator
 
+                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
                 ttlStrategy:
-                  secondsAfterSuccess: 300
+                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
+                {{- end }}
 
                 volumeClaimTemplates:
                   - metadata:
