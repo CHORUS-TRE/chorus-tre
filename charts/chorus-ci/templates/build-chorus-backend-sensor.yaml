@@ -60,6 +60,9 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: go-test
 
+                ttlStrategy:
+                  secondsAfterSuccess: 300
+
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -183,9 +186,12 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-backend
 
+                ttlStrategy:
+                  secondsAfterSuccess: 300
+
                 volumeClaimTemplates:
                   - metadata:
-                      name: build-storage
+                      name: docker-data
                     spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
