@@ -184,8 +184,8 @@ spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
                         requests:
-                          storage: {{ .Values.workflow.storage.workbenchOperator.storageRequest | default .Values.workflow.storage.default.storageRequest | quote }}
-                      storageClassName: {{ .Values.workflow.storage.workbenchOperator.storageClassName | default .Values.workflow.storage.default.storageClassName | quote }}
+                          storage: {{ .Values.workflow.dockerDataStorage.workbenchOperator.storageRequest | default .Values.workflow.dockerDataStorage.default.storageRequest | quote }}
+                      storageClassName: {{ .Values.workflow.dockerDataStorage.workbenchOperator.storageClassName | default .Values.workflow.dockerDataStorage.default.storageClassName | quote }}
 
                 volumes:
                   - name: docker-config

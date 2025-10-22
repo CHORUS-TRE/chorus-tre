@@ -15,7 +15,7 @@ sensor:
     secretName: registry-dockerconfigjson-secret
 
 workflow:
-  storage:
+  dockerDataStorage:
     default:
       storageClassName: ""
       storageRequest: "80Gi"
