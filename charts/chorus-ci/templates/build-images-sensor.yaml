@@ -136,7 +136,7 @@ spec:
                               'pvc_name': get_pvc_name(path)
                             }
 
-                        json.dump(get_paths_with_pvc_names(paths, patterns), sys.stdout)
+                        json.dump(list(get_paths_with_pvc_names(paths, patterns)), sys.stdout)
 
                   - name: generate-volume
                     inputs:
