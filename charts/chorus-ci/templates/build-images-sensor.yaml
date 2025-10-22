@@ -99,7 +99,7 @@ spec:
                       image: harbor.build.chorus-tre.ch/docker_proxy/library/python:3.12-alpine
                       command: [python]
                       source: |
-                        import json, re, sys
+                        import json, re, sys, uuid
 
                         paths = (
                           {{`{{workflow.parameters.added}}`}} +
@@ -118,22 +118,25 @@ spec:
                           for x in strs:
                             for p in patterns:
                               if m := p.match(x):
-                                yield {
-                                  'path': m.group(1),
-                                  'pvc_name': m.group(1).replace("/", "-") + "-pvc"
-                                }
+                                yield m.group(1)
                                 break
 
-                        results = list(keep_matching(paths, patterns))
-                        # Deduplicate by 'path' key
-                        seen = set()
-                        unique_results = []
-                        for item in results:
-                            if item['path'] not in seen:
-                                seen.add(item['path'])
-                                unique_results.append(item)
+                        def get_pvc_name(path: str) -> str:
+                          """Generate a PVC name based on the path."""
+                          length = 7
+                          random_string = str(uuid.uuid4()).replace('-', '')[:length]
+                          return path.replace('/', '-') + '-' + random_string
 
-                        json.dump(unique_results, sys.stdout)
+                        def get_paths_with_pvc_names(paths: list, patterns: list):
+                          """Generate list of dicts with path and pvc_name."""
+                          unique_paths = list(set(keep_matching(paths, patterns)))
+                          for path in unique_paths:
+                            yield {
+                              'path': path,
+                              'pvc_name': get_pvc_name(path)
+                            }
+
+                        json.dump(get_paths_with_pvc_names(paths, patterns), sys.stdout)
 
                   - name: generate-volume
                     inputs:
