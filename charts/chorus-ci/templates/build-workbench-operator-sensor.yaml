@@ -120,7 +120,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: "harbor.build.chorus-tre.ch/docker_proxy/library/golang:1.25-bookworm"
+                      image: {{ .Values.chorusWorkbenchOperator.golang.repository }}:{{ .Values.chorusWorkbenchOperator.golang.tag }}
                       command: [sh, -e, -c]
                       args:
                         - make test

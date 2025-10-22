@@ -96,7 +96,7 @@ spec:
 
                   - name: get-paths
                     script:
-                      image: harbor.build.chorus-tre.ch/docker_proxy/library/python:3.12-alpine
+                      image: {{ .Values.chorusImages.python.repository }}:{{ .Values.chorusImages.python.tag }}
                       command: [python]
                       source: |
                         import json, re, sys, uuid
@@ -185,7 +185,7 @@ spec:
                         persistentVolumeClaim:
                           claimName: "{{`{{inputs.parameters.pvc-name}}`}}"
                     container:
-                      image: harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1
+                      image: {{ .Values.chorusImages.docker.repository }}:{{ .Values.chorusImages.docker.tag }}
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
@@ -214,7 +214,7 @@ spec:
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
                     sidecars:
                       - name: dind
-                        image: harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1-dind
+                        image: {{ .Values.chorusImages.docker.repository }}:{{ .Values.chorusImages.docker.tag }}-dind
                         command: ["dockerd-entrypoint.sh"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
