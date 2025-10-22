@@ -61,6 +61,9 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: make-test
 
+                ttlStrategy:
+                  secondsAfterSuccess: 300
+
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -171,9 +174,12 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-workbench-operator
 
+                ttlStrategy:
+                  secondsAfterSuccess: 300
+
                 volumeClaimTemplates:
                   - metadata:
-                      name: build-storage
+                      name: docker-data
                     spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
