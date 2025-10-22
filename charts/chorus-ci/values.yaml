@@ -14,11 +14,13 @@ sensor:
   dockerConfig:
     secretName: registry-dockerconfigjson-secret
 
+# Default workflow settings
 workflow:
   dockerDataStorage:
     storageClassName: ""
     storageRequest: "80Gi"
 
+# Workflow settings for specific components
 chorusWorkbenchOperator:
   dockerDataStorage:
     storageClassName: ""
