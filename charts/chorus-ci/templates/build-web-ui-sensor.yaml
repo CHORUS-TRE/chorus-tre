@@ -60,6 +60,9 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: pnpm-test
 
+                ttlStrategy:
+                  secondsAfterSuccess: 300
+
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -175,9 +178,12 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-web-ui
 
+                ttlStrategy:
+                  secondsAfterSuccess: 300
+
                 volumeClaimTemplates:
                   - metadata:
-                      name: build-storage
+                      name: docker-data
                     spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
