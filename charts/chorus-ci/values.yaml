@@ -26,6 +26,9 @@ workflow:
     storageRequest: "80Gi"
   docker:
     tag: "28.1.1"
+  helm:
+    repository: "harbor.build.chorus-tre.ch/docker_proxy/alpine/helm"
+    tag: "3"
 
 # Workflow settings for specific components
 chorusWorkbenchOperator:
