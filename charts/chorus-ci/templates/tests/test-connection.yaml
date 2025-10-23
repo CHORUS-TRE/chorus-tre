@@ -9,7 +9,7 @@ metadata:
 spec:
   containers:
     - name: wget
-      image: {{ .Values.testConnection.busybox.imageDomain | default .Values.global.imageDomain }}/{{ .Values.testConnection.busybox.imageNamespace | default .Values.global.imageNamespace }}/busybox:{{ .Values.testConnection.busybox.tag | default latest }}
+      image: {{ .Values.testConnection.busybox.imageDomain | default .Values.global.imageDomain }}/{{ .Values.testConnection.busybox.imageNamespace | default .Values.global.imageNamespace }}/busybox:{{ .Values.testConnection.busybox.tag | default "latest" }}
       command: ['wget']
       args: ['{{ include "chorus-ci.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never

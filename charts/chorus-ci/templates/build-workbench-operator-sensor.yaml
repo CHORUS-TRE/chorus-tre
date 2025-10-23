@@ -117,7 +117,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: {{ .Values.chorusWorkbenchOperator.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusWorkbenchOperator.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusWorkbenchOperator.golang.tag | default latest }}
+                      image: {{ .Values.chorusWorkbenchOperator.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusWorkbenchOperator.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusWorkbenchOperator.golang.tag | default "latest" }}
                       command: [sh, -e, -c]
                       args:
                         - make test

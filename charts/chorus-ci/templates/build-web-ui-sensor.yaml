@@ -116,7 +116,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: {{ .Values.chorusWebui.node.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusWebui.node.imageNamespace | default .Values.global.imageNamespace }}/node:{{ .Values.chorusWebui.node.tag | default latest }}
+                      image: {{ .Values.chorusWebui.node.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusWebui.node.imageNamespace | default .Values.global.imageNamespace }}/node:{{ .Values.chorusWebui.node.tag | default "latest" }}
                       command: [sh, -e, -c]
                       args:
                         - >-

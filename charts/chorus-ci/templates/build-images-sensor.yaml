@@ -93,7 +93,7 @@ spec:
 
                   - name: get-paths
                     script:
-                      image: {{ .Values.chorusImages.python.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.python.imageNamespace | default .Values.global.imageNamespace }}/python:{{ .Values.chorusImages.python.tag | default latest }}
+                      image: {{ .Values.chorusImages.python.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.python.imageNamespace | default .Values.global.imageNamespace }}/python:{{ .Values.chorusImages.python.tag | default "latest" }}
                       command: [python]
                       source: |
                         import json, re, sys, uuid
@@ -182,7 +182,7 @@ spec:
                         persistentVolumeClaim:
                           claimName: "{{`{{inputs.parameters.pvc-name}}`}}"
                     container:
-                      image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.chorusImages.docker.tag | default latest }}
+                      image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.chorusImages.docker.tag | default "latest" }}
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker

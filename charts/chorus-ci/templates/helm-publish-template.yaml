@@ -41,7 +41,7 @@ spec:
 
     container:
       # This image comes with yq (rather than jq)
-      image: {{ .Values.template.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.template.helm.tag | default latest }}
+      image: {{ .Values.template.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.template.helm.tag | default ""latest"" }}
       volumeMounts:
         - name: docker-config
           mountPath: /.docker
