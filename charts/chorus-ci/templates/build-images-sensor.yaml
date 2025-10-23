@@ -211,7 +211,7 @@ spec:
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
                     sidecars:
                       - name: dind
-                        image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.workflow.docker.tag | default stable }}-dind
+                        image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.workflow.docker.tag | default "stable" }}-dind
                         command: ["dockerd-entrypoint.sh"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
