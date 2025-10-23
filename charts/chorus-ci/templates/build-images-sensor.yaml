@@ -182,7 +182,7 @@ spec:
                         persistentVolumeClaim:
                           claimName: "{{`{{inputs.parameters.pvc-name}}`}}"
                     container:
-                      image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.workflow.docker.tag | default latest }}
+                      image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.chorusImages.docker.tag | default latest }}
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker

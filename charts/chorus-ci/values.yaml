@@ -51,6 +51,7 @@ chorusBackend:
     tag: "1.24.3-bookworm"
   jq:
     imageNamespace: "docker_proxy/backplane"
+    tag: "latest" # this is the only tag available
   helm:
     imageNamespace: "docker_proxy/alpine"
     tag: "3.22.2"
@@ -68,6 +69,8 @@ chorusImages:
     storageRequest: ""
   python:
     tag: "3.12-alpine"
+  docker:
+    tag: "28.1.1"
 
 # EventBus configuration
 eventBus:
