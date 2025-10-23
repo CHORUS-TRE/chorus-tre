@@ -67,28 +67,19 @@ spec:
                       - - name: get-paths
                           template: get-paths
 
-                      - - name: generate-volume
-                          template: generate-volume
-                          arguments:
-                            parameters:
-                            - name: pvc-name
-                              value: "{{`{{item.pvc_name}}`}}"
-                            - name: pvc-size
-                              value: {{ .Values.chorusImages.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
-                            - name: storage-class-name
-                              value: {{ .Values.chorusImages.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
-                            # This loop over the paths from get-paths
-                          withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
-
-                      - - name: docker-build
-                          template: docker-build
+                      - - name: generate-volume-and-build-image
+                          template: generate-volume-and-build-image
                           arguments:
                             parameters:
                               - name: path
                                 value: "{{`{{item.path}}`}}"
                               - name: pvc-name
                                 value: "{{`{{item.pvc_name}}`}}"
-                          # This loop over the paths from get-paths
+                              - name: pvc-size
+                                value: {{ .Values.chorusImages.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                              - name: storage-class-name
+                                value: {{ .Values.chorusImages.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
+                            # This loop over the paths from get-paths
                           withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
 
                   - name: get-paths
@@ -134,6 +125,34 @@ spec:
                             }
 
                         json.dump(list(get_paths_with_pvc_names(paths, patterns)), sys.stdout)
+                  
+                  - name: generate-volume-and-build-image
+                    inputs:
+                      parameters:
+                        - name: path
+                        - name: pvc-name
+                        - name: pvc-size
+                        - name: storage-class-name
+                    steps:
+                      - - name: generate-volume
+                          template: generate-volume
+                          arguments:
+                            parameters:
+                            - name: pvc-name
+                              value: "{{`{{inputs.parameters.pvc-name}}`}}"
+                            - name: pvc-size
+                              value: "{{`{{inputs.parameters.pvc-size}}`}}"
+                            - name: storage-class-name
+                              value: "{{`{{inputs.parameters.storage-class-name}}`}}"
+
+                      - - name: docker-build
+                          template: docker-build
+                          arguments:
+                            parameters:
+                              - name: path
+                                value: "{{`{{inputs.parameters.path}}`}}"
+                              - name: pvc-name
+                                value: "{{`{{inputs.parameters.pvc-name}}`}}"
 
                   - name: generate-volume
                     inputs:
