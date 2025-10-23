@@ -120,7 +120,7 @@ spec:
                         secret:
                           secretName: {{ $githubSecretName }}
                     container:
-                      image: {{ .Values.global.imageRegistry }}/golang:{{ .Values.chorusBackend.golang.tag }}
+                      image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default latest }}
                       command: [sh, -e, -c]
                       volumeMounts:
                         - name: github-secret
@@ -260,7 +260,7 @@ spec:
 
                   - name: oci-credentials
                     container:
-                      image: harbor.build.chorus-tre.ch/docker_proxy/backplane/jq
+                      image: {{ .Values.chorusBackend.jq.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.jq.imageNamespace | default .Values.global.imageNamespace }}/jq:{{ .Values.chorusBackend.jq.tag | default latest }}
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
@@ -305,7 +305,7 @@ spec:
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/helm
+                      image: {{ .Values.chorusBackend.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.chorusBackend.helm.tag | default latest }}
                       env:
                         - name: REGISTRY
                           value: {{ .Values.sensor.registry | quote }}

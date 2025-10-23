@@ -93,7 +93,7 @@ spec:
 
                   - name: get-paths
                     script:
-                      image: {{ .Values.global.imageRegistry }}/python:{{ .Values.chorusImages.python.tag }}
+                      image: {{ .Values.chorusImages.python.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.python.imageNamespace | default .Values.global.imageNamespace }}/python:{{ .Values.chorusImages.python.tag | default latest }}
                       command: [python]
                       source: |
                         import json, re, sys, uuid
@@ -182,7 +182,7 @@ spec:
                         persistentVolumeClaim:
                           claimName: "{{`{{inputs.parameters.pvc-name}}`}}"
                     container:
-                      image: {{ .Values.global.imageRegistry }}/docker:{{ .Values.workflow.docker.tag }}
+                      image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.workflow.docker.tag | default latest }}
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
@@ -211,7 +211,7 @@ spec:
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
                     sidecars:
                       - name: dind
-                        image: {{ .Values.global.imageRegistry }}/docker:{{ .Values.workflow.docker.tag }}-dind
+                        image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.workflow.docker.tag | default stable }}-dind
                         command: ["dockerd-entrypoint.sh"]
                         env:
                           - name: DOCKER_TLS_CERTDIR

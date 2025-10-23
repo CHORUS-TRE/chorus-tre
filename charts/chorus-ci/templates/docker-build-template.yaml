@@ -46,7 +46,7 @@ spec:
               path: config.json
 
     container:
-      image: {{ .Values.global.imageRegistry }}/docker:{{ .Values.workflow.docker.tag }}
+      image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default latest }}
       volumeMounts:
         - name: docker-config
           mountPath: /.docker
@@ -113,7 +113,7 @@ spec:
       workingDir: "/src"
     sidecars:
       - name: dind
-        image: {{ .Values.global.imageRegistry }}/docker:{{ .Values.workflow.docker.tag }}-dind
+        image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.workflow.docker.tag | default stable }}-dind
         command: ["dockerd-entrypoint.sh"]
         env:
           - name: DOCKER_TLS_CERTDIR

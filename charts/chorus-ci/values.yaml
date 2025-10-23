@@ -15,20 +15,27 @@ sensor:
     secretName: registry-dockerconfigjson-secret
 
 global:
-  imageRegistry: "harbor.build.chorus-tre.ch/docker_proxy/library"
+  imageDomain: "harbor.build.chorus-tre.ch"
+  imageNamespace: "docker_proxy/library"
 
 # Default workflow settings
 workflow:
   dockerDataStorage:
     storageClassName: ""
     storageRequest: "80Gi"
+
+# Workflow settings for specific components
+template:
   docker:
     tag: "28.1.1"
   helm:
-    repository: "harbor.build.chorus-tre.ch/docker_proxy/alpine/helm"
+    imageNamespace: "docker_proxy/alpine"
     tag: "3"
 
-# Workflow settings for specific components
+testConnection:
+  busybox:
+    tag: "1.37.0"
+
 chorusWorkbenchOperator:
   dockerDataStorage:
     storageClassName: ""
@@ -42,6 +49,11 @@ chorusBackend:
     storageRequest: ""
   golang:
     tag: "1.24.3-bookworm"
+  jq:
+    imageNamespace: "docker_proxy/backplane"
+  helm:
+    imageNamespace: "docker_proxy/alpine"
+    tag: "3.22.2"
 
 chorusWebui:
   dockerDataStorage:
