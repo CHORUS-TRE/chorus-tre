@@ -61,11 +61,6 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: make-test
 
-                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
-                ttlStrategy:
-                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
-                {{- end }}
-
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -175,11 +170,6 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-workbench-operator
-
-                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
-                ttlStrategy:
-                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
-                {{- end }}
 
                 volumeClaimTemplates:
                   - metadata:

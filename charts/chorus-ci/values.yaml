@@ -19,8 +19,6 @@ global:
 
 # Default workflow settings
 workflow:
-  ttl:
-    secondsAfterSuccess: 300
   dockerDataStorage:
     storageClassName: ""
     storageRequest: "80Gi"

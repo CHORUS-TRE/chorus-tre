@@ -60,11 +60,6 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: go-test
 
-                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
-                ttlStrategy:
-                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
-                {{- end }}
-
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -188,10 +183,6 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-backend
 
-                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
-                ttlStrategy:
-                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
-                {{- end }}
                 volumeClaimTemplates:
                   - metadata:
                       name: docker-data

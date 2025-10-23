@@ -43,11 +43,6 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
 
-                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
-                ttlStrategy:
-                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
-                {{- end }}
-
                 volumes:
                   - name: docker-config
                     secret:

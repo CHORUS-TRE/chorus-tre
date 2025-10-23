@@ -60,11 +60,6 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: pnpm-test
 
-                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
-                ttlStrategy:
-                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
-                {{- end }}
-
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -179,11 +174,6 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-web-ui
-
-                {{- if .Values.workflow.ttl.secondsAfterSuccess }}
-                ttlStrategy:
-                  secondsAfterSuccess: {{ .Values.workflow.ttl.secondsAfterSuccess }}
-                {{- end }}
 
                 volumeClaimTemplates:
                   - metadata:
