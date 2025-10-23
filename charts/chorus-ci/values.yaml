@@ -59,6 +59,12 @@ chorusImages:
   python:
     tag: "3.12-alpine"
 
+# EventBus configuration
+eventBus:
+  jetstream:
+    version: "2.10.10"
+  debug: false
+
 # Creates the webhook and matching events on the GibHub EventSource.
 webhookEvents:
   - name: ci
