@@ -24,6 +24,8 @@ workflow:
   dockerDataStorage:
     storageClassName: ""
     storageRequest: "80Gi"
+  docker:
+    tag: "28.1.1"
 
 # Workflow settings for specific components
 chorusWorkbenchOperator:
@@ -53,8 +55,6 @@ chorusImages:
     storageRequest: ""
   python:
     tag: "3.12-alpine"
-  docker:
-    tag: "28.1.1"
 
 # Creates the webhook and matching events on the GibHub EventSource.
 webhookEvents:

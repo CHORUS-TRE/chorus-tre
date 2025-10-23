@@ -187,7 +187,7 @@ spec:
                         persistentVolumeClaim:
                           claimName: "{{`{{inputs.parameters.pvc-name}}`}}"
                     container:
-                      image: {{ .Values.global.imageRegistry }}/docker:{{ .Values.chorusImages.docker.tag }}
+                      image: {{ .Values.global.imageRegistry }}/docker:{{ .Values.workflow.docker.tag }}
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
@@ -216,7 +216,7 @@ spec:
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
                     sidecars:
                       - name: dind
-                        image: {{ .Values.global.imageRegistry }}/docker:{{ .Values.chorusImages.docker.tag }}-dind
+                        image: {{ .Values.global.imageRegistry }}/docker:{{ .Values.workflow.docker.tag }}-dind
                         command: ["dockerd-entrypoint.sh"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
