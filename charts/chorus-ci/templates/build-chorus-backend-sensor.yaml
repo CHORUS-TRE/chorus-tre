@@ -120,17 +120,17 @@ spec:
                         secret:
                           secretName: {{ $githubSecretName }}
                     container:
-                      image: "harbor.build.chorus-tre.ch/docker_proxy/library/golang:1.24.3-bookworm"
+                      image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default "latest" }}
                       command: [sh, -e, -c]
                       volumeMounts:
                         - name: github-secret
                           mountPath: /secret/github
                       args:
                         - >-
-                          go env -w GOPRIVATE=github.com/CHORUS-TRE/*
-                          export GIT_USERNAME=$(cat /secret/github/username);
-                          export GIT_PASSWORD=$(cat /secret/github/password);
-                          git config --global url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/"
+                          go env -w GOPRIVATE=github.com/CHORUS-TRE/* &&
+                          GIT_USERNAME=$(cat /secret/github/username) &&
+                          GIT_PASSWORD=$(cat /secret/github/password) &&
+                          git config --global url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/" &&
                           go test -v ./...
 
                       workingDir: "/src"
@@ -182,6 +182,17 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-backend
+
+                volumeClaimTemplates:
+                  - metadata:
+                      name: docker-data
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.chorusBackend.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                      storageClassName: {{ .Values.chorusBackend.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
+
                 volumes:
                   - name: docker-config
                     secret:
@@ -189,6 +200,7 @@ spec:
                       items:
                         - key: .dockerconfigjson
                           path: config.json
+
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -196,6 +208,7 @@ spec:
                     - name: ref
                     - name: sha
                     - name: tag
+
                 templates:
                   - name: build-chorus-backend
                     steps:
@@ -247,7 +260,7 @@ spec:
 
                   - name: oci-credentials
                     container:
-                      image: harbor.build.chorus-tre.ch/docker_proxy/backplane/jq
+                      image: {{ .Values.chorusBackend.jq.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.jq.imageNamespace | default .Values.global.imageNamespace }}/jq:{{ .Values.chorusBackend.jq.tag | default "latest" }}
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
@@ -292,7 +305,7 @@ spec:
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/helm
+                      image: {{ .Values.chorusBackend.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.chorusBackend.helm.tag | default "latest" }}
                       env:
                         - name: REGISTRY
                           value: {{ .Values.sensor.registry | quote }}

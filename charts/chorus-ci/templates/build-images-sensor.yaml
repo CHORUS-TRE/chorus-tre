@@ -42,6 +42,7 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-images
+
                 volumes:
                   - name: docker-config
                     secret:
@@ -49,6 +50,7 @@ spec:
                       items:
                         - key: .dockerconfigjson
                           path: config.json
+
                 arguments:
                   parameters:
                     - name: repo-url
@@ -58,27 +60,34 @@ spec:
                     - name: added
                     - name: removed
                     - name: modified
+
                 templates:
                   - name: build-images
                     steps:
                       - - name: get-paths
                           template: get-paths
 
-                      - - name: docker-build
-                          template: docker-build
+                      - - name: generate-volume-and-build-image
+                          template: generate-volume-and-build-image
                           arguments:
                             parameters:
                               - name: path
-                                value: "{{`{{item}}`}}"
-                          # This loop over the paths from get-paths
+                                value: "{{`{{item.path}}`}}"
+                              - name: pvc-name
+                                value: "{{`{{item.pvc_name}}`}}"
+                              - name: pvc-size
+                                value: {{ .Values.chorusImages.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                              - name: storage-class-name
+                                value: {{ .Values.chorusImages.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
+                            # This loop over the paths from get-paths
                           withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
 
                   - name: get-paths
                     script:
-                      image: harbor.build.chorus-tre.ch/docker_proxy/library/python:3.12-alpine
+                      image: {{ .Values.chorusImages.python.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.python.imageNamespace | default .Values.global.imageNamespace }}/python:{{ .Values.chorusImages.python.tag | default "latest" }}
                       command: [python]
                       source: |
-                        import json, re, sys
+                        import json, re, sys, uuid
 
                         paths = (
                           {{`{{workflow.parameters.added}}`}} +
@@ -100,12 +109,79 @@ spec:
                                 yield m.group(1)
                                 break
 
-                        json.dump(list(set(keep_matching(paths, patterns))), sys.stdout)
+                        def get_pvc_name(path: str) -> str:
+                          """Generate a PVC name based on the path."""
+                          length = 7
+                          random_string = str(uuid.uuid4()).replace('-', '')[:length]
+                          return path.replace('/', '-') + '-' + random_string
+
+                        def get_paths_with_pvc_names(paths: list, patterns: list):
+                          """Generate list of dicts with path and pvc_name."""
+                          unique_paths = list(set(keep_matching(paths, patterns)))
+                          for path in unique_paths:
+                            yield {
+                              'path': path,
+                              'pvc_name': get_pvc_name(path)
+                            }
+
+                        json.dump(list(get_paths_with_pvc_names(paths, patterns)), sys.stdout)
+                  
+                  - name: generate-volume-and-build-image
+                    inputs:
+                      parameters:
+                        - name: path
+                        - name: pvc-name
+                        - name: pvc-size
+                        - name: storage-class-name
+                    steps:
+                      - - name: generate-volume
+                          template: generate-volume
+                          arguments:
+                            parameters:
+                            - name: pvc-name
+                              value: "{{`{{inputs.parameters.pvc-name}}`}}"
+                            - name: pvc-size
+                              value: "{{`{{inputs.parameters.pvc-size}}`}}"
+                            - name: storage-class-name
+                              value: "{{`{{inputs.parameters.storage-class-name}}`}}"
+
+                      - - name: docker-build
+                          template: docker-build
+                          arguments:
+                            parameters:
+                              - name: path
+                                value: "{{`{{inputs.parameters.path}}`}}"
+                              - name: pvc-name
+                                value: "{{`{{inputs.parameters.pvc-name}}`}}"
+
+                  - name: generate-volume
+                    inputs:
+                      parameters:
+                        - name: pvc-name
+                        - name: pvc-size
+                        - name: storage-class-name
+                    resource:
+                      action: create
+                      setOwnerReference: true
+                      successCondition: status.phase == Bound
+                      failureCondition: status.phase == Lost
+                      manifest: |
+                        apiVersion: v1
+                        kind: PersistentVolumeClaim
+                        metadata:
+                          name: "{{`{{inputs.parameters.pvc-name}}`}}"
+                        spec:
+                          accessModes: ['ReadWriteOnce']
+                          resources:
+                            requests:
+                              storage: "{{`{{inputs.parameters.pvc-size}}`}}"
+                          storageClassName: "{{`{{inputs.parameters.storage-class-name}}`}}"
 
                   - name: docker-build
                     inputs:
                       parameters:
                         - name: path
+                        - name: pvc-name
                       artifacts:
                         - name: images
                           path: /src
@@ -120,11 +196,17 @@ spec:
                               key: password
                             depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
+                    volumes:
+                      - name: docker-data
+                        persistentVolumeClaim:
+                          claimName: "{{`{{inputs.parameters.pvc-name}}`}}"
                     container:
-                      image: harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1
+                      image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.chorusImages.docker.tag | default "latest" }}
                       volumeMounts:
                         - name: docker-config
                           mountPath: /.docker
+                        - name: docker-data
+                          mountPath: /var/lib/docker
                       env:
                           # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
                         - name: BUILDX_CONFIG
@@ -148,7 +230,7 @@ spec:
                       workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
                     sidecars:
                       - name: dind
-                        image: harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1-dind
+                        image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.chorusImages.docker.tag | default "stable" }}-dind
                         command: ["dockerd-entrypoint.sh"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
