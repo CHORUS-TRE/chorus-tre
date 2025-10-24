@@ -124,13 +124,13 @@ spec:
                       command: [sh, -e, -c]
                       volumeMounts:
                         - name: github-secret
-                          mountPath: /secret/github
+                          mountPath: /run/secret/github
                       args:
                         - >-
-                          go env -w GOPRIVATE=github.com/CHORUS-TRE/* &&
-                          GIT_USERNAME=$(cat /secret/github/username) &&
-                          GIT_PASSWORD=$(cat /secret/github/password) &&
-                          git config --global url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/" &&
+                          go env -w GOPRIVATE=github.com/CHORUS-TRE/*;
+                          GIT_USERNAME=$(cat /run/secret/github/username);
+                          GIT_PASSWORD=$(cat /run/secret/github/password);
+                          git config --global url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/";
                           go test -v ./...
 
                       workingDir: "/src"
