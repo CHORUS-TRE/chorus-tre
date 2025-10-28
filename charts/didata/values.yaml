@@ -102,7 +102,7 @@ networkPolicy:
     - matchLabels:
         app.kubernetes.io/name: mariadb
         app.kubernetes.io/component: primary
-        k8s:io.kubernetes.pod.namespace: didata
+        io.kubernetes.pod.namespace: didata
     toPorts:
     - ports:
       - port: "3306"
