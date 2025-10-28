@@ -88,6 +88,9 @@ networkPolicy:
   egress:
   # Allow egress to MariaDB database
   # - to:
+  #   - namespaceSelector:
+  #       matchLabels:
+  #         kubernetes.io/metadata.name: didata
   #   - podSelector:
   #       matchLabels:
   #         app.kubernetes.io/name: mariadb
@@ -99,6 +102,7 @@ networkPolicy:
     - matchLabels:
         app.kubernetes.io/name: mariadb
         app.kubernetes.io/component: primary
+        k8s:io.kubernetes.pod.namespace: didata
     toPorts:
     - ports:
       - port: "3306"
