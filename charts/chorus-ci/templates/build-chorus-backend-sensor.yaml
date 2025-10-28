@@ -28,6 +28,8 @@ spec:
               # The goal is to publish tagged releases.
               - "refs/heads/master"
               - "refs/tags/v*"
+              # TODO: remove after testing
+              - "refs/heads/feat/test-ci"
 
     - name: ci-chorus-backend
       eventSourceName: {{ $fullName }}-github
@@ -38,11 +40,17 @@ spec:
             type: string
             value:
               - pull_request
+               # TODO: remove after testing
+              - push
           - path: "body.action"
             type: string
             value:
               - "opened"
               - "synchronize"
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/feat/test-ci"
 
   triggers:
     - template:
@@ -120,19 +128,23 @@ spec:
                         secret:
                           secretName: {{ $githubSecretName }}
                     container:
+                      env:
+                        - name: GIT_USERNAME
+                          valueFrom:
+                            secretKeyRef:
+                              name: {{ $githubSecretName }}
+                              key: username
+                        - name: GIT_PASSWORD
+                          valueFrom:
+                            secretKeyRef:
+                              name: {{ $githubSecretName }}
+                              key: password
                       image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default "latest" }}
                       command: [sh, -e, -c]
-                      volumeMounts:
-                        - name: github-secret
-                          mountPath: /secret/github
                       args:
                         - >-
                           go env -w GOPRIVATE=github.com/CHORUS-TRE/*;
-                          GIT_USERNAME=$(cat /secret/github/username);
-                          GIT_PASSWORD=$(cat /secret/github/password);
                           git config --global url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/";
-                          cp /secret/github/username /run/secrets/GIT_USERNAME;
-                          cp /secret/github/password /run/secrets/GIT_PASSWORD;
                           go test -v ./...
 
                       workingDir: "/src"
