@@ -16,7 +16,7 @@ spec:
   {{- if .Values.networkPolicy.ingress }}
     {{- /* Use the structure from values.yaml, assuming it's compatible or adapted for Cilium */}}
     {{- /* L7 rules need to be defined within 'toPorts' -> 'rules' -> 'http' */}}
-    {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+    {{- toYaml .Values.networkPolicy.ingress | nindent 2 }}
     # Example L7 Rule Placeholder (add under ports: -> rules: -> http:)
     # rules:
     #   http:
@@ -45,6 +45,6 @@ spec:
         dns:
         - matchPattern: "*"
   {{- if .Values.networkPolicy.egress }}
-    {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
+    {{- toYaml .Values.networkPolicy.egress | nindent 2 }}
   {{- end }}
 {{- end }}
