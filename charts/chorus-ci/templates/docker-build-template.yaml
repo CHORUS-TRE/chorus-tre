@@ -21,7 +21,13 @@ spec:
       - name: registry
         value: "harbor.build.chorus-tre.local"
       - name: dockerConfigSecret
-
+      # The following two parameters
+      # are needed to pull dependencies
+      # from private repos
+      - name: gitUsername
+        default: ""
+      - name: gitPassword
+        default: ""
   templates:
   - name: docker-build
     inputs:
@@ -33,6 +39,10 @@ spec:
         - name: repository
         - name: registry
         - name: dockerConfigSecret
+        - name: gitUsername
+          default: ""
+        - name: gitPassword
+          default: ""
       artifacts:
         - name: source
           path: "/src"
@@ -72,6 +82,10 @@ spec:
           value: "{{`{{inputs.parameters.image}}`}}"
         - name: TAG
           value: "{{`{{inputs.parameters.tag}}`}}"
+        - name: GIT_USERNAME
+          value: "{{`{{inputs.parameters.gitUsername}}`}}"
+        - name: GIT_PASSWORD
+          value: "{{`{{inputs.parameters.gitPassword}}`}}"
       command: [sh, -e, -c]
       args:
         - >-
@@ -97,6 +111,11 @@ spec:
           CACHE_TO="\
             --cache-to=type=registry,ref=${tag_cache}:${version},mode=max,image-manifest=true \
             --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
+
+          BUILD_SECRETS="";
+          if [ -n "${GIT_USERNAME}" ] && [ -n "${GIT_PASSWORD}" ]; then
+            BUILD_SECRETS="--secret id=GIT_USERNAME,env=GIT_USERNAME --secret id=GIT_PASSWORD,env=GIT_PASSWORD";
+          fi;
 
           docker buildx create --name "${BUILDER_NAME}" --driver docker-container;
 
