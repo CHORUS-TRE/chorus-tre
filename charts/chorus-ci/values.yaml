@@ -12,7 +12,7 @@ sensor:
   registry: harbor.build.chorus-tre.local
   # This secret shall be of type kubernetes.io/dockerconfigjson
   dockerConfig:
-    secretName: registry-dockerconfigjson-secret
+    secretName: regcred
 
 global:
   imageDomain: "harbor.build.chorus-tre.ch"
