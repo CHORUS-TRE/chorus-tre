@@ -146,7 +146,6 @@ spec:
                           go env -w GOPRIVATE=github.com/CHORUS-TRE/*;
                           git config --global url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/";
                           go test -v ./...
-
                       workingDir: "/src"
 
           parameters:
@@ -239,13 +238,15 @@ spec:
                               - name: sha
                                 value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
-                                value: "docker/dockerfiles/stage2.dockerfile"
+                                value: "docker/dockerfiles/backend.dockerfile"
                               - name: repository
-                                value: "chorus"
+                                value: "chorus-backend-tmp"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                              - name: gitSecretName
+                                value: {{ $githubSecretName | quote }}
                             artifacts:
                               - name: source
                                 git:

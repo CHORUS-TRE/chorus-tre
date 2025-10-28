@@ -54,6 +54,10 @@ spec:
           items:
             - key: .dockerconfigjson
               path: config.json
+      - name: git-secret
+        secret:
+          secretName: "{{`{{inputs.parameters.gitSecretName}}`}}"
+          optional: true 
 
     container:
       image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "latest" }}
@@ -62,6 +66,8 @@ spec:
           mountPath: /.docker
         - name: docker-data
           mountPath: /var/lib/docker
+        - name: git-secret
+          mountPath: /secrets/git
       env:
           # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
         - name: BUILDX_CONFIG
@@ -113,7 +119,9 @@ spec:
             --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
 
           BUILD_SECRETS="";
-          if [ -n "${GIT_USERNAME}" ] && [ -n "${GIT_PASSWORD}" ]; then
+          if [ -f "/secrets/git/username" ] && [ -f "/secrets/git/password" ]; then
+            export GIT_USERNAME=$(cat /secrets/git/username);
+            export GIT_PASSWORD=$(cat /secrets/git/password);
             BUILD_SECRETS="--secret id=GIT_USERNAME,env=GIT_USERNAME --secret id=GIT_PASSWORD,env=GIT_PASSWORD";
           fi;
 
