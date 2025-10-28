@@ -78,7 +78,7 @@ networkPolicy:
   - fromEndpoints:
     - matchLabels:
         # Note: 'k8s:' prefix is not used here as per Cilium's label selection
-        kubernetes.io/metadata.name: ingress-nginx
+        io.kubernetes.pod.namespace: ingress-nginx
         app.kubernetes.io/name: ingress-nginx
         app.kubernetes.io/component: controller
     toPorts:
