@@ -7,5 +7,7 @@ metadata:
     {{- include "chorus-ci.labels" . | nindent 4 }}
 spec:
   jetstream:
-    version: "2.10.10"
-    #startArgs: ["-D"]  # debug logs
+    version: {{ .Values.eventBus.jetstream.version }}
+    {{- if .Values.eventBus.debug }}
+    startArgs: ["-D"]
+    {{- end }}

@@ -46,10 +46,12 @@ spec:
               path: config.json
 
     container:
-      image: "harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1"
+      image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "latest" }}
       volumeMounts:
         - name: docker-config
           mountPath: /.docker
+        - name: docker-data
+          mountPath: /var/lib/docker
       env:
           # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
         - name: BUILDX_CONFIG
@@ -111,7 +113,7 @@ spec:
       workingDir: "/src"
     sidecars:
       - name: dind
-        image: "harbor.build.chorus-tre.ch/docker_proxy/library/docker:28.1.1-dind"
+        image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
         command: ["dockerd-entrypoint.sh"]
         env:
           - name: DOCKER_TLS_CERTDIR

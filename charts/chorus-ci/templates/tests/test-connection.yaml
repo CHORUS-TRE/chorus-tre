@@ -9,7 +9,7 @@ metadata:
 spec:
   containers:
     - name: wget
-      image: harbor.build.chorus-tre.ch/docker_proxy/library/busybox
+      image: {{ .Values.testConnection.busybox.imageDomain | default .Values.global.imageDomain }}/{{ .Values.testConnection.busybox.imageNamespace | default .Values.global.imageNamespace }}/busybox:{{ .Values.testConnection.busybox.tag | default "latest" }}
       command: ['wget']
       args: ['{{ include "chorus-ci.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never

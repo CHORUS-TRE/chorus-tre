@@ -117,7 +117,7 @@ spec:
                               key: password
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
-                      image: "harbor.build.chorus-tre.ch/docker_proxy/library/golang:1.25-bookworm"
+                      image: {{ .Values.chorusWorkbenchOperator.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusWorkbenchOperator.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusWorkbenchOperator.golang.tag | default "latest" }}
                       command: [sh, -e, -c]
                       args:
                         - make test
@@ -170,6 +170,17 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-workbench-operator
+
+                volumeClaimTemplates:
+                  - metadata:
+                      name: docker-data
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                      storageClassName: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
+
                 volumes:
                   - name: docker-config
                     secret:
