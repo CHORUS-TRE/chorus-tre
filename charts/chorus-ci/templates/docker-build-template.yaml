@@ -124,6 +124,7 @@ spec:
           --tag "${tag}"
           ${CACHE_FROM}
           ${CACHE_TO}
+          ${BUILD_SECRETS}
           --output "type=registry"
           .
       workingDir: "/src"
