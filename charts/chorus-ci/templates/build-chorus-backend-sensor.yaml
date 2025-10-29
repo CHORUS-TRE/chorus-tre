@@ -319,16 +319,18 @@ spec:
                       image: {{ .Values.chorusBackend.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.chorusBackend.helm.tag | default "latest" }}
                       env:
                         - name: REGISTRY
-                          #value: {{ .Values.sensor.registry | quote }}
-                          # TODO: remove after testing
+                          value: {{ .Values.sensor.registry | quote }}
+                          # TODO: update after testing
+                        - name: PROJECT
                           value: "chart-backend-tmp"
+                          # value: "charts"
                       command: [sh, -e, -c]
                       args:
                         - >-
                           helm package deploy/backend;
                           echo -n '{{`{{inputs.parameters.oci-password}}`}}' > /tmp/password;
                           cat /tmp/password | base64 -d | helm registry login -u '{{`{{inputs.parameters.oci-username}}`}}' --password-stdin  "${REGISTRY}";
-                          helm push backend-*.tgz "oci://${REGISTRY}/charts";
+                          helm push backend-*.tgz "oci://${REGISTRY}/${PROJECT}";
                       workingDir: "/src"
 
           parameters:
