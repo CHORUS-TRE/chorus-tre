@@ -265,7 +265,7 @@ spec:
                           arguments:
                             artifacts:
                               - name: credentials
-                                from: "{{`{{steps.oci-credentials.outputs.artifacts.oci-credentials}}`}}"
+                                from: "{{`{{steps.oci-credentials.outputs.artifacts.credentials}}`}}"
 
                   - name: oci-credentials
                     container:
