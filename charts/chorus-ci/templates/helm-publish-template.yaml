@@ -17,6 +17,8 @@ spec:
         value: "my-chart"
       - name: registry
         value: "harbor.build.chorus-tre.local"
+      - name: chartsProject
+        value: "charts"
       - name: dockerConfigSecret
 
   templates:
@@ -27,6 +29,7 @@ spec:
         - name: chartName
         - name: registry
         - name: dockerConfigSecret
+        - name: chartsProject
       artifacts:
         - name: source
           path: "/src"
@@ -54,6 +57,8 @@ spec:
           value: "{{`{{inputs.parameters.chartsDir}}`}}"
         - name: CHART_NAME
           value: "{{`{{inputs.parameters.chartName}}`}}"
+        - name: CHARTS_PROJECT
+          value: "{{`{{inputs.parameters.chartsProject}}`}}"
       command: [sh, -e, -c]
       args: 
         - >-
@@ -70,5 +75,5 @@ spec:
           | helm registry login -u "${username}" --password-stdin "${REGISTRY}";
 
           helm package "${CHARTS_DIR}/${CHART_NAME}";
-          helm push ${CHART_NAME}-*.tgz "oci://${REGISTRY}/charts"
+          helm push ${CHART_NAME}-*.tgz "oci://${REGISTRY}/${CHARTS_PROJECT}";
       workingDir: "/src"
