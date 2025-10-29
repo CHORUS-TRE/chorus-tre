@@ -319,7 +319,9 @@ spec:
                       image: {{ .Values.chorusBackend.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.chorusBackend.helm.tag | default "latest" }}
                       env:
                         - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
+                          #value: {{ .Values.sensor.registry | quote }}
+                          # TODO: remove after testing
+                          value: "chart-backend-tmp"
                       command: [sh, -e, -c]
                       args:
                         - >-
