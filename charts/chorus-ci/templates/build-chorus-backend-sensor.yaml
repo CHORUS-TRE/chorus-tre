@@ -279,11 +279,11 @@ spec:
                       image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default "latest" }}
                       command: [sh, -e, -c]
                       args:
-                        - >-
-                          GOPRIVATE=github.com/CHORUS-TRE/* \
-                          GIT_CONFIG_COUNT=1 \
-                          GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadof \
-                          GIT_CONFIG_VALUE_0=https://github.com/ \
+                        - >
+                          GOPRIVATE=github.com/CHORUS-TRE/* 
+                          GIT_CONFIG_COUNT=1 
+                          GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf 
+                          GIT_CONFIG_VALUE_0=https://github.com/ 
                           go test -v ./...
                       workingDir: "/src"
 
