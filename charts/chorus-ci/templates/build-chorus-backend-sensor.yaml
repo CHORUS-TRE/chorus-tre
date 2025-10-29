@@ -63,8 +63,8 @@ spec:
 
   triggers:
     - template:
-        # TODO: remove "|| ci-chorus-backend-push" after testing  
-        conditions: ci-chorus-backend || ci-chorus-backend-push
+        #conditions: ci-chorus-backend
+        conditions: ci-chorus-backend-push
         name: github-workflow-trigger-ci-chorus-backend
         k8s:
           operation: create
