@@ -281,6 +281,7 @@ spec:
                       command: [sh, -e, -c]
                       args:
                         - >-
+                          mkdir -p /tmp/credentials;
                           auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
                           echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/credentials/oci-username;
                           echo "${auth}" | base64 -d | awk -F: '{ print $2 }' > /tmp/credentials/oci-password
