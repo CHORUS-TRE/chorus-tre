@@ -28,8 +28,6 @@ spec:
               # The goal is to publish tagged releases.
               - "refs/heads/master"
               - "refs/tags/v*"
-              # TODO: remove after testing
-              - "refs/heads/feat/test-ci"
 
     - name: ci-chorus-backend
       eventSourceName: {{ $fullName }}-github
@@ -298,9 +296,6 @@ spec:
                                 value: "backend"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
-                              # TODO: remove chartsProject specification
-                              - name: chartsProject
-                                value: "chart-backend-tmp"
                               - name: dockerConfigSecret
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
                             artifacts:
