@@ -21,13 +21,8 @@ spec:
       - name: registry
         value: "harbor.build.chorus-tre.local"
       - name: dockerConfigSecret
-      # The following two parameters
-      # are needed to pull dependencies
-      # from private repos
-      - name: gitUsername
-        default: ""
-      - name: gitPassword
-        default: ""
+      - name: gitSecretName
+        value: ""
   templates:
   - name: docker-build
     inputs:
@@ -39,9 +34,7 @@ spec:
         - name: repository
         - name: registry
         - name: dockerConfigSecret
-        - name: gitUsername
-          default: ""
-        - name: gitPassword
+        - name: gitSecretName
           default: ""
       artifacts:
         - name: source
@@ -88,10 +81,6 @@ spec:
           value: "{{`{{inputs.parameters.image}}`}}"
         - name: TAG
           value: "{{`{{inputs.parameters.tag}}`}}"
-        - name: GIT_USERNAME
-          value: "{{`{{inputs.parameters.gitUsername}}`}}"
-        - name: GIT_PASSWORD
-          value: "{{`{{inputs.parameters.gitPassword}}`}}"
       command: [sh, -e, -c]
       args:
         - >-
