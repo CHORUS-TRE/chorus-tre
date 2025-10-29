@@ -29,7 +29,7 @@ spec:
               - "refs/heads/master"
               - "refs/tags/v*"
               # TODO: remove after testing
-              #- "refs/heads/feat/test-ci"
+              - "refs/heads/feat/test-ci"
 
     - name: ci-chorus-backend
       eventSourceName: {{ $fullName }}-github
