@@ -257,81 +257,35 @@ spec:
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
-                      - - name: oci-credentials
-                          template: oci-credentials
-
-                      - - name: helm-build
-                          template: helm-build
+                      - - name: helm-publish
+                          templateRef:
+                            name: {{ $fullName }}-helm-publish-template
+                            template: helm-publish
                           arguments:
                             parameters:
-                              - name: oci-username
-                                value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
-                              - name: oci-password
-                                value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
-
-                  - name: oci-credentials
-                    container:
-                      image: {{ .Values.chorusBackend.jq.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.jq.imageNamespace | default .Values.global.imageNamespace }}/jq:{{ .Values.chorusBackend.jq.tag | default "latest" }}
-                      volumeMounts:
-                        - name: docker-config
-                          mountPath: /.docker
-                      env:
-                        - name: DOCKER_CONFIG
-                          value: /.docker
-                        - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
-                      command: [sh, -e, -c]
-                      args:
-                        - >-
-                          auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
-                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
-                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' | base64 > /tmp/password
-                    outputs:
-                      parameters:
-                        - name: username
-                          valueFrom:
-                            path: /tmp/username
-                        - name: password
-                          valueFrom:
-                            path: /tmp/password
-
-                  - name: helm-build
-                    inputs:
-                      # FIXME: we need artifact storage to pass the password as a file.
-                      parameters:
-                        - name: oci-username
-                        - name: oci-password
-                      artifacts:
-                        - name: images
-                          path: "/src"
-                          git:
-                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
-                            revision: "{{`{{workflow.parameters.revision}}`}}"
-                            usernameSecret:
-                              name: {{ $githubSecretName }}
-                              key: username
-                            passwordSecret:
-                              name: {{ $githubSecretName }}
-                              key: password
-                            depth: 1
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
-                    container:
-                      image: {{ .Values.chorusBackend.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.chorusBackend.helm.tag | default "latest" }}
-                      env:
-                        - name: REGISTRY
-                          value: {{ .Values.sensor.registry | quote }}
-                          # TODO: update after testing
-                        - name: PROJECT
-                          value: "chart-backend-tmp"
-                          # value: "charts"
-                      command: [sh, -e, -c]
-                      args:
-                        - >-
-                          helm package deploy/backend;
-                          echo -n '{{`{{inputs.parameters.oci-password}}`}}' > /tmp/password;
-                          cat /tmp/password | base64 -d | helm registry login -u '{{`{{inputs.parameters.oci-username}}`}}' --password-stdin  "${REGISTRY}";
-                          helm push backend-*.tgz "oci://${REGISTRY}/${PROJECT}";
-                      workingDir: "/src"
+                              - name: chartsDir
+                                value: "deploy"
+                              - name: chartName
+                                value: "backend"
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: chartsProject
+                                value: "chart-backend-tmp"
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
           parameters:
             - src:
