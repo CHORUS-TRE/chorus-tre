@@ -263,11 +263,9 @@ spec:
                       - - name: helm-build
                           template: helm-build
                           arguments:
-                            parameters:
-                              - name: oci-username
-                                value: "{{`{{ steps.oci-credentials.outputs.parameters.username }}`}}"
-                              - name: oci-password
-                                value: "{{`{{ steps.oci-credentials.outputs.parameters.password }}`}}"
+                            artifacts:
+                              - name: credentials
+                                from: "{{`{{steps.oci-credentials.outputs.artifacts.oci-credentials}}`}}"
 
                   - name: oci-credentials
                     container:
@@ -284,24 +282,18 @@ spec:
                       args:
                         - >-
                           auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
-                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/username;
-                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' | base64 > /tmp/password
+                          echo "${auth}" | base64 -d | awk -F: '{ print $1 }' > /tmp/credentials/oci-username;
+                          echo "${auth}" | base64 -d | awk -F: '{ print $2 }' > /tmp/credentials/oci-password
                     outputs:
-                      parameters:
-                        - name: username
-                          valueFrom:
-                            path: /tmp/username
-                        - name: password
-                          valueFrom:
-                            path: /tmp/password
+                      artifacts:
+                        - name: credentials
+                          path: /tmp/credentials
 
                   - name: helm-build
                     inputs:
-                      # FIXME: we need artifact storage to pass the password as a file.
-                      parameters:
-                        - name: oci-username
-                        - name: oci-password
                       artifacts:
+                        - name: credentials
+                          path: /tmp/credentials
                         - name: images
                           path: "/src"
                           git:
@@ -324,8 +316,9 @@ spec:
                       args:
                         - >-
                           helm package deploy/backend;
-                          echo -n '{{`{{inputs.parameters.oci-password}}`}}' > /tmp/password;
-                          cat /tmp/password | base64 -d | helm registry login -u '{{`{{inputs.parameters.oci-username}}`}}' --password-stdin  "${REGISTRY}";
+                          USERNAME=$(cat /tmp/credentials/oci-username);
+                          PASSWORD=$(cat /tmp/credentials/oci-password);
+                          echo "${PASSWORD}" | helm registry login -u "${USERNAME}" --password-stdin "${REGISTRY}";
                           helm push backend-*.tgz "oci://${REGISTRY}/charts";
                       workingDir: "/src"
 
