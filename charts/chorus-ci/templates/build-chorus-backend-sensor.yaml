@@ -278,7 +278,7 @@ spec:
                           value: /.docker
                         - name: REGISTRY
                           value: {{ .Values.sensor.registry | quote }}
-                      command: [sh, -c]
+                      command: [sh, -e, -c]
                       args:
                         - >-
                           auth="$(cat "${DOCKER_CONFIG}/config.json" | jq -r ".auths.\"${REGISTRY}\".auth")";
