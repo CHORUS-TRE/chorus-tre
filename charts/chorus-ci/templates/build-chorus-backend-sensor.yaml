@@ -280,8 +280,10 @@ spec:
                       command: [sh, -e, -c]
                       args:
                         - >-
-                          go env -w GOPRIVATE=github.com/CHORUS-TRE/*;
-                          git config --global url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/";
+                          GOPRIVATE=github.com/CHORUS-TRE/* \
+                          GIT_CONFIG_COUNT=1 \
+                          GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadof \
+                          GIT_CONFIG_VALUE_0=https://github.com/ \
                           go test -v ./...
                       workingDir: "/src"
 
