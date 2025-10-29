@@ -263,7 +263,7 @@ spec:
                               - name: dockerfile
                                 value: "docker/dockerfiles/backend.dockerfile"
                               - name: repository
-                                value: "chorus-backend-tmp"
+                                value: "chorus"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
