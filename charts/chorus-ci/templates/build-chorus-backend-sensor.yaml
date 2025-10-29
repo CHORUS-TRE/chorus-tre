@@ -147,7 +147,7 @@ spec:
           parameters:
             - src:
                 dependencyName: ci-chorus-backend
-                dataKey: body.pull_request.head.repo.clone_url
+                dataKey: body.repository.clone_url
               dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: ci-chorus-backend
@@ -170,7 +170,7 @@ spec:
             # Generate a nice title and description
             - src:
                 dependencyName: ci-chorus-backend
-                dataTemplate: "CI {{`{{ .Input.body.repository.name }}`}}"
+                dataTemplate: "CI {{`{{ .Input.body.repository.full_name }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/title
             - src:
                 dependencyName: ci-chorus-backend
@@ -213,10 +213,39 @@ spec:
                 arguments:
                   parameters:
                     - name: repoUrl
+                    - name: repoFullName
                     - name: revision
                     - name: ref
                     - name: sha
                     - name: tag
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+
+                  exit:
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
 
                 templates:
                   - name: build-chorus-backend
@@ -269,6 +298,7 @@ spec:
                                 value: "backend"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
+                              # TODO: remove chartsProject specification
                               - name: chartsProject
                                 value: "chart-backend-tmp"
                               - name: dockerConfigSecret
@@ -294,25 +324,39 @@ spec:
               dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: build-chorus-backend
-                dataKey: body.after
+                dataKey: body.repository.full_name
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: build-chorus-backend
-                dataKey: body.ref
+                dataKey: body.after
               dest: spec.arguments.parameters.2.value
             - src:
                 dependencyName: build-chorus-backend
-                dataKey: body.head_commit.id
+                dataKey: body.ref
               dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: build-chorus-backend
-                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
+                dataKey: body.head_commit.id
               dest: spec.arguments.parameters.4.value
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
+              dest: spec.arguments.parameters.5.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
                 dependencyName: build-chorus-backend
                 dataTemplate: "build-chorus-backend-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: 'Release {{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ end }}`}}'
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.repository.full_name }}`}}'
+              dest: metadata.annotations.workflows\.argoproj\.io/description
+
       retryStrategy:
         steps: 3
