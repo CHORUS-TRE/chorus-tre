@@ -23,6 +23,7 @@ spec:
       - name: dockerConfigSecret
       - name: gitSecretName
         value: ""
+
   templates:
   - name: docker-build
     inputs:
