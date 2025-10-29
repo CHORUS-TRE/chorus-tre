@@ -40,13 +40,22 @@ spec:
             type: string
             value:
               - pull_request
-               # TODO: remove after testing
-              - push
           - path: "body.action"
             type: string
             value:
               - "opened"
               - "synchronize"
+
+    # TODO: remove after testing  
+    - name: ci-chorus-backend-push
+      eventSourceName: {{ $fullName }}-github
+      eventName: chorus-backend
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - push
           - path: "body.ref"
             type: string
             value:
@@ -54,7 +63,8 @@ spec:
 
   triggers:
     - template:
-        conditions: ci-chorus-backend
+        # TODO: remove "|| ci-chorus-backend-push" after testing  
+        conditions: ci-chorus-backend || ci-chorus-backend-push
         name: github-workflow-trigger-ci-chorus-backend
         k8s:
           operation: create
