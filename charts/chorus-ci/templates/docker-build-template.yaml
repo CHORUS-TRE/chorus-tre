@@ -21,6 +21,8 @@ spec:
       - name: registry
         value: "harbor.build.chorus-tre.local"
       - name: dockerConfigSecret
+      - name: gitSecretName
+        value: ""
 
   templates:
   - name: docker-build
@@ -33,6 +35,8 @@ spec:
         - name: repository
         - name: registry
         - name: dockerConfigSecret
+        - name: gitSecretName
+          default: ""
       artifacts:
         - name: source
           path: "/src"
@@ -44,6 +48,10 @@ spec:
           items:
             - key: .dockerconfigjson
               path: config.json
+      - name: git-secret
+        secret:
+          secretName: "{{`{{inputs.parameters.gitSecretName}}`}}"
+          optional: true 
 
     container:
       image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "latest" }}
@@ -52,6 +60,8 @@ spec:
           mountPath: /.docker
         - name: docker-data
           mountPath: /var/lib/docker
+        - name: git-secret
+          mountPath: /secrets/git
       env:
           # Otherwise buildx uses DOCKER_CONFIG for it, which is read-only.
         - name: BUILDX_CONFIG
@@ -98,6 +108,13 @@ spec:
             --cache-to=type=registry,ref=${tag_cache}:${version},mode=max,image-manifest=true \
             --cache-to=type=registry,ref=${tag_cache}:latest,mode=max,image-manifest=true";
 
+          BUILD_SECRETS="";
+          if [ -f "/secrets/git/username" ] && [ -f "/secrets/git/password" ]; then
+            export GIT_USERNAME=$(cat /secrets/git/username);
+            export GIT_PASSWORD=$(cat /secrets/git/password);
+            BUILD_SECRETS="--secret id=GIT_USERNAME,env=GIT_USERNAME --secret id=GIT_PASSWORD,env=GIT_PASSWORD";
+          fi;
+
           docker buildx create --name "${BUILDER_NAME}" --driver docker-container;
 
           docker buildx build
@@ -108,6 +125,7 @@ spec:
           --tag "${tag}"
           ${CACHE_FROM}
           ${CACHE_TO}
+          ${BUILD_SECRETS}
           --output "type=registry"
           .
       workingDir: "/src"

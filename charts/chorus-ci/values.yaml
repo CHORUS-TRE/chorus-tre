@@ -54,7 +54,7 @@ chorusBackend:
     tag: "latest" # this is the only tag available
   helm:
     imageNamespace: "docker_proxy/alpine"
-    tag: "3.22.2"
+    tag: "3"
 
 chorusWebui:
   dockerDataStorage:
