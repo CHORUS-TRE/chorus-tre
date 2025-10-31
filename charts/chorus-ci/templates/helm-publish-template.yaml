@@ -30,6 +30,7 @@ spec:
         - name: registry
         - name: dockerConfigSecret
         - name: chartsProject
+          default: "charts"
       artifacts:
         - name: source
           path: "/src"
