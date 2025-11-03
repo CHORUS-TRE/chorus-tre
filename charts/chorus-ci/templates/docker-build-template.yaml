@@ -22,7 +22,7 @@ spec:
         value: "harbor.build.chorus-tre.local"
       - name: dockerConfigSecret
       - name: gitSecretName
-        value: ""
+        value: "git-secret-not-provided"
 
   templates:
   - name: docker-build
@@ -36,7 +36,7 @@ spec:
         - name: registry
         - name: dockerConfigSecret
         - name: gitSecretName
-          default: ""
+          default: "git-secret-not-provided"
       artifacts:
         - name: source
           path: "/src"
@@ -51,7 +51,7 @@ spec:
       - name: git-secret
         secret:
           secretName: "{{`{{inputs.parameters.gitSecretName}}`}}"
-          optional: true 
+          optional: true
 
     container:
       image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "latest" }}
