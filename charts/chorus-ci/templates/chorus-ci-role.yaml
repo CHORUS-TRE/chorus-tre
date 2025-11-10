@@ -2,7 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: chorus-ci-role
-  namespace: argo
+  namespace: {{ .Release.Namespace | default argo }}
 rules:
 - apiGroups:
   - argoproj.io
