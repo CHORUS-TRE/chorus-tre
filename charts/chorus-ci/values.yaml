@@ -61,7 +61,7 @@ chorusBackend:
   kubectl:
     imageNamespace: "docker_proxy/alpine"
     tag: "1.34.1"
-  acceptanceTestsNamespace: chorus-backend-acceptance
+  acceptanceTestsNamespace: "chorus-backend-acceptance"
 
 chorusWebui:
   dockerDataStorage:
