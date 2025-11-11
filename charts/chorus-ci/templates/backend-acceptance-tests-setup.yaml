@@ -45,8 +45,8 @@ metadata:
   namespace: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
 subjects:
   - kind: ServiceAccount
-    name: {{ .Values.serviceAccount.name | default {{ .Values.serviceAccount.name | default chorus-ci-sa }} }}
-    namespace: {{ .Release.Namespace | default argo}}
+    name: {{ .Values.serviceAccount.name | default "chorus-ci-sa" }}
+    namespace: {{ .Release.Namespace | default "argo" }}
 roleRef:
   kind: Role
   name: chorus-backend-acceptance-test

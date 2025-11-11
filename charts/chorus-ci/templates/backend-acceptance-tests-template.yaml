@@ -26,48 +26,48 @@ spec:
         arguments:
           parameters:
           - name: chorusBackendAcceptanceNamespace
-            value: "{{workflow.parameters.chorusBackendAcceptanceNamespace}}"
+            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
           - name: chorusBackendImageTag
-            value: "{{workflow.parameters.chorusBackendImageTag}}"
+            value: "{{`{{workflow.parameters.chorusBackendImageTag}}`}}"
           - name: releaseName
-            value: "{{workflow.parameters.releaseName}}"
+            value: "{{`{{workflow.parameters.releaseName}}`}}"
     - - name: wait-for-pods
         template: wait-for-pods
         arguments:
           parameters:
           - name: chorusBackendAcceptanceNamespace
-            value: "{{workflow.parameters.chorusBackendAcceptanceNamespace}}"
+            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
     - - name: fetch-config
         template: fetch-config
         arguments:
           parameters:
           - name: chorusBackendAcceptanceNamespace
-            value: "{{workflow.parameters.chorusBackendAcceptanceNamespace}}"
+            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
           - name: releaseName
-            value: "{{workflow.parameters.releaseName}}"
+            value: "{{`{{workflow.parameters.releaseName}}`}}"
     - - name: run-tests
         template: run-tests
         arguments:
           parameters:
           - name: githubSecretName
-            value: "{{workflow.parameters.githubSecretName}}"
+            value: "{{`{{workflow.parameters.githubSecretName}}`}}"
           - name: configContent
-            value: "{{steps.fetch-config.outputs.parameters.configContent}}"
+            value: "{{`{{steps.fetch-config.outputs.parameters.configContent}}`}}"
             # Workaround to pass file content between steps
             # since artifacts are not set up yet
           - name: chorusBackendAcceptanceNamespace
-            value: "{{workflow.parameters.chorusBackendAcceptanceNamespace}}"
+            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
           - name: releaseName
-            value: "{{workflow.parameters.releaseName}}"
+            value: "{{`{{workflow.parameters.releaseName}}`}}"
 
   - name: cleanup-namespace
     container:
       image: {{ .Values.chorusBackend.k8s.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.k8s.imageNamespace | default .Values.global.imageNamespace }}/k8s:{{ .Values.chorusBackend.k8s.tag | default "latest" }}
       env:
       - name: RELEASE_NAME
-        value: "{{workflow.parameters.releaseName}}"
+        value: "{{`{{workflow.parameters.releaseName}}`}}"
       - name: NAMESPACE
-        value: "{{workflow.parameters.chorusBackendAcceptanceNamespace}}"
+        value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
       command: ["/bin/sh", "-c"]
       args:
         - |
@@ -102,11 +102,11 @@ spec:
       image: {{ .Values.chorusBackend.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.chorusBackend.helm.tag | default "latest" }}
       env:
       - name: NAMESPACE
-        value: "{{inputs.parameters.chorusBackendAcceptanceNamespace}}"
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
       - name: IMAGE_TAG
-        value: "{{inputs.parameters.chorusBackendImageTag}}"
+        value: "{{`{{inputs.parameters.chorusBackendImageTag}}`}}"
       - name: RELEASE_NAME
-        value: "{{inputs.parameters.releaseName}}"
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
       - name: DEFAULT_VALUES
         value: "/src/deploy/backend/values.yaml"
       - name: OVERRIDING_VALUES
@@ -131,7 +131,7 @@ spec:
       image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
-        value: "{{inputs.parameters.chorusBackendAcceptanceNamespace}}"
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
       command: [sh, -e, -c]
       args:
         - |
@@ -162,9 +162,9 @@ spec:
       image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
-        value: "{{inputs.parameters.chorusBackendAcceptanceNamespace}}"
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
       - name: CONFIG_MAP_NAME
-        value: "{{inputs.parameters.releaseName}}-backend"
+        value: "{{`{{inputs.parameters.releaseName}}`}}-backend"
       command: [sh, -e, -c]
       args:
         - |
@@ -200,9 +200,9 @@ spec:
       image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
-        value: "{{inputs.parameters.chorusBackendAcceptanceNamespace}}"
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
       - name: RELEASE_NAME
-        value: "{{inputs.parameters.releaseName}}"
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
       command: [sh, -c]
       args:
       - |
@@ -215,9 +215,9 @@ spec:
       image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
-        value: "{{inputs.parameters.chorusBackendAcceptanceNamespace}}"
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
       - name: RELEASE_NAME
-        value: "{{inputs.parameters.releaseName}}"
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
       command: [sh, -c]
       args:
       - |
@@ -227,9 +227,9 @@ spec:
       image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
-        value: "{{inputs.parameters.chorusBackendAcceptanceNamespace}}"
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
       - name: RELEASE_NAME
-        value: "{{inputs.parameters.releaseName}}"
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
       command: [sh, -c]
       args:
       - |
@@ -242,15 +242,15 @@ spec:
       - name: GIT_USERNAME
         valueFrom:
           secretKeyRef:
-            name: "{{inputs.parameters.githubSecretName}}"
+            name: "{{`{{inputs.parameters.githubSecretName}}`}}"
             key: username
       - name: GIT_PASSWORD
         valueFrom:
           secretKeyRef:
-            name: "{{inputs.parameters.githubSecretName}}"
+            name: "{{`{{inputs.parameters.githubSecretName}}`}}"
             key: password
       - name: CONFIG_CONTENT
-        value: "{{inputs.parameters.configContent}}"
+        value: "{{`{{inputs.parameters.configContent}}`}}"
       - name: TEST_CONFIG_FILE
         value: "/src/config.yaml"
       - name: DB_HOST

@@ -306,12 +306,12 @@ spec:
                               - name: chorusBackendAcceptanceNamespace
                                 value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
                               - name: chorusBackendImageTag
-                                value: "{{workflow.parameters.tag}}"
+                                value: "{{`{{workflow.parameters.tag}}`}}"
                             artifacts:
                               - name: source
                                 git:
-                                  repo: "{{workflow.parameters.repoUrl}}"
-                                  revision: "{{workflow.parameters.revision}}"
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
                                   usernameSecret:
                                     name: {{ $githubSecretName }}
                                     key: username
@@ -319,7 +319,7 @@ spec:
                                     name: {{ $githubSecretName }}
                                     key: password
                                   depth: 1
-                                  ref: "{{workflow.parameters.ref}}"
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
                       - - name: helm-publish
                           templateRef:
