@@ -26,48 +26,48 @@ spec:
         arguments:
           parameters:
           - name: chorusBackendAcceptanceNamespace
-            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+            value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
           - name: chorusBackendImageTag
-            value: "{{`{{workflow.parameters.chorusBackendImageTag}}`}}"
+            value: "{{`{{inputs.parameters.chorusBackendImageTag}}`}}"
           - name: releaseName
-            value: "{{`{{workflow.parameters.releaseName}}`}}"
+            value: "{{`{{inputs.parameters.releaseName}}`}}"
     - - name: wait-for-pods
         template: wait-for-pods
         arguments:
           parameters:
           - name: chorusBackendAcceptanceNamespace
-            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+            value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
     - - name: fetch-config
         template: fetch-config
         arguments:
           parameters:
           - name: chorusBackendAcceptanceNamespace
-            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+            value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
           - name: releaseName
-            value: "{{`{{workflow.parameters.releaseName}}`}}"
+            value: "{{`{{inputs.parameters.releaseName}}`}}"
     - - name: run-tests
         template: run-tests
         arguments:
           parameters:
           - name: githubSecretName
-            value: "{{`{{workflow.parameters.githubSecretName}}`}}"
+            value: "{{`{{inputs.parameters.githubSecretName}}`}}"
           - name: configContent
             value: "{{`{{steps.fetch-config.outputs.parameters.configContent}}`}}"
             # Workaround to pass file content between steps
             # since artifacts are not set up yet
           - name: chorusBackendAcceptanceNamespace
-            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+            value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
           - name: releaseName
-            value: "{{`{{workflow.parameters.releaseName}}`}}"
+            value: "{{`{{inputs.parameters.releaseName}}`}}"
 
   - name: cleanup-namespace
     container:
       image: {{ .Values.chorusBackend.k8s.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.k8s.imageNamespace | default .Values.global.imageNamespace }}/k8s:{{ .Values.chorusBackend.k8s.tag | default "latest" }}
       env:
       - name: RELEASE_NAME
-        value: "{{`{{workflow.parameters.releaseName}}`}}"
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
       - name: NAMESPACE
-        value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
       command: ["/bin/sh", "-c"]
       args:
         - |
