@@ -17,8 +17,7 @@ spec:
     - name: githubSecretName
     - name: chorusBackendImageTag
 
-  entrypoint: main 
-  onExit: cleanup-namespace
+  serviceAccountName: {{ include "chorus-ci.serviceAccountName" . }}
   templates:
   - name: main
     steps:
@@ -73,7 +72,22 @@ spec:
       args:
         - |
           helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true --wait --timeout 2m
-          kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true
+          kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true --wait
+
+          HELM_COUNT=$(helm list -n "$NAMESPACE" --no-headers 2>/dev/null | wc -l)
+          # The helm list command returns an empty line when there are no releases
+          if [ "$HELM_COUNT" -gt 1 ]; then
+            echo "ERROR: Some Helm releases still exist!"
+            helm list -n "$NAMESPACE"
+            exit 1
+          fi
+
+          PVC_COUNT=$(kubectl get pvc -n "$NAMESPACE" --no-headers 2>/dev/null | wc -l)
+          if [ "$PVC_COUNT" -gt 0 ]; then
+            echo "ERROR: Some PVCs are still present!"
+            kubectl get pvc -n "$NAMESPACE"
+            exit 1
+          fi
 
   - name: helm-deploy
     inputs:
@@ -129,7 +143,7 @@ spec:
             kubectl describe pods -n "$NAMESPACE"
             exit 1
           fi
-          
+
           echo "All pods are ready!"
 
   - name: fetch-config
@@ -241,6 +255,10 @@ spec:
         value: "/src/config.yaml"
       - name: DB_HOST
         value: "localhost"
+      # TODO: discuss leveraging kubernetes DNS directly instead of port-forwarding
+      # we can already set the DB_HOST to service_name.namespace.svc.cluster.local
+      # but we also need to add this feature for the backend service
+      # see tests/helpers/config.go in the chorus-backend repo
       command: [sh, -e, -c]
       args:
         - |
@@ -255,10 +273,10 @@ spec:
             echo ""
           fi
 
-          export GOPRIVATE=github.com/CHORUS-TRE/* 
-          export GIT_CONFIG_COUNT=1 
-          export GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf 
-          export GIT_CONFIG_VALUE_0=https://github.com/ 
+          export GOPRIVATE=github.com/CHORUS-TRE/*
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf
+          export GIT_CONFIG_VALUE_0=https://github.com/
           go mod download
-          go test -v -p 1 --tags acceptance ./tests/acceptance/...
+          go test -v -p 1 -timeout 15m --tags acceptance ./tests/acceptance/...
       workingDir: "/src"
