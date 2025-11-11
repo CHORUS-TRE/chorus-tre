@@ -284,6 +284,38 @@ spec:
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
+# TODO: Add backend acceptance tests here
+# Idea to discuss: first publish the image to a temporary project on Harbor,
+# and only if acceptance tests pass, then push to chorus project.
+
+                      - - name: acceptance-tests
+                          templateRef:
+                            name: {{ $fullName }}-backend-acceptance-tests-workflow-template
+                            template: main
+                          arguments:
+                            parameters:
+                              - name: githubSecretName
+                                value: {{ $githubSecretName }}
+                              - name: releaseName
+                                value: acceptance
+                              - name: chorusBackendAcceptanceNamespace
+                                value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
+                              - name: chorusBackendImageTag
+                                value: "{{workflow.parameters.tag}}"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{workflow.parameters.repoUrl}}"
+                                  revision: "{{workflow.parameters.revision}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{workflow.parameters.ref}}"
+
                       - - name: helm-publish
                           templateRef:
                             name: {{ $fullName }}-helm-publish-template
