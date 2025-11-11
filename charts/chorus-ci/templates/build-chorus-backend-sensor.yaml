@@ -292,6 +292,11 @@ spec:
                           templateRef:
                             name: {{ $fullName }}-backend-acceptance-tests-workflow-template
                             template: main
+                          hooks:
+                            exit:
+                              templateRef:
+                                name: {{ $fullName }}-backend-acceptance-tests-workflow-template
+                                template: cleanup-namespace
                           arguments:
                             parameters:
                               - name: githubSecretName
