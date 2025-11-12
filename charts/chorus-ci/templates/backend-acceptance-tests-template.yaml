@@ -41,6 +41,7 @@ spec:
             value: "{{`{{inputs.parameters.releaseName}}`}}"
           artifacts:
           - name: source
+            from: "{{`{{inputs.artifacts.source}}`}}"
     - - name: wait-for-pods
         template: wait-for-pods
         arguments:
@@ -71,6 +72,8 @@ spec:
             value: "{{`{{inputs.parameters.releaseName}}`}}"
           artifacts:
           - name: source
+            from: "{{`{{inputs.artifacts.source}}`}}"
+
 
   - name: cleanup-namespace
     inputs:
