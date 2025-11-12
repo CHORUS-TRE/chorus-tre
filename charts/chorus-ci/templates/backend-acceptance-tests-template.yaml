@@ -20,6 +20,14 @@ spec:
   serviceAccountName: {{ include "chorus-ci.serviceAccountName" . }}
   templates:
   - name: main
+    inputs:
+      parameters:
+      - name: releaseName
+      - name: chorusBackendAcceptanceNamespace
+      - name: githubSecretName
+      - name: chorusBackendImageTag
+      artifacts:
+        - name: source
     steps:
     - - name: helm-deploy
         template: helm-deploy
@@ -61,6 +69,10 @@ spec:
             value: "{{`{{inputs.parameters.releaseName}}`}}"
 
   - name: cleanup-namespace
+    inputs:
+      parameters:
+      - name: releaseName
+      - name: chorusBackendAcceptanceNamespace
     container:
       image: {{ .Values.chorusBackend.k8s.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.k8s.imageNamespace | default .Values.global.imageNamespace }}/k8s:{{ .Values.chorusBackend.k8s.tag | default "latest" }}
       env:
