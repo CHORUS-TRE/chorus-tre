@@ -39,6 +39,8 @@ spec:
             value: "{{`{{inputs.parameters.chorusBackendImageTag}}`}}"
           - name: releaseName
             value: "{{`{{inputs.parameters.releaseName}}`}}"
+          artifacts:
+          - name: source
     - - name: wait-for-pods
         template: wait-for-pods
         arguments:
@@ -67,6 +69,8 @@ spec:
             value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
           - name: releaseName
             value: "{{`{{inputs.parameters.releaseName}}`}}"
+          artifacts:
+          - name: source
 
   - name: cleanup-namespace
     inputs:
