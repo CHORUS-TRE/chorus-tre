@@ -61,7 +61,7 @@ spec:
         - name: CHARTS_PROJECT
           value: "{{`{{inputs.parameters.chartsProject}}`}}"
       command: [sh, -e, -c]
-      args: 
+      args:
         - >-
           cat "${DOCKER_CONFIG}/config.json"
           | yq -r ".auths.\"${REGISTRY}\".auth"
@@ -75,6 +75,7 @@ spec:
           | awk -F: '{ print $2 }'
           | helm registry login -u "${username}" --password-stdin "${REGISTRY}";
 
+          helm dependency build "${CHARTS_DIR}/${CHART_NAME}";
           helm package "${CHARTS_DIR}/${CHART_NAME}";
           helm push ${CHART_NAME}-*.tgz "oci://${REGISTRY}/${CHARTS_PROJECT}";
       workingDir: "/src"
