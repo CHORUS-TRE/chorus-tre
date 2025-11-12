@@ -285,9 +285,8 @@ spec:
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
-# TODO: Add backend acceptance tests here
-# Idea to discuss: first publish the image to a temporary project on Harbor,
-# and only if acceptance tests pass, then push to chorus project.
+# TODO: discuss the possibility to first publish the image to a temporary project on Harbor,
+# and only push to chorus project if acceptance tests pass.
 
                       - - name: acceptance-tests
                           templateRef:
