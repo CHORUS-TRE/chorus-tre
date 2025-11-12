@@ -1,4 +1,11 @@
 oauth2-proxy:
+  config:
+    configFile: |-
+      skip_auth_routes = [
+        "^/-/healthy$",
+        "^/-/ready$"
+      ]
+
   metrics:
     serviceMonitor:
       enabled: true
