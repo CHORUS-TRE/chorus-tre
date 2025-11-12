@@ -135,10 +135,10 @@ spec:
                       command: [sh, -e, -c]
                       args:
                         - >
-                          GOPRIVATE=github.com/CHORUS-TRE/* 
-                          GIT_CONFIG_COUNT=1 
-                          GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf 
-                          GIT_CONFIG_VALUE_0=https://github.com/ 
+                          GOPRIVATE=github.com/CHORUS-TRE/*
+                          GIT_CONFIG_COUNT=1
+                          GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf
+                          GIT_CONFIG_VALUE_0=https://github.com/
                           go test -v ./...
                       workingDir: "/src"
 
@@ -372,7 +372,9 @@ spec:
               dest: spec.arguments.parameters.4.value
             - src:
                 dependencyName: build-chorus-backend
-                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
+                #dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}n/a{{ end }}`}}'
+                # TODO: REVERT AFTER TESTING
+                dataTemplate: '{{`{{ if hasPrefix "refs/tags/v" .Input.body.ref }}{{ .Input.body.ref | trimPrefix "refs/tags/v"  }}{{ else }}20251104-0b8b2b12{{ end }}`}}'
               dest: spec.arguments.parameters.5.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
