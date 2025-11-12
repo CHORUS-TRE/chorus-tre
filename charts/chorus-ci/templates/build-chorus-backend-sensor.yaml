@@ -1,6 +1,7 @@
 {{- $fullName := include "chorus-ci.fullname" . -}}
 {{- $serviceAccountName := include "chorus-ci.serviceAccountName" . -}}
 {{- $githubSecretName := index .Values.githubSecrets "chorus-backend" }}
+{{- $backendAcceptanceTestsReleaseName := "acceptance" -}}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
@@ -297,12 +298,18 @@ spec:
                               templateRef:
                                 name: {{ $fullName }}-backend-acceptance-tests-workflow-template
                                 template: cleanup-namespace
+                              arguments:
+                                parameters:
+                                  - name: chorusBackendAcceptanceNamespace
+                                    value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
+                                  - name: releaseName
+                                    value: {{ $backendAcceptanceTestsReleaseName }}
                           arguments:
                             parameters:
                               - name: githubSecretName
                                 value: {{ $githubSecretName }}
                               - name: releaseName
-                                value: acceptance
+                                value: {{ $backendAcceptanceTestsReleaseName }}
                               - name: chorusBackendAcceptanceNamespace
                                 value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
                               - name: chorusBackendImageTag
