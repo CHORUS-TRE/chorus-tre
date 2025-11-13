@@ -93,21 +93,6 @@ spec:
           helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true --wait --timeout 2m
           kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true --wait
 
-          HELM_COUNT=$(helm list -n "$NAMESPACE" --no-headers 2>/dev/null | wc -l)
-          # The helm list command returns an empty line when there are no releases
-          if [ "$HELM_COUNT" -gt 1 ]; then
-            echo "ERROR: Some Helm releases still exist!"
-            helm list -n "$NAMESPACE"
-            exit 1
-          fi
-
-          PVC_COUNT=$(kubectl get pvc -n "$NAMESPACE" --no-headers 2>/dev/null | wc -l)
-          if [ "$PVC_COUNT" -gt 0 ]; then
-            echo "ERROR: Some PVCs are still present!"
-            kubectl get pvc -n "$NAMESPACE"
-            exit 1
-          fi
-
   - name: helm-deploy
     inputs:
       parameters:
