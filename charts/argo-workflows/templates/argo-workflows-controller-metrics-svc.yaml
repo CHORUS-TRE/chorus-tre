@@ -1,4 +1,4 @@
-{{- if .Values.argo-workflows.controller.metricsConfig.enabled -}}
+{{- if .Values.argo-workflows.controller.metricsConfig.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
