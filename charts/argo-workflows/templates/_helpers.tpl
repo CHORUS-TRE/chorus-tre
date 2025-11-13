@@ -2,5 +2,5 @@
 Get argo-workflows values. Helm
 */}}
 {{- define "argoWorkflows.values" -}}
-{{- index .Values "argo-workflows" -}}
+{{- index .Values "argo-workflows" | toYaml -}}
 {{- end -}}
