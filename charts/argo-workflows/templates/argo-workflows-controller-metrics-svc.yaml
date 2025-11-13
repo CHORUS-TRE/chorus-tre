@@ -5,7 +5,7 @@ kind: Service
 metadata:
   labels:
     app: workflow-controller
-  name: {{ .Release.Name }}-workflow-controller-metrics
+  name: {{ .Release.Name }}-metrics
   namespace: {{ .Release.Namespace | default "argo" }}
 spec:
   clusterIP: None
