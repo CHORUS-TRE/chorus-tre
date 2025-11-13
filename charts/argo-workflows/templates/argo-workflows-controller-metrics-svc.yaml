@@ -1,4 +1,5 @@
-{{- if .Values.argo-workflows.controller.metricsConfig.enabled }}
+{{- $values := include "argoWorkflows.values" . | fromYaml }}
+{{- if $values.controller.metricsConfig.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -9,10 +10,10 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - name: {{ .Values.argo-workflows.controller.metricsConfig.portName }}
-    port: {{ .Values.argo-workflows.controller.metricsConfig.port }}
+  - name: {{ $values.controller.metricsConfig.portName }}
+    port: {{ $values.controller.metricsConfig.port }}
     protocol: TCP
-    targetPort: {{ .Values.argo-workflows.controller.metricsConfig.port }}
+    targetPort: {{ $values.controller.metricsConfig.port }}
   selector:
     app: workflow-controller
 ---
@@ -23,7 +24,7 @@ metadata:
   namespace: {{ .Release.Namespace | default "argo" }}
 spec:
   endpoints:
-  - port: {{ .Values.argo-workflows.controller.metricsConfig.portName }}
+  - port: {{ $values.controller.metricsConfig.portName }}
   selector:
     matchLabels:
       app: workflow-controller
