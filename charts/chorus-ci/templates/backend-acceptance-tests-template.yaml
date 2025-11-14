@@ -81,7 +81,7 @@ spec:
       - name: releaseName
       - name: chorusBackendAcceptanceNamespace
     container:
-      image: {{ .Values.chorusBackend.k8s.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.k8s.imageNamespace | default .Values.global.imageNamespace }}/k8s:{{ .Values.chorusBackend.k8s.tag | default "latest" }}
+      image: {{ .Values.template.k8s.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.k8s.imageNamespace | default .Values.global.imageNamespace }}/k8s:{{ .Values.template.k8s.tag | default "latest" }}
       env:
       - name: RELEASE_NAME
         value: "{{`{{inputs.parameters.releaseName}}`}}"
@@ -103,7 +103,7 @@ spec:
         - name: source
           path: "/src"
     container:
-      image: {{ .Values.chorusBackend.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.chorusBackend.helm.tag | default "latest" }}
+      image: {{ .Values.template.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.template.helm.tag | default "latest" }}
       env:
       - name: NAMESPACE
         value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
@@ -132,7 +132,7 @@ spec:
       parameters:
       - name: chorusBackendAcceptanceNamespace
     container:
-      image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
         value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
@@ -163,7 +163,7 @@ spec:
         valueFrom:
           path: /tmp/config.yaml
     container:
-      image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
         value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
@@ -201,7 +201,7 @@ spec:
     sidecars:
     # TODO: discuss leveraging kubernetes DNS directly instead of port-forwarding
     - name: port-forward-sidecar
-      image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
         value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
@@ -216,7 +216,7 @@ spec:
         kubectl -n $NAMESPACE port-forward service/$RELEASE_NAME-postgresql 5432:5432 &
         wait
     - name: backend-logs
-      image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
         value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
@@ -228,7 +228,7 @@ spec:
         echo "Starting log stream for backend pods..."
         kubectl -n $NAMESPACE logs -l app.kubernetes.io/instance=$RELEASE_NAME -l app.kubernetes.io/name=backend -f
     - name: backend-db-logs
-      image: {{ .Values.chorusBackend.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.chorusBackend.kubectl.tag | default "latest" }}
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
       env:
       - name: NAMESPACE
         value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
