@@ -122,9 +122,9 @@ spec:
         - |
           helm dependency update /src/deploy/backend
           # Dry-run
-          helm upgrade --install "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --values "$DEFAULT_VALUES" --values "$OVERRIDING_VALUES" --set-string image.tag="$IMAGE_TAG" --dry-run=server -oyaml
+          helm upgrade --install "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --values "$DEFAULT_VALUES" --values "$OVERRIDING_VALUES" --set-string image.tag="$IMAGE_TAG" --set-string config.storage.datastores.chorus.host="$RELEASE_NAME-postgresql" --dry-run=server -oyaml
           # Deploy
-          helm upgrade --install "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --values "$DEFAULT_VALUES" --values "$OVERRIDING_VALUES" --set-string image.tag="$IMAGE_TAG" --timeout 5m --wait
+          helm upgrade --install "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --values "$DEFAULT_VALUES" --values "$OVERRIDING_VALUES" --set-string image.tag="$IMAGE_TAG" --set-string config.storage.datastores.chorus.host="$RELEASE_NAME-postgresql" --timeout 5m --wait
       workingDir: "/src"
 
   - name: wait-for-pods
