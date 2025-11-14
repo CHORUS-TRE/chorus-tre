@@ -10,6 +10,11 @@ argo-workflows:
   controller:
     workflowNamespaces:
       - argo
+    metricsConfig:
+      enabled: true
+      port: 9090
+      portName: "metrics"
+      secure: true
 
   server:
     authModes:

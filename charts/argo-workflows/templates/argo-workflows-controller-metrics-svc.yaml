@@ -1,0 +1,31 @@
+{{- $values := include "argoWorkflows.values" . | fromYaml }}
+{{- if $values.controller.metricsConfig.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: workflow-controller
+  name: {{ .Release.Name }}-metrics
+  namespace: {{ .Release.Namespace | default "argo" }}
+spec:
+  clusterIP: None
+  ports:
+  - name: {{ $values.controller.metricsConfig.portName }}
+    port: {{ $values.controller.metricsConfig.port }}
+    protocol: TCP
+    targetPort: {{ $values.controller.metricsConfig.port }}
+  selector:
+    app: workflow-controller
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace | default "argo" }}
+spec:
+  endpoints:
+  - port: {{ $values.controller.metricsConfig.portName }}
+  selector:
+    matchLabels:
+      app: workflow-controller
+{{- end }}
