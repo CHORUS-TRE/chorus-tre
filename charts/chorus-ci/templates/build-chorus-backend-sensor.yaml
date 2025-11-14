@@ -302,13 +302,13 @@ spec:
                                   - name: chorusBackendAcceptanceNamespace
                                     value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
                                   - name: releaseName
-                                    value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{workflow.uid | trunc 8}}`}}"
+                                    value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
                           arguments:
                             parameters:
                               - name: githubSecretName
                                 value: {{ $githubSecretName }}
                               - name: releaseName
-                                value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{workflow.uid | trunc 8}}`}}"
+                                value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
                               - name: chorusBackendAcceptanceNamespace
                                 value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
                               - name: chorusBackendImageTag
