@@ -48,6 +48,14 @@ spec:
             state=failure
             verb=has
             ;;
+            "Stopped")
+            state=cancelled
+            verb=has
+            ;;
+            "Terminated")
+            state=cancelled
+            verb=has
+            ;;
             *)
             state=error
             verb="got unexpected"
