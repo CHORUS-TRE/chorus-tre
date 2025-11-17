@@ -91,11 +91,12 @@ spec:
         - name: workflows
     container:
       image: argoproj/argocli:latest
+      command: [argo]
       env:
         - name: WORKFLOWS
           value: "{{`{{inputs.parameters.workflows}}`}}"
         - name: NAMESPACE
           value: "{{`{{workflow.namespace}}`}}"
       args:
-        - |
-          stop $WORKFLOWS -n $NAMESPACE
+      - |
+        stop $WORKFLOWS -n $NAMESPACE
