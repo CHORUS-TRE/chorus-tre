@@ -34,7 +34,7 @@ spec:
             parameters:
               - name: workflows
                 value: "{{`{{steps.identify-workflows.outputs.parameters.workflows}}`}}"
-          when: "{{`{{steps.identify-workflows.outputs.parameters.workflows}}` != \"\"}}"
+          when: "{{`{{steps.identify-workflows.outputs.parameters.workflows}} != \"\"`}}"
 
   - name: identify-workflows
     inputs:
