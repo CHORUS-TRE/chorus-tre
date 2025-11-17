@@ -69,13 +69,13 @@ spec:
 
           if [ -n "$workflows" ]; then
             echo "Workflows to stop: $workflows"
-            echo -n "$workflows" > /tmp/workflows.txt
+            echo "$workflows" | tr ' ' '\n' | jq -R . | jq -s . > /tmp/workflows.txt
             echo "true" > /tmp/has-workflows.txt
             exit 0
           fi
 
           echo "No workflows to stop"
-          echo -n "" > /tmp/workflows.txt
+          echo -n "[]" > /tmp/workflows.txt
           echo "false" > /tmp/has-workflows.txt
     outputs:
       parameters:
