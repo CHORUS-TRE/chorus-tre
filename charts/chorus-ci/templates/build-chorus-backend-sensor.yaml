@@ -188,8 +188,8 @@ spec:
               metadata:
                 generateName: "-"
                 labels:
-                  repo: "{{`{{.Input.body.repoFullName}}`}}"
-                  ref: "{{`{{.Input.body.ref}}`}}"
+                  repo: "{{`{{.Input.body.repoFullName | replace "/" "-" }}`}}"
+                  ref: "{{`{{.Input.body.ref | replace "refs/heads/" "" | replace "refs/tags/" "" | replace "/" "-" }}`}}"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-backend
@@ -259,9 +259,9 @@ spec:
                           arguments:
                             parameters:
                               - name: repo
-                                value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                                value: "{{`{{workflow.parameters.repoFullName | replace "/" "-" }}`}}"
                               - name: ref
-                                value: "{{`{{workflow.parameters.ref}}`}}"
+                                value: "{{`{{workflow.parameters.ref | replace "refs/heads/" "" | replace "refs/tags/" "" | replace "/" "-" }}`}}"
                       - - name: docker-build
                           templateRef:
                             name: {{ $fullName }}-docker-build-template
