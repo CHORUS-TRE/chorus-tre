@@ -49,20 +49,12 @@ spec:
             "Failed")
             # Check if shutdown was requested (Stop or Terminate)
             if [ -n "$shutdown" ]; then
-              state=cancelled
-              verb=was
+              state=error
+              verb=has
             else
               state=failure
               verb=has
             fi
-            ;;
-            "Stopped")
-            state=cancelled
-            verb=has
-            ;;
-            "Terminated")
-            state=cancelled
-            verb=has
             ;;
             *)
             state=error
