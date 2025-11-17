@@ -62,8 +62,7 @@ spec:
           workflows=$(kubectl get workflow \
             -o jsonpath='{.items[*].metadata.name}' \
             -n $NAMESPACE \
-            -l repo=$REPO,ref=$REF \
-            --field-selector status.phase==Running \
+            -l repo=$REPO,ref=$REF,workflows.argoproj.io/phase=Running \
             --field-selector metadata.name!=$WORKFLOW_NAME \
             --ignore-not-found=true)
 
