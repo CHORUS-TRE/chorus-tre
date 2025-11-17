@@ -108,3 +108,5 @@ spec:
       - "{{`{{inputs.parameters.workflow}}`}}"
       - -n
       - "{{`{{workflow.namespace}}`}}"
+      - --message
+      - "Stopped by {{`{{workflow.name}}`}} to avoid overlapping runs"
