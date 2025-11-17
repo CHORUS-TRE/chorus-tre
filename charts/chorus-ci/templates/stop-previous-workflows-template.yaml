@@ -34,7 +34,7 @@ spec:
             parameters:
               - name: workflows
                 value: "{{`{{steps.identify-workflows.outputs.parameters.workflows}}`}}"
-          when: "{{`{{len(steps.identify-workflows.outputs.parameters.workflows) > 0}}`}}"
+          when: "{{`{{=len(steps.identify-workflows.outputs.parameters.workflows) > 0}}`}}"
 
   - name: identify-workflows
     inputs:
