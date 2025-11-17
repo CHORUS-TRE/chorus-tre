@@ -89,7 +89,7 @@ spec:
   - name: stop-workflows
     inputs:
       parameters:
-        - name: workflows
+        - name: workflow
     container:
       image: argoproj/argocli:latest
       command: [argo]
