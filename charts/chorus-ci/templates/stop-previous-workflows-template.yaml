@@ -69,7 +69,18 @@ spec:
 
           if [ -n "$workflows" ]; then
             echo "Workflows to stop: $workflows"
-            echo "$workflows" | tr ' ' '\n' | jq -R . | jq -s . > /tmp/workflows.txt
+            # Manual JSON array construction
+            echo -n "[" > /tmp/workflows.txt
+            first=true
+            for wf in $workflows; do
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo -n "," >> /tmp/workflows.txt
+              fi
+              echo -n "\"$wf\"" >> /tmp/workflows.txt
+            done
+            echo "]" >> /tmp/workflows.txt
             echo "true" > /tmp/has-workflows.txt
             exit 0
           fi
