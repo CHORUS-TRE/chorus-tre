@@ -34,7 +34,7 @@ spec:
             parameters:
               - name: workflows
                 value: "{{`{{steps.identify-workflows.outputs.parameters.workflows}}`}}"
-          when: "{{`{{steps.identify-workflows.outputs.parameters.workflows}} != \"\"`}}"
+          when: "{{`{{steps.identify-workflows.outputs.parameters.has-workflows}}`}} == true"
 
   - name: identify-workflows
     inputs:
@@ -68,10 +68,13 @@ spec:
 
           if [ -n "$workflows" ]; then
             echo "Workflows to stop: $workflows"
+            echo -n "$workflows" > /tmp/workflows.txt
+            echo "true" > /tmp/has-workflows.txt
           else
             echo "No workflows to stop"
           fi
-          echo -n "$workflows" > /tmp/workflows.txt
+          echo "" > /tmp/workflows.txt
+          echo "false" > /tmp/has-workflows.txt
     outputs:
       parameters:
         - name: workflows
