@@ -70,10 +70,11 @@ spec:
             echo "Workflows to stop: $workflows"
             echo -n "$workflows" > /tmp/workflows.txt
             echo "true" > /tmp/has-workflows.txt
-          else
-            echo "No workflows to stop"
+            exit 0
           fi
-          echo "" > /tmp/workflows.txt
+
+          echo "No workflows to stop"
+          echo -n "" > /tmp/workflows.txt
           echo "false" > /tmp/has-workflows.txt
     outputs:
       parameters:
