@@ -187,9 +187,6 @@ spec:
               kind: Workflow
               metadata:
                 generateName: "-"
-                labels:
-                  repo: "{{`{{.Input.body.repoFullName | replace '/' '-' }}`}}"
-                  ref: "{{`{{.Input.body.ref | replace 'refs/heads/' '' | replace 'refs/tags/' '' | replace '/' '-' }}`}}"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-chorus-backend
@@ -259,9 +256,9 @@ spec:
                           arguments:
                             parameters:
                               - name: repo
-                                value: "{{`{{workflow.parameters.repoFullName | replace '/' '-' }}`}}"
+                                value: "{{`{{workflow.labels.repo}}`}}"
                               - name: ref
-                                value: "{{`{{workflow.parameters.ref | replace 'refs/heads/' '' | replace 'refs/tags/' '' | replace '/' '-' }}`}}"
+                                value: "{{`{{workflow.labels.ref}}`}}"
                       - - name: docker-build
                           templateRef:
                             name: {{ $fullName }}-docker-build-template
@@ -408,6 +405,15 @@ spec:
                 dependencyName: build-chorus-backend
                 dataTemplate: '{{`{{ .Input.body.repository.full_name }}`}}'
               dest: metadata.annotations.workflows\.argoproj\.io/description
+            # Set labels for use by stop-previous-workflows
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.ref | replace "refs/heads/" "" | replace "refs/tags/" "" | replace "/" "-" }}`}}'
+              dest: metadata.labels.ref
 
       retryStrategy:
         steps: 3
