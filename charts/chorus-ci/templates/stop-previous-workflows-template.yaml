@@ -32,9 +32,10 @@ spec:
           template: stop-workflows
           arguments:
             parameters:
-              - name: workflows
-                value: "{{`{{steps.identify-workflows.outputs.parameters.workflows}}`}}"
+              - name: workflow
+                value: "{{`{{item}}`}}"
           when: "{{`{{steps.identify-workflows.outputs.parameters.has-workflows}}`}} == true"
+          withParam: "{{`{{steps.identify-workflows.outputs.parameters.workflows}}`}}"
 
   - name: identify-workflows
     inputs:
@@ -92,11 +93,8 @@ spec:
     container:
       image: argoproj/argocli:latest
       command: [argo]
-      # env:
-      #   - name: WORKFLOWS
-      #     value: "{{`{{inputs.parameters.workflows}}`}}"
-      #   - name: NAMESPACE
-      #     value: "{{`{{workflow.namespace}}`}}"
       args:
-      - |
-        stop "{{`{{inputs.parameters.workflows}}`}}" -n "{{`{{workflow.namespace}}`}}"
+      - stop
+      - "{{`{{inputs.parameters.workflow}}`}}"
+      - -n
+      - "{{`{{workflow.namespace}}`}}"
