@@ -35,6 +35,8 @@ spec:
           mountPath: /secret/github
       args:
         - >-
+          shutdown="{{`{{workflow.spec.shutdown}}`}}";
+
           case "{{`{{workflow.status}}`}}" in
             "Running")
             state=pending
@@ -45,8 +47,14 @@ spec:
             verb=has
             ;;
             "Failed")
-            state=failure
-            verb=has
+            # Check if shutdown was requested (Stop or Terminate)
+            if [ -n "$shutdown" ]; then
+              state=cancelled
+              verb=was
+            else
+              state=failure
+              verb=has
+            fi
             ;;
             "Stopped")
             state=cancelled
