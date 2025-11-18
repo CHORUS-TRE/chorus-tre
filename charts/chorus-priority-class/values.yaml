@@ -1,0 +1,59 @@
+# PriorityClass definitions
+# Each priority class can be enabled/disabled individually
+# Priority values range: higher values = higher priority
+
+# If no priority class is set as globalDefault,
+# pods without a priorityClassName will have the built-in
+# default assigned (priority 0)
+
+nameOverride: ""
+fullnameOverride: ""
+
+priorityClasses:
+  # High priority workloads
+  - name: high-priority
+    enabled: true
+    value: 1000000
+    globalDefault: false
+    preemptionPolicy: PreemptLowerPriority
+    description: "High priority for important production workloads"
+
+  # Medium priority workloads
+  - name: medium-priority
+    enabled: true
+    value: 500000
+    globalDefault: false
+    preemptionPolicy: PreemptLowerPriority
+    description: "Medium priority for standard workloads"
+
+  # Low priority workloads
+  - name: low-priority
+    enabled: true
+    value: 100000
+    globalDefault: false
+    preemptionPolicy: PreemptLowerPriority
+    description: "Low priority for regular workloads"
+
+  # Batch processing workloads
+  - name: batch-priority
+    enabled: true
+    value: 50000
+    globalDefault: false
+    preemptionPolicy: PreemptLowerPriority
+    description: "Priority for batch jobs and background processing"
+
+  # Preemptible workloads
+  - name: preemptible
+    enabled: true
+    value: 10000
+    globalDefault: false
+    preemptionPolicy: Never
+    description: "Preemptible workloads that won't preempt others"
+
+  # Best effort workloads
+  - name: best-effort
+    enabled: true
+    value: -100
+    globalDefault: false
+    preemptionPolicy: Never
+    description: "Lowest priority for best-effort workloads"
