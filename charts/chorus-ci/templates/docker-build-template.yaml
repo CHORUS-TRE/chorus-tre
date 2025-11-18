@@ -40,11 +40,11 @@ spec:
       artifacts:
         - name: source
           path: "/src"
-  outputs:
-    parameters:
-      - name: imageVersion
-        valueFrom:
-          path: /tmp/image-version.txt
+    outputs:
+      parameters:
+        - name: imageVersion
+          valueFrom:
+            path: /tmp/image-version.txt
 
     volumes:
       - name: docker-config
