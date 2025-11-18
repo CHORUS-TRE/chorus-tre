@@ -65,8 +65,7 @@ spec:
                 verb=has
                 status_desc="failed"
                 ;;
-              esac
-              ;;
+              esac;
             ;;
             *)
             state=error
