@@ -35,7 +35,14 @@ spec:
           mountPath: /secret/github
       args:
         - >-
-          shutdown="{{`{{workflow.spec.shutdown}}`}}";
+          message="{{`{{workflow.message}}`}}";
+          if echo "$message" | grep -q "Stopped with strategy"; then
+            shutdown="Stop"
+          elif echo "$message" | grep -q "Terminated"; then
+            shutdown="Terminate"
+          else
+            shutdown=""
+          fi;
 
           case "{{`{{workflow.status}}`}}" in
             "Running")
