@@ -36,13 +36,14 @@ spec:
       args:
         - >-
           message="{{`{{workflow.message}}`}}";
-          if echo "$message" | grep -q "workflow shutdown with strategy: Stop"; then
+          if echo "$message" | grep -q "Stopped with strategy 'Stop'"; then
             shutdown="Stop"
-          elif echo "$message" | grep -q "workflow shutdown with strategy: Terminate"; then
+          elif echo "$message" | grep -q "Stopped with strategy 'Terminate'"; then
             shutdown="Terminate"
           else
             shutdown=""
           fi;
+          echo "DEBUG: message='$message'";
           echo "DEBUG: shutdown='$shutdown'";
 
           case "{{`{{workflow.status}}`}}" in
