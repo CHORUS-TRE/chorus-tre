@@ -35,22 +35,49 @@ spec:
           mountPath: /secret/github
       args:
         - >-
+          labels='{{`{{workflow.labels.json}}`}}';
+          if echo "$labels" | grep -q '"workflows.argoproj.io/action":"Stop"'; then
+            shutdown="Stop"
+          elif echo "$labels" | grep -q '"workflows.argoproj.io/action":"Terminate"'; then
+            shutdown="Terminate"
+          else
+            shutdown=""
+          fi;
+
           case "{{`{{workflow.status}}`}}" in
             "Running")
             state=pending
             verb=is
+            status_desc="running"
             ;;
             "Succeeded")
             state=success
             verb=has
+            status_desc="succeeded"
             ;;
             "Failed")
-            state=failure
-            verb=has
+              case "$shutdown" in
+                "Stop")
+                state=error
+                verb=was
+                status_desc="stopped"
+                ;;
+                "Terminate")
+                state=error
+                verb=was
+                status_desc="terminated"
+                ;;
+                *)
+                state=failure
+                verb=has
+                status_desc="failed"
+                ;;
+              esac;
             ;;
             *)
             state=error
             verb="got unexpected"
+            status_desc="error"
             ;;
           esac;
           echo $state;
@@ -58,6 +85,6 @@ spec:
           gh api --method POST
           /repos/{{`{{inputs.parameters.repoFullName}}`}}/statuses/{{`{{inputs.parameters.sha}}`}}
           -f "state=$state"
-          -f "description={{`{{workflow.mainEntrypoint}}`}} $verb {{`{{workflow.status}}`}}"
+          -f "description={{`{{workflow.mainEntrypoint}}`}} $verb $status_desc"
           -f "target_url=https://argo-workflows.build.chorus-tre.ch/workflows/{{`{{workflow.namespace}}`}}/{{`{{workflow.name}}`}}"
           -f "context={{ $name }}"

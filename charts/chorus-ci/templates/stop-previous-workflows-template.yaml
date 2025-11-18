@@ -1,0 +1,112 @@
+{{- $fullName := include "chorus-ci.fullname" . -}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: {{ $fullName }}-stop-previous-workflows-template
+  namespace: {{ .Release.Namespace | default "argo" }}
+  labels:
+    {{- include "chorus-ci.labels" . | nindent 4 }}
+spec:
+  arguments:
+    parameters:
+      - name: repo
+      - name: ref
+  serviceAccountName: {{ include "chorus-ci.serviceAccountName" . }}
+  templates:
+  - name: stop-previous-workflows
+    inputs:
+      parameters:
+        - name: repo
+        - name: ref
+    steps:
+      - - name: identify-workflows
+          template: identify-workflows
+          arguments:
+            parameters:
+              - name: repo
+                value: "{{`{{inputs.parameters.repo}}`}}"
+              - name: ref
+                value: "{{`{{inputs.parameters.ref}}`}}"
+      - - name: stop-workflows
+          template: stop-workflows
+          arguments:
+            parameters:
+              - name: workflow
+                value: "{{`{{item}}`}}"
+          when: "{{`{{steps.identify-workflows.outputs.parameters.has-workflows}}`}} == true"
+          withParam: "{{`{{steps.identify-workflows.outputs.parameters.workflows}}`}}"
+
+  - name: identify-workflows
+    inputs:
+      parameters:
+        - name: repo
+        - name: ref
+    container:
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
+      env:
+        - name: REPO
+          value: "{{`{{inputs.parameters.repo}}`}}"
+        - name: REF
+          value: "{{`{{inputs.parameters.ref}}`}}"
+        - name: NAMESPACE
+          value: "{{`{{workflow.namespace}}`}}"
+        - name: WORKFLOW_NAME
+          value: "{{`{{workflow.name}}`}}"
+      command: [sh, -e, -c]
+      args:
+        - |
+          echo "Identifying workflows to stop for repo=$REPO ref=$REF"
+
+          # Get running workflows with same labels, excluding current one
+          workflows=$(kubectl get workflow \
+            -o jsonpath='{.items[*].metadata.name}' \
+            -n $NAMESPACE \
+            -l repo=$REPO,ref=$REF,workflows.argoproj.io/phase=Running \
+            --field-selector metadata.name!=$WORKFLOW_NAME \
+            --ignore-not-found=true)
+
+          if [ -n "$workflows" ]; then
+            echo "Workflows to stop: $workflows"
+            # Manual JSON array construction
+            echo -n "[" > /tmp/workflows.txt
+            first=true
+            for wf in $workflows; do
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo -n "," >> /tmp/workflows.txt
+              fi
+              echo -n "\"$wf\"" >> /tmp/workflows.txt
+            done
+            echo "]" >> /tmp/workflows.txt
+            echo "true" > /tmp/has-workflows.txt
+            exit 0
+          fi
+
+          echo "No workflows to stop"
+          echo -n "[]" > /tmp/workflows.txt
+          echo "false" > /tmp/has-workflows.txt
+    outputs:
+      parameters:
+        - name: workflows
+          valueFrom:
+            path: /tmp/workflows.txt
+        - name: has-workflows
+          valueFrom:
+            path: /tmp/has-workflows.txt
+
+  - name: stop-workflows
+    inputs:
+      parameters:
+        - name: workflow
+    container:
+      image: argoproj/argocli:latest
+      command: [argo]
+      args:
+      - stop
+      - "{{`{{inputs.parameters.workflow}}`}}"
+      - -n
+      - "{{`{{workflow.namespace}}`}}"
+      - --message
+      - "Stopped by {{`{{workflow.name}}`}} to avoid overlapping runs"

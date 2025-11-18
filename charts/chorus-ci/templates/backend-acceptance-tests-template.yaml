@@ -1,0 +1,286 @@
+{{- $fullName := include "chorus-ci.fullname" . -}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: {{ $fullName }}-backend-acceptance-tests-workflow-template
+  namespace: {{ .Release.Namespace | default "argo" }}
+  labels:
+    {{- include "chorus-ci.labels" . | nindent 4 }}
+spec:
+  arguments:
+    artifacts:
+      - name: source
+    parameters:
+    - name: releaseName
+    - name: chorusBackendAcceptanceNamespace
+    - name: githubSecretName
+    - name: chorusBackendImageTag
+
+  serviceAccountName: {{ include "chorus-ci.serviceAccountName" . }}
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: releaseName
+      - name: chorusBackendAcceptanceNamespace
+      - name: githubSecretName
+      - name: chorusBackendImageTag
+      artifacts:
+        - name: source
+    steps:
+    - - name: helm-deploy
+        template: helm-deploy
+        arguments:
+          parameters:
+          - name: chorusBackendAcceptanceNamespace
+            value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+          - name: chorusBackendImageTag
+            value: "{{`{{inputs.parameters.chorusBackendImageTag}}`}}"
+          - name: releaseName
+            value: "{{`{{inputs.parameters.releaseName}}`}}"
+          artifacts:
+          - name: source
+            from: "{{`{{inputs.artifacts.source}}`}}"
+    - - name: wait-for-pods
+        template: wait-for-pods
+        arguments:
+          parameters:
+          - name: chorusBackendAcceptanceNamespace
+            value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+    - - name: fetch-config
+        template: fetch-config
+        arguments:
+          parameters:
+          - name: chorusBackendAcceptanceNamespace
+            value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+          - name: releaseName
+            value: "{{`{{inputs.parameters.releaseName}}`}}"
+    - - name: run-tests
+        template: run-tests
+        arguments:
+          parameters:
+          - name: githubSecretName
+            value: "{{`{{inputs.parameters.githubSecretName}}`}}"
+          - name: configContent
+            value: "{{`{{steps.fetch-config.outputs.parameters.configContent}}`}}"
+            # Workaround to pass file content between steps
+            # since artifacts are not set up yet
+          - name: chorusBackendAcceptanceNamespace
+            value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+          - name: releaseName
+            value: "{{`{{inputs.parameters.releaseName}}`}}"
+          artifacts:
+          - name: source
+            from: "{{`{{inputs.artifacts.source}}`}}"
+
+
+  - name: cleanup-namespace
+    inputs:
+      parameters:
+      - name: releaseName
+      - name: chorusBackendAcceptanceNamespace
+    container:
+      image: {{ .Values.template.k8s.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.k8s.imageNamespace | default .Values.global.imageNamespace }}/k8s:{{ .Values.template.k8s.tag | default "latest" }}
+      env:
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true --wait --timeout 2m
+          kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true --wait
+
+  - name: helm-deploy
+    inputs:
+      parameters:
+      - name: chorusBackendAcceptanceNamespace
+      - name: chorusBackendImageTag
+      - name: releaseName
+      artifacts:
+        - name: source
+          path: "/src"
+    container:
+      image: {{ .Values.template.helm.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.helm.imageNamespace | default .Values.global.imageNamespace }}/helm:{{ .Values.template.helm.tag | default "latest" }}
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: IMAGE_TAG
+        value: "{{`{{inputs.parameters.chorusBackendImageTag}}`}}"
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      - name: DEFAULT_VALUES
+        value: "/src/deploy/backend/values.yaml"
+      - name: OVERRIDING_VALUES
+        value: "/src/configs/ci/values.yaml"
+      - name: CHART
+        value: "/src/deploy/backend"
+      command: [sh, -e, -c]
+      args:
+        - |
+          helm dependency update /src/deploy/backend
+          # Dry-run
+          helm upgrade --install "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --values "$DEFAULT_VALUES" --values "$OVERRIDING_VALUES" --set-string image.tag="$IMAGE_TAG" --set-string config.storage.datastores.chorus.host="$RELEASE_NAME-postgresql" --dry-run=server -oyaml
+          # Deploy
+          helm upgrade --install "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --values "$DEFAULT_VALUES" --values "$OVERRIDING_VALUES" --set-string image.tag="$IMAGE_TAG" --set-string config.storage.datastores.chorus.host="$RELEASE_NAME-postgresql" --timeout 5m --wait
+      workingDir: "/src"
+
+  - name: wait-for-pods
+    inputs:
+      parameters:
+      - name: chorusBackendAcceptanceNamespace
+    container:
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      command: [sh, -e, -c]
+      args:
+        - |
+          echo "Waiting for pods in namespace $NAMESPACE to be ready..."
+
+          if ! kubectl wait --for=condition=Ready pods --all -n "$NAMESPACE" --timeout=300s; then
+            echo "Timeout reached! Pod status:"
+            kubectl get pods -n "$NAMESPACE" -o wide
+            kubectl describe pods -n "$NAMESPACE"
+            exit 1
+          fi
+
+          echo "All pods are ready!"
+
+  - name: fetch-config
+    inputs:
+      parameters:
+      - name: chorusBackendAcceptanceNamespace
+      - name: releaseName
+    outputs:
+      # Workaround to pass file content between steps
+      # since artifacts are not set up yet
+      parameters:
+      - name: configContent
+        valueFrom:
+          path: /tmp/config.yaml
+    container:
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: CONFIG_MAP_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}-backend"
+      command: [sh, -e, -c]
+      args:
+        - |
+          # Verify ConfigMap exists before trying to get it
+          if ! kubectl get configmap "$CONFIG_MAP_NAME" -n "$NAMESPACE" &>/dev/null; then
+            echo "ERROR: ConfigMap '$CONFIG_MAP_NAME' not found in namespace '$NAMESPACE'"
+            kubectl get configmap -n "$NAMESPACE"  # Show available configmaps
+            exit 1
+          fi
+
+          kubectl get configmap "$CONFIG_MAP_NAME" -n "$NAMESPACE" -o jsonpath='{.data.config\.yaml}' | base64 -w 0 > /tmp/config.yaml
+
+          # Verify the output is not empty
+          if [ ! -s /tmp/config.yaml ]; then
+            echo "ERROR: ConfigMap exists but config.yaml key is empty or missing!"
+            kubectl get configmap "$CONFIG_MAP_NAME" -n "$NAMESPACE" -o yaml
+            exit 1
+          fi
+
+  - name: run-tests
+    inputs:
+      parameters:
+      - name: configContent
+      - name: githubSecretName
+      - name: chorusBackendAcceptanceNamespace
+      - name: releaseName
+      artifacts:
+        - name: source
+          path: "/src"
+    sidecars:
+    # TODO: discuss leveraging kubernetes DNS directly instead of port-forwarding
+    - name: port-forward-sidecar
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      command: [sh, -c]
+      args:
+      - |
+        echo "Starting port-forward for backend service..."
+        kubectl -n $NAMESPACE port-forward service/$RELEASE_NAME-backend 5000:5000 &
+        echo "Starting port-forward for backend-db service..."
+        kubectl -n $NAMESPACE port-forward service/$RELEASE_NAME-postgresql 5432:5432 &
+        wait
+    - name: backend-logs
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      command: [sh, -c]
+      args:
+      - |
+        echo "Starting log stream for backend pods..."
+        kubectl -n $NAMESPACE logs -l app.kubernetes.io/instance=$RELEASE_NAME -l app.kubernetes.io/name=backend -f
+    - name: backend-db-logs
+      image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      command: [sh, -c]
+      args:
+      - |
+        echo "Starting log stream for backend db pods..."
+        kubectl -n $NAMESPACE logs -l app.kubernetes.io/instance=$RELEASE_NAME -l app.kubernetes.io/name=postgresql -f
+    container:
+      image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default "latest" }}
+      # TODO: investigate configuring resources for this step (currently takes ~5min to complete)
+      env:
+      - name: GIT_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: "{{`{{inputs.parameters.githubSecretName}}`}}"
+            key: username
+      - name: GIT_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: "{{`{{inputs.parameters.githubSecretName}}`}}"
+            key: password
+      - name: CONFIG_CONTENT
+        value: "{{`{{inputs.parameters.configContent}}`}}"
+      - name: TEST_CONFIG_FILE
+        value: "/src/config.yaml"
+      - name: DB_HOST
+        value: "localhost"
+      # TODO: discuss leveraging kubernetes DNS directly instead of port-forwarding
+      # we can already set the DB_HOST to service_name.namespace.svc.cluster.local
+      # but we also need to add this feature for the backend service
+      # see tests/helpers/config.go in the chorus-backend repo
+      command: [sh, -e, -c]
+      args:
+        - |
+          echo "$CONFIG_CONTENT" | base64 -d > config.yaml
+          if [ ! -s config.yaml ]; then
+            echo "WARNING: config.yaml is empty!"
+          else
+            echo ""
+            echo "###### start config.yaml content ######"
+            cat config.yaml
+            echo "###### end config.yaml content ######"
+            echo ""
+          fi
+
+          export GOPRIVATE=github.com/CHORUS-TRE/*
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf
+          export GIT_CONFIG_VALUE_0=https://github.com/
+          go mod download
+          go test -v -p 1 -timeout 15m --tags acceptance ./tests/acceptance/...
+      workingDir: "/src"

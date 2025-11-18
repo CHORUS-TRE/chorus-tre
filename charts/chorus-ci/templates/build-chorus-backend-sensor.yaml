@@ -1,6 +1,7 @@
 {{- $fullName := include "chorus-ci.fullname" . -}}
 {{- $serviceAccountName := include "chorus-ci.serviceAccountName" . -}}
 {{- $githubSecretName := index .Values.githubSecrets "chorus-backend" }}
+{{- $backendAcceptanceTestsReleaseName := "acceptance" -}}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
@@ -135,10 +136,10 @@ spec:
                       command: [sh, -e, -c]
                       args:
                         - >
-                          GOPRIVATE=github.com/CHORUS-TRE/* 
-                          GIT_CONFIG_COUNT=1 
-                          GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf 
-                          GIT_CONFIG_VALUE_0=https://github.com/ 
+                          GOPRIVATE=github.com/CHORUS-TRE/*
+                          GIT_CONFIG_COUNT=1
+                          GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf
+                          GIT_CONFIG_VALUE_0=https://github.com/
                           go test -v ./...
                       workingDir: "/src"
 
@@ -248,6 +249,16 @@ spec:
                 templates:
                   - name: build-chorus-backend
                     steps:
+                      - - name: stop-previous-workflows
+                          templateRef:
+                            name: {{ $fullName }}-stop-previous-workflows-template
+                            template: stop-previous-workflows
+                          arguments:
+                            parameters:
+                              - name: repo
+                                value: "{{`{{workflow.labels.repo}}`}}"
+                              - name: ref
+                                value: "{{`{{workflow.labels.ref}}`}}"
                       - - name: docker-build
                           templateRef:
                             name: {{ $fullName }}-docker-build-template
@@ -270,6 +281,48 @@ spec:
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
                               - name: gitSecretName
                                 value: {{ $githubSecretName | quote }}
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
+
+# TODO: discuss the possibility to first publish the image to a temporary project on Harbor,
+# and only push to chorus project if acceptance tests pass.
+
+                      - - name: acceptance-tests
+                          templateRef:
+                            name: {{ $fullName }}-backend-acceptance-tests-workflow-template
+                            template: main
+                          hooks:
+                            exit:
+                              templateRef:
+                                name: {{ $fullName }}-backend-acceptance-tests-workflow-template
+                                template: cleanup-namespace
+                              arguments:
+                                parameters:
+                                  - name: chorusBackendAcceptanceNamespace
+                                    value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
+                                  - name: releaseName
+                                    value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
+                          arguments:
+                            parameters:
+                              - name: githubSecretName
+                                value: {{ $githubSecretName }}
+                              - name: releaseName
+                                value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
+                              - name: chorusBackendAcceptanceNamespace
+                                value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
+                              - name: chorusBackendImageTag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
                             artifacts:
                               - name: source
                                 git:
@@ -352,6 +405,15 @@ spec:
                 dependencyName: build-chorus-backend
                 dataTemplate: '{{`{{ .Input.body.repository.full_name }}`}}'
               dest: metadata.annotations.workflows\.argoproj\.io/description
+            # Set labels for use by stop-previous-workflows
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: build-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.ref | replace "refs/heads/" "" | replace "refs/tags/" "" | replace "/" "-" }}`}}'
+              dest: metadata.labels.ref
 
       retryStrategy:
         steps: 3
