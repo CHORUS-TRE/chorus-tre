@@ -98,6 +98,7 @@ spec:
           fi;
 
           tag="${REGISTRY}/${REPOSITORY}/${IMAGE}:${version}";
+          tag_latest="${REGISTRY}/${REPOSITORY}/${IMAGE}:latest";
           tag_cache="${REGISTRY}/cache/${IMAGE}-cache";
 
           CACHE_FROM="\
@@ -123,6 +124,7 @@ spec:
           --file "${DOCKERFILE}"
           --label "org.opencontainers.image.revision=${SHA}"
           --tag "${tag}"
+          --tag "${tag_latest}"
           ${CACHE_FROM}
           ${CACHE_TO}
           ${BUILD_SECRETS}
