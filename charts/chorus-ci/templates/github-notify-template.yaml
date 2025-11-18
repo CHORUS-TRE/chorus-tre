@@ -36,7 +36,6 @@ spec:
       args:
         - >-
           labels='{{`{{workflow.labels.json}}`}}';
-          echo "DEBUG: labels='$labels'";
           if echo "$labels" | grep -q '"workflows.argoproj.io/action":"Stop"'; then
             shutdown="Stop"
           elif echo "$labels" | grep -q '"workflows.argoproj.io/action":"Terminate"'; then
@@ -44,7 +43,6 @@ spec:
           else
             shutdown=""
           fi;
-          echo "DEBUG: shutdown='$shutdown'";
 
           case "{{`{{workflow.status}}`}}" in
             "Running")
