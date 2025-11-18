@@ -41,24 +41,37 @@ spec:
             "Running")
             state=pending
             verb=is
+            status_desc="running"
             ;;
             "Succeeded")
             state=success
             verb=has
+            status_desc="succeeded"
             ;;
             "Failed")
-            # Check if shutdown was requested (Stop or Terminate)
-            if [ -n "$shutdown" ]; then
-              state=error
-              verb=has
-            else
-              state=failure
-              verb=has
-            fi
+              case "$shutdown" in
+                "Stop")
+                state=error
+                verb=was
+                status_desc="stopped"
+                ;;
+                "Terminate")
+                state=error
+                verb=was
+                status_desc="terminated"
+                ;;
+                *)
+                state=failure
+                verb=has
+                status_desc="failed"
+                ;;
+              esac
+              ;;
             ;;
             *)
             state=error
             verb="got unexpected"
+            status_desc="error"
             ;;
           esac;
           echo $state;
@@ -66,6 +79,6 @@ spec:
           gh api --method POST
           /repos/{{`{{inputs.parameters.repoFullName}}`}}/statuses/{{`{{inputs.parameters.sha}}`}}
           -f "state=$state"
-          -f "description={{`{{workflow.mainEntrypoint}}`}} $verb {{`{{workflow.status}}`}}"
+          -f "description={{`{{workflow.mainEntrypoint}}`}} $verb $status_desc"
           -f "target_url=https://argo-workflows.build.chorus-tre.ch/workflows/{{`{{workflow.namespace}}`}}/{{`{{workflow.name}}`}}"
           -f "context={{ $name }}"
