@@ -40,6 +40,11 @@ spec:
       artifacts:
         - name: source
           path: "/src"
+  outputs:
+    parameters:
+      - name: imageVersion
+        valueFrom:
+          path: /tmp/image-version.txt
 
     volumes:
       - name: docker-config
@@ -96,6 +101,7 @@ spec:
           else
             version="$(date +%Y%m%d)-$(echo -n ${SHA} | cut -c 1-8)";
           fi;
+          echo -n "${version}" > /tmp/image-version.txt;
 
           tag="${REGISTRY}/${REPOSITORY}/${IMAGE}:${version}";
           tag_latest="${REGISTRY}/${REPOSITORY}/${IMAGE}:latest";
