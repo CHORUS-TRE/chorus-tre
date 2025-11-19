@@ -53,6 +53,10 @@ jobs:
           # Add each repository if REPOS is not empty
           if [ -n "$REPOS" ]; then
             for repo in $REPOS; do
+                if [[ $repo == oci://* ]]; then
+                  echo "Skipping OCI repo: $repo"
+                  continue
+                fi
               helm repo add $(basename $repo) $repo
             done
           fi
