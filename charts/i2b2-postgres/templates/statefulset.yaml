@@ -28,6 +28,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "i2b2-postgres.serviceAccountName" . }}
+      {{- if .Values.priorityClassName}}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
 
