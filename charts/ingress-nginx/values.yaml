@@ -1,6 +1,6 @@
 ingress-nginx:
   controller:
-    priorityClassName: high-priority
-    admissionWebhooks:
-      patch:
-        priorityClassName: batch-priority
+    # priorityClassName: high-priority
+    # admissionWebhooks:
+    #   patch:
+    #     priorityClassName: batch-priority

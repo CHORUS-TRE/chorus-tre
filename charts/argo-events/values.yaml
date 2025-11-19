@@ -1,5 +1,5 @@
 argo-events:
-  controller:
-    priorityClassName: high-priority
-  webhook:
-    priorityClassName: medium-priority
+  # controller:
+  #    priorityClassName: high-priority
+  # webhook:
+  #    priorityClassName: medium-priority

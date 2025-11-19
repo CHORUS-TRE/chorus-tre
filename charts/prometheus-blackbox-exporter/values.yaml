@@ -1,5 +1,5 @@
 prometheus-blackbox-exporter:
-  priorityClassName: medium-priority
+  # priorityClassName: medium-priority
   config:
     modules:
       # Public services

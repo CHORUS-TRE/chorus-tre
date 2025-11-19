@@ -9,7 +9,7 @@ valkey:
   architecture: standalone
 
   primary:
-    priorityClassName: medium-priority
+    # priorityClassName: medium-priority
     resourcesPreset: small
 
     # See: https://github.com/bitnami/charts/blob/main/bitnami/valkey/README.md#host-kernel-settings

@@ -15,7 +15,7 @@ argo-workflows:
       port: 9090
       portName: "metrics"
       secure: true
-    priorityClassName: high-priority
+    # priorityClassName: high-priority
 
   server:
     authModes:
@@ -34,4 +34,4 @@ argo-workflows:
         - hosts:
           - argo-workflows.build.chorus-tre.local
           secretName: argo-workflows-tls
-    priorityClassName: medium-priority
+    # priorityClassName: medium-priority
