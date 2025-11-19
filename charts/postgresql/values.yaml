@@ -67,11 +67,13 @@ postgresql:
     resourcesPreset: "small"
     persistence:
       size: 1Gi
+    priorityClassName: medium-priority
 
   readReplicas:
     networkPolicy:
       enabled: false
     resourcesPreset: "nano"
+    priorityClassName: medium-priority
 
 certificate:
   enabled: false

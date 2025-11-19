@@ -19,13 +19,14 @@ mariadb:
   networkPolicy:
     enabled: false
   primary:
+    priorityClassName: medium-priority
     livenessProbe:
       timeoutSeconds: 10
     readinessProbe:
       timeoutSeconds: 10
   metrics:
     enabled: false
-    image: 
+    image:
       repository: bitnamilegacy/mysqld-exporter
     serviceMonitor:
       enabled: false

@@ -1,9 +1,16 @@
 # Minimal config
 trivy-operator:
+  priorityClassName: medium-priority
+  trivyOperator:
+    scanJobPodPriorityClassName: batch-priority
   serviceMonitor:
     # enabled determines whether a serviceMonitor should be deployed
     enabled: true
   trivy:
+    # If you enable builtInTrivyServer
+    # make sure to set a low priority class for it
+    # builtInTrivyServer: true
+    # priorityClassName: low-priority
     ignoreUnfixed: true
     resources:
       requests:
@@ -18,7 +25,7 @@ trivy-operator:
     metricsExposedSecretInfo: true
     metricsInfraAssessmentInfo: true
     metricsRbacAssessmentInfo: true
-    metricsConfigAuditInfo: true 
+    metricsConfigAuditInfo: true
   service:
     # disabled ensures that the pod gets a ClusterIP.
     headless: false

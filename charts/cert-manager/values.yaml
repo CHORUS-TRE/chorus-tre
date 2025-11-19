@@ -2,6 +2,8 @@ cert-manager:
   crds:
     enabled: false
     keep: true
+  global:
+    priorityClassName: high-priority
 
 # A ClusterIssuer
 # See: https://cert-manager.io/docs/concepts/issuer/

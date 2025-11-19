@@ -1,4 +1,5 @@
 trust-manager:
+  priorityClassName: medium-priority
   crds:
     enabled: true
     keep: true

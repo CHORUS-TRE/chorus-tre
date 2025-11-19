@@ -49,14 +49,15 @@ harbor:
     existingSecret: harbor-secret
     existingXsrfSecret: harbor-secret
     existingXsrfSecretKey: CSRF_KEY # 32 chars
-
     secretName: harbor-tls-secret
+    priorityClassName: high-priority
 
   jobservice:
     existingSecret: harbor-secret
     existingSecretKey: JOBSERVICE_SECRET
     jobLoggers:
       - database
+    priorityClassName: low-priority
 
   registry:
     existingSecret: harbor-secret
@@ -68,6 +69,16 @@ harbor:
       #  - REGISTRY_PASSWD
       #  - REGISTRY_HTPASSWD
       existingSecret: harbor-secret
+    priorityClassName: high-priority
+
+  portal:
+    priorityClassName: medium-priority
+  nginx:
+    priorityClassName: medium-priority
+  trivy:
+    priorityClassName: batch-priority
+  exporter:
+    priorityClassName: low-priority
 
   database:
     type: external

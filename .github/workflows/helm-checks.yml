@@ -34,7 +34,7 @@ jobs:
         MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
 
         # Extract the chart directories from the modified files
-        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u)
+        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u | tr '\n' ' ')
 
         # Check if any charts were modified
         if [ -z "$MODIFIED_CHARTS" ]; then
@@ -53,7 +53,13 @@ jobs:
           # Add each repository if REPOS is not empty
           if [ -n "$REPOS" ]; then
             for repo in $REPOS; do
-              helm repo add $(basename $repo) $repo
+                if [[ $repo == oci://* ]]; then
+                  echo "Skipping OCI repo: $repo"
+                  continue
+                fi
+              # Use everything after https:// as the repo name (replace / with -)
+              repo_name=$(echo "$repo" | sed -E 's|^https?://||;s|/|-|g')
+              helm repo add "$repo_name" "$repo"
             done
           fi
         done

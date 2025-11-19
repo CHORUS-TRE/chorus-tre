@@ -8,8 +8,6 @@ as well as Argo Workflows to build docker images used in internal charts.
 
 ### Add a new helm chart
 
-:warning: Please add/modify only one chart at a time, this is necessary for the Github action to do its job properly :warning:
-
 #### External chart
 If the chart is external, add a new folder in `charts`. Its name should be the same as the chart's name to be added.
 Add the following two files to the folder:

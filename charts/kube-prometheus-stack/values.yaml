@@ -17,6 +17,7 @@ kube-prometheus-stack:
             - alertmanager.build.chorus-tre.local
 
     alertmanagerSpec:
+      priorityClassName: high-priority
       logFormat: json
       retention: 20h
 
@@ -92,6 +93,7 @@ kube-prometheus-stack:
             - prometheus.build.chorus-tre.local
 
     prometheusSpec:
+      priorityClassName: high-priority
       logFormat: json
       retention: 3d
 
@@ -109,6 +111,11 @@ kube-prometheus-stack:
             resources:
               requests:
                 storage: 1Gi
+
+  prometheusOperator:
+    admissionWebhooks:
+      patch:
+        priorityClassName: batch-priority
 
   kubelet:
     serviceMonitor:
