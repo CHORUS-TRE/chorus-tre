@@ -9,3 +9,5 @@ oauth2-proxy:
   metrics:
     serviceMonitor:
       enabled: true
+
+  priorityClassName: medium-priority

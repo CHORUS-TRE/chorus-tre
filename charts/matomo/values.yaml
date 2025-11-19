@@ -40,3 +40,4 @@ matomo:
       persistence:
         enabled: true
         existingClaim: "matomo-taskscheduler"
+  priorityClassName: low-priority
