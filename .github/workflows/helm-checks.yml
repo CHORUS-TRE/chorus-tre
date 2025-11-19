@@ -57,7 +57,9 @@ jobs:
                   echo "Skipping OCI repo: $repo"
                   continue
                 fi
-              helm repo add $(basename $repo) $repo
+              # Use everything after https:// as the repo name (replace / with -)
+              repo_name=$(echo "$repo" | sed -E 's|^https?://||;s|/|-|g')
+              helm repo add "$repo_name" "$repo"
             done
           fi
         done
