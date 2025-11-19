@@ -322,7 +322,7 @@ spec:
                               - name: chorusBackendAcceptanceNamespace
                                 value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
                               - name: chorusBackendImageTag
-                                value: "{{`{{workflow.parameters.tag}}`}}"
+                                value: "{{`{{steps.docker-build.outputs.parameters.imageVersion}}`}}"
                             artifacts:
                               - name: source
                                 git:
