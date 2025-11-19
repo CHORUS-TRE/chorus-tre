@@ -1,7 +1,7 @@
 argo-cd:
   global:
     domain: argo-cd.build.chorus-tre.local
-    # priorityClassName: medium-priority
+    priorityClassName: medium-priority
   configs:
     params:
       server.insecure: true
@@ -19,7 +19,7 @@ argo-cd:
       enabled: true
       serviceMonitor:
         enabled: true
-    # priorityClassName: high-priority
+    priorityClassName: high-priority
   server:
     ingress:
       enabled: true

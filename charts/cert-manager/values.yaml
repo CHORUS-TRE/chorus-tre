@@ -3,7 +3,7 @@ cert-manager:
     enabled: false
     keep: true
   global:
-    # priorityClassName: high-priority
+    priorityClassName: high-priority
 
 # A ClusterIssuer
 # See: https://cert-manager.io/docs/concepts/issuer/

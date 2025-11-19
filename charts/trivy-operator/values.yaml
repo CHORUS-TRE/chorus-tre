@@ -1,8 +1,8 @@
 # Minimal config
 trivy-operator:
-  # priorityClassName: medium-priority
-  # trivyOperator:
-  #   scanJobPodPriorityClassName: batch-priority
+  priorityClassName: medium-priority
+  trivyOperator:
+    scanJobPodPriorityClassName: batch-priority
   serviceMonitor:
     # enabled determines whether a serviceMonitor should be deployed
     enabled: true

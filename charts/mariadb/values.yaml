@@ -19,7 +19,7 @@ mariadb:
   networkPolicy:
     enabled: false
   primary:
-    # priorityClassName: medium-priority
+    priorityClassName: medium-priority
     livenessProbe:
       timeoutSeconds: 10
     readinessProbe:

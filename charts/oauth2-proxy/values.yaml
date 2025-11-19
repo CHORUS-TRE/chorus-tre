@@ -10,4 +10,4 @@ oauth2-proxy:
     serviceMonitor:
       enabled: true
 
-  # priorityClassName: medium-priority
+  priorityClassName: medium-priority

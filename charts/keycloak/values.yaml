@@ -185,4 +185,4 @@ certificate:
   issuerRef:
     name: CHANGEME-issuer
 
-  # priorityClassName: high-priority
+  priorityClassName: high-priority
