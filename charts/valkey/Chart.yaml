@@ -1,7 +1,7 @@
 apiVersion: v2
 description: Valkey is an open source (BSD) high-performance key/value datastore that supports a variety workloads such as caching, message queues, and can act as a primary database.
 name: valkey
-version: 0.0.13
+version: 0.0.12
 dependencies:
   - name: valkey
     version: 2.4.7
