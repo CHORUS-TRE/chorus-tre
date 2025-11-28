@@ -1,14 +1,14 @@
-{{- $files := .Files }}
-{{- $root := . }}
-{{- range tuple "chorus-realm.json" "infra-realm.json" "master-realm.json" }}
-{{- $realmName := replace . ".json" "" }}
-{{- $fileContent := $files.Get (printf "files/%s" .) }}
+{{- $currentScope := . }}
+{{ range $path, $_ :=  .Files.Glob  "files/*-realm.json" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ $realmName }}-config
-  namespace: {{ $root.Release.Namespace }}
+  name: {{ base $path | replace ".json" "" }}-config
+  namespace: {{ $currentScope.Release.Namespace }}
 data:
-  {{ . }}: {{ $fileContent }}
+  {{ base $path }}: |-
+    {{- with $currentScope}}
+      {{ .Files.Get $path | toJson }}
+    {{- end }}
 {{- end }}
