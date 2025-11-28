@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-client-config
+  namespace: {{ .Release.Namespace }}
+data:
+  # infra realm
+  ## alertmanager
+  ALERTMANAGER_ROOT_URL: "{{ .Values.client.alertmanager.rootUrl }}"
+  ALERTMANAGER_ADMIN_URL: "{{ .Values.client.alertmanager.adminUrl }}"
+  ALERTMANAGER_BASE_URL: "{{ .Values.client.alertmanager.baseUrl }}"
+  ALERTMANAGER_REDIRECT_URIS: "{{ .Values.client.alertmanager.redirectUris }}"
+  ALERTMANAGER_WEB_ORIGINS: "{{ .Values.client.alertmanager.webOrigins }}"
+  ## grafana
+  GRAFANA_ROOT_URL: "{{ .Values.client.grafana.rootUrl }}"
+  GRAFANA_ADMIN_URL: "{{ .Values.client.grafana.adminUrl }}"
+  GRAFANA_BASE_URL: "{{ .Values.client.grafana.baseUrl }}"
+  GRAFANA_REDIRECT_URIS: "{{ .Values.client.grafana.redirectUris }}"
+  GRAFANA_WEB_ORIGINS: "{{ .Values.client.grafana.webOrigins }}"
+  ## harbor
+  HARBOR_ROOT_URL: "{{ .Values.client.harbor.rootUrl }}"
+  HARBOR_ADMIN_URL: "{{ .Values.client.harbor.adminUrl }}"
+  HARBOR_BASE_URL: "{{ .Values.client.harbor.baseUrl }}"
+  HARBOR_REDIRECT_URIS: "{{ .Values.client.harbor.redirectUris }}"
+  HARBOR_WEB_ORIGINS: "{{ .Values.client.harbor.webOrigins }}"
+  ## matomo
+  MATOMO_ROOT_URL: "{{ .Values.client.matomo.rootUrl }}"
+  MATOMO_ADMIN_URL: "{{ .Values.client.matomo.adminUrl }}"
+  MATOMO_BASE_URL: "{{ .Values.client.matomo.baseUrl }}"
+  MATOMO_REDIRECT_URIS: "{{ .Values.client.matomo.redirectUris }}"
+  MATOMO_WEB_ORIGINS: "{{ .Values.client.matomo.webOrigins }}"
+  ## prometheus
+  PROMETHEUS_ROOT_URL: "{{ .Values.client.prometheus.rootUrl }}"
+  PROMETHEUS_ADMIN_URL: "{{ .Values.client.prometheus.adminUrl }}"
+  PROMETHEUS_BASE_URL: "{{ .Values.client.prometheus.baseUrl }}"
+  PROMETHEUS_REDIRECT_URIS: "{{ .Values.client.prometheus.redirectUris }}"
+  PROMETHEUS_WEB_ORIGINS: "{{ .Values.client.prometheus.webOrigins }}"
+  # chorus realm
+  ## chorus
+  CHORUS_ROOT_URL: "{{ .Values.client.chorus.rootUrl }}"
+  CHORUS_ADMIN_URL: "{{ .Values.client.chorus.adminUrl }}"
+  CHORUS_BASE_URL: "{{ .Values.client.chorus.baseUrl }}"
+  CHORUS_REDIRECT_URIS: "{{ .Values.client.chorus.redirectUris }}"
+  CHORUS_WEB_ORIGINS: "{{ .Values.client.chorus.webOrigins }}"
