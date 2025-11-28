@@ -8,7 +8,7 @@ metadata:
   namespace: {{ $currentScope.Release.Namespace }}
 data:
   {{ base $path }}: |-
-    {{- with $currentScope}}
-      {{ .Files.Get $path | toJson }}
-    {{- end }}
+  {{- with $currentScope }}
+    {{ .Files.Get $path | nindent 4 }}
+  {{- end }}
 {{- end }}
