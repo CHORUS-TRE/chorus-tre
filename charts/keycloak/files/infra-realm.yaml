@@ -89,10 +89,8 @@ clients:
     adminUrl: "$(GRAFANA_ADMIN_URL)"
     baseUrl: "$(GRAFANA_BASE_URL)"
     secret: "$(GRAFANA_CLIENT_SECRET)"
-    redirectUris:
-      - "$(GRAFANA_REDIRECT_URIS)"
-    webOrigins:
-      - "$(GRAFANA_WEB_ORIGINS)"
+    redirectUris: $(GRAFANA_REDIRECT_URIS)
+    webOrigins: $(GRAFANA_WEB_ORIGINS)
     implicitFlowEnabled: true
     directAccessGrantsEnabled: true
     publicClient: false
@@ -117,10 +115,8 @@ clients:
     adminUrl: "$(HARBOR_ADMIN_URL)"
     baseUrl: "$(HARBOR_BASE_URL)"
     secret: "$(HARBOR_CLIENT_SECRET)"
-    redirectUris:
-      - "$(HARBOR_REDIRECT_URIS)"
-    webOrigins:
-      - "$(HARBOR_WEB_ORIGINS)"
+    redirectUris: $(HARBOR_REDIRECT_URIS)
+    webOrigins: $(HARBOR_WEB_ORIGINS)
     implicitFlowEnabled: true
     directAccessGrantsEnabled: true
     publicClient: false
@@ -145,10 +141,8 @@ clients:
     adminUrl: "$(PROMETHEUS_ADMIN_URL)"
     baseUrl: "$(PROMETHEUS_BASE_URL)"
     secret: "$(PROMETHEUS_CLIENT_SECRET)"
-    redirectUris:
-      - "$(PROMETHEUS_REDIRECT_URIS)"
-    webOrigins:
-      - "$(PROMETHEUS_WEB_ORIGINS)"
+    redirectUris: $(PROMETHEUS_REDIRECT_URIS)
+    webOrigins: $(PROMETHEUS_WEB_ORIGINS)
     implicitFlowEnabled: true
     directAccessGrantsEnabled: true
     publicClient: false
@@ -182,10 +176,8 @@ clients:
     adminUrl: "$(MATOMO_ADMIN_URL)"
     baseUrl: "$(MATOMO_BASE_URL)"
     secret: "$(MATOMO_CLIENT_SECRET)"
-    redirectUris:
-      - "$(MATOMO_REDIRECT_URIS)"
-    webOrigins:
-      - "$(MATOMO_WEB_ORIGINS)"
+    redirectUris: $(MATOMO_REDIRECT_URIS)
+    webOrigins: $(MATOMO_WEB_ORIGINS)
     publicClient: false
     protocol: "openid-connect"
     attributes:
@@ -212,10 +204,8 @@ clients:
     adminUrl: "$(ALERTMANAGER_ADMIN_URL)"
     baseUrl: "$(ALERTMANAGER_BASE_URL)"
     secret: "$(ALERTMANAGER_CLIENT_SECRET)"
-    redirectUris:
-      - "$(ALERTMANAGER_REDIRECT_URIS)"
-    webOrigins:
-      - "$(ALERTMANAGER_WEB_ORIGINS)"
+    redirectUris: $(ALERTMANAGER_REDIRECT_URIS)
+    webOrigins: $(ALERTMANAGER_WEB_ORIGINS)
     implicitFlowEnabled: true
     directAccessGrantsEnabled: true
     publicClient: false

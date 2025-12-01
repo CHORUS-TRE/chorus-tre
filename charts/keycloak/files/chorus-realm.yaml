@@ -59,10 +59,8 @@ clients:
     adminUrl: "$(CHORUS_ADMIN_URL)"
     baseUrl: "$(CHORUS_BASE_URL)"
     secret: "$(CHORUS_CLIENT_SECRET)"
-    redirectUris:
-      - "$(CHORUS_REDIRECT_URIS)"
-    webOrigins:
-      - "$(CHORUS_WEB_ORIGINS)"
+    redirectUris: $(CHORUS_REDIRECT_URIS)
+    webOrigins: $(CHORUS_WEB_ORIGINS)
     implicitFlowEnabled: true
     directAccessGrantsEnabled: true
     publicClient: false
