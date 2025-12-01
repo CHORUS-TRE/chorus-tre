@@ -20,6 +20,7 @@ spec:
             type: string
             value:
               - "server/*"
+              - "app-init/*"
               - "apps/*/.*"
               - "services/*/.*"
 
@@ -98,6 +99,7 @@ spec:
                         # The first capturing group is kept
                         patterns = (
                           re.compile("^(server)/"),
+                          re.compile("^(app-init)/"),
                           re.compile("^(apps/[^/]+)/"),
                         )
 
