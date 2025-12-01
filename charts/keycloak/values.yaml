@@ -210,6 +210,9 @@ keycloak:
       value: /realm/**/*.yaml
     - name: IMPORT_VARSUBSTITUTION_ENABLED
       value: "true"
+    # To make sure that imports are re-applied on every run
+    - name: IMPORT_CACHE_ENABLED
+      value: "false"
 
     ## @param keycloakConfigCli.extraEnvVarsCM ConfigMap with extra environment variables
     ##
