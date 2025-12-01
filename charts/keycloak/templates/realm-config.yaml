@@ -1,10 +1,10 @@
 {{- $currentScope := . }}
-{{ range $path, $_ :=  .Files.Glob  "files/*-realm.json" }}
+{{ range $path, $_ :=  .Files.Glob  "files/*-realm.yaml" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ base $path | replace ".json" "" }}-config
+  name: {{ base $path | replace ".yaml" "" }}-config
   namespace: {{ $currentScope.Release.Namespace }}
 data:
   {{ base $path }}: |-
