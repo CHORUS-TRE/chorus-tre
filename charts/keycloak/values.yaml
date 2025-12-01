@@ -207,7 +207,7 @@ keycloak:
     ##
     extraEnvVars:
     - name: IMPORT_FILES_LOCATIONS
-      value: /realm/**/*.json
+      value: /realm/**/*.yaml
     - name: IMPORT_VARSUBSTITUTION_ENABLED
       value: "true"
 
