@@ -20,6 +20,7 @@ spec:
             type: string
             value:
               - "server/*"
+              - "app-init/*"
               - "apps/*/.*"
               - "services/*/.*"
 
