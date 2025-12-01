@@ -32,3 +32,7 @@ type: Opaque
 ```
 
 This secret is referenced in the chart values and is required for Keycloak to configure client secrets for the various realms.
+
+## Keycloak realm normalization
+
+When moving from "unmanaged" keycloak instance, please refer to the [keycloak-config-cli documentation](https://github.com/adorsys/keycloak-config-cli/blob/main/docs/NORMALIZE.md).
