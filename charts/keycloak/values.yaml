@@ -207,12 +207,19 @@ keycloak:
     ##
     extraEnvVars:
     - name: IMPORT_FILES_LOCATIONS
-      value: /realm/**/*.yaml
+      value: /realm/*.yaml
     - name: IMPORT_VARSUBSTITUTION_ENABLED
       value: "true"
     # To make sure that imports are re-applied on every run
     - name: IMPORT_CACHE_ENABLED
       value: "false"
+    # Enables remote state in encrypted format.
+    # If unset, state will be stored in plain
+    - name: IMPORT_REMOTESTATE_ENCRYPTIONKEY
+      valueFrom:
+        secretKeyRef:
+          name: "keycloak-remotestate-encryption-key"
+          key: encryptionKey
 
     ## @param keycloakConfigCli.extraEnvVarsCM ConfigMap with extra environment variables
     ##
@@ -223,26 +230,14 @@ keycloak:
     ## @param keycloakConfigCli.extraVolumes Extra volumes to add to the job
     ##
     extraVolumes:
-    - name: master-realm
+    - name: realm-config
       configMap:
-        name: master-realm-config
-    - name: infra-realm
-      configMap:
-        name: infra-realm-config
-    - name: chorus-realm
-      configMap:
-        name: chorus-realm-config
+        name: keycloak-realm-config
     ## @param keycloakConfigCli.extraVolumeMounts Extra volume mounts to add to the container
     ##
     extraVolumeMounts:
-    - name: master-realm
-      mountPath: /realm/master/
-      readOnly: true
-    - name: infra-realm
-      mountPath: /realm/infra/
-      readOnly: true
-    - name: chorus-realm
-      mountPath: /realm/chorus/
+    - name: realm-config
+      mountPath: /realm/
       readOnly: true
 
   ## PostgreSQL chart configuration
@@ -322,6 +317,7 @@ client:
     redirectUris: '["http://prometheus.local/*","http://alertmanager.local/*"]'
     webOrigins: '["http://prometheus.local"]'
   chorus:
+    enabled: false
     rootUrl: "http://backend.local"
     adminUrl: "http://backend.local"
     baseUrl: "/"
