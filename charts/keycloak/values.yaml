@@ -232,6 +232,7 @@ keycloak:
     extraVolumes:
     - name: realm-config
       configMap:
+        # This must match the realm-config.yaml ConfigMap
         name: keycloak-realm-config
     ## @param keycloakConfigCli.extraVolumeMounts Extra volume mounts to add to the container
     ##
