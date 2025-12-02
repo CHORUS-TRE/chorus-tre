@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-client-config
+  name: {{ .Values.keycloak.keycloakConfigCli.extraEnvVarsCM }}
   namespace: {{ .Release.Namespace }}
 data:
   # infra realm
@@ -37,8 +37,10 @@ data:
   PROMETHEUS_WEB_ORIGINS: {{ .Values.client.prometheus.webOrigins | quote }}
   # chorus realm
   ## chorus
+{{- if .Values.client.chorus.enabled }}
   CHORUS_ROOT_URL: {{ .Values.client.chorus.rootUrl | quote }}
   CHORUS_ADMIN_URL: {{ .Values.client.chorus.adminUrl | quote }}
   CHORUS_BASE_URL: {{ .Values.client.chorus.baseUrl | quote }}
   CHORUS_REDIRECT_URIS: {{ .Values.client.chorus.redirectUris | quote }}
   CHORUS_WEB_ORIGINS: {{ .Values.client.chorus.webOrigins | quote }}
+{{- end }}
