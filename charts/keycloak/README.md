@@ -5,7 +5,9 @@ This bundles the [keycloak chart][] with an option to put a certificate from cer
 [keycloak chart]: https://github.com/bitnami/charts/tree/main/bitnami/keycloak
 
 
-## Required Secret for Client Credentials
+## Required Secrets
+
+### Client Credentials Secret
 
 You must create a Kubernetes Secret containing the client credentials for the realms. The name of this secret is configurable via the Helm value `.Values.client.existingSecret`. Default is "keycloak-client-secret".
 
@@ -32,6 +34,25 @@ type: Opaque
 ```
 
 This secret is referenced in the chart values and is required for Keycloak to configure client secrets for the various realms.
+
+### Remote State Encryption Secret
+
+Enables remote state in encrypted format.
+If unset, state will be stored in plain.
+You can generate a key with ```openssl rand -hex 32```.
+Make sure to use an **even** number of characters.
+
+Example:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-remotestate-encryption-key
+stringData:
+  encryptionKey: "change-me"
+type: Opaque
+```
 
 ## Keycloak realm normalization
 
