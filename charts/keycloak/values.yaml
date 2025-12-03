@@ -185,6 +185,13 @@ keycloak:
       ##
       pullPolicy: IfNotPresent
 
+    ## @param keycloakConfigCli.annotations [object] Annotations for keycloak-config-cli job
+    ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+    ##
+    annotations:
+      argocd.argoproj.io/hook: PostSync
+      argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+
     ## @param keycloakConfigCli.backoffLimit Number of retries before considering a Job as failed
     ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/job/#pod-backoff-failure-policy
     ##
