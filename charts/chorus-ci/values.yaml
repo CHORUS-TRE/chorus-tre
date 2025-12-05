@@ -22,7 +22,7 @@ global:
 workflow:
   dockerDataStorage:
     storageClassName: ""
-    storageRequest: "100Gi"
+    storageRequest: "150Gi"
 
 # Workflow settings for specific components
 template:
