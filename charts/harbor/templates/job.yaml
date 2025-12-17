@@ -6,12 +6,13 @@ metadata:
   name: {{ .Release.Name }}-config
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "harbor.labels" . | nindent 4 }}
+    app.kubernetes.io/name: harbor
+    app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: config-job
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "5"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
     {{- with .Values.configJob.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -20,7 +21,8 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "harbor.labels" . | nindent 8 }}
+        app.kubernetes.io/name: harbor
+        app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: config-job
     spec:
       restartPolicy: Never
