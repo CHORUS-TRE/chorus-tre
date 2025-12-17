@@ -45,9 +45,12 @@ spec:
             done
             echo "Harbor Core API is ready!"
 
-            echo "Waiting additional 20 seconds for Harbor to stabilize..."
-            sleep 20
-            echo "Harbor is fully ready!"
+            echo "Waiting for Harbor JobService to be ready..."
+            until wget --timeout=2 --tries=1 -O /dev/null http://{{ .Release.Name }}-jobservice 2>&1 | grep -q "401 Unauthorized"; do
+              echo "Harbor JobService not ready yet, waiting..."
+              sleep 5
+            done
+            echo "Harbor JobService is ready!"
       containers:
       - name: harbor-config
         image: "{{ .Values.configJob.image.domain }}/{{ .Values.configJob.image.namespace }}/python:{{ .Values.configJob.image.tag }}"
