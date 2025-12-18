@@ -12,12 +12,13 @@ metadata:
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "5"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation
     {{- with .Values.configJob.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
   backoffLimit: {{ .Values.configJob.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.configJob.ttlSecondsAfterFinished }}
   template:
     metadata:
       labels:
@@ -61,7 +62,7 @@ spec:
           - sh
           - -c
           - |
-            pip install --no-cache-dir requests pyyaml && \
+            pip install --no-cache-dir requests pyyaml pydantic && \
             python3 /scripts/harbor-config-script.py
         env:
           - name: HARBOR_URL
@@ -93,6 +94,10 @@ spec:
             mountPath: /config/projects.yaml
             subPath: projects.yaml
             readOnly: true
+          - name: replications-config
+            mountPath: /config/replications.yaml
+            subPath: replications.yaml
+            readOnly: true
           - name: robots-config
             mountPath: /config/robots.yaml
             subPath: robots.yaml
@@ -112,6 +117,9 @@ spec:
         - name: projects-config
           configMap:
             name: harbor-projects
+        - name: replications-config
+          configMap:
+            name: harbor-replications
         - name: robots-config
           configMap:
             name: harbor-robots

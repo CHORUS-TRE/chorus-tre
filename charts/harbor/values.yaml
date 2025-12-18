@@ -125,643 +125,119 @@ configJob:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
   backoffLimit: 3
+  ttlSecondsAfterFinished: 120
   verifySSL: "true"
   logLevel: "INFO"
   robotSecretPrefix: harbor-robot-
 
-projects:
-  # - name: example-project
-  #   public: false
-  #   auto_scan: true
-  #   severity: "low"
-  #   enable_content_trust: false
-  #   reuse_sys_cve_allowlist: true
-  #   storage_quota: -1
-  - name: apps
-    auto_scan: false
-  - name: chorus
-    auto_scan: false
-  - name: services
-    auto_scan: false
-  - name: docker_proxy
-    auto_scan: false
-    registry:
-      name: docker-hub
-      type: docker-hub
-      url: https://hub.docker.com
-      insecure: false
+projects: {}
+  # Example project with all available settings and their defaults:
+  # - project_name: example-project
+  #   public: false                          # Make project publicly accessible
+  #   auto_scan: true                        # Automatically scan images on push
+  #   severity: low                          # Severity threshold: low, medium, high, critical
+  #   enable_content_trust: false            # Enable Docker Content Trust
+  #   enable_content_trust_cosign: false     # Enable Cosign signature verification
+  #   prevent_vul: false                     # Prevent vulnerable images from running
+  #   auto_sbom_generation: false            # Automatically generate SBOM
+  #   reuse_sys_cve_allowlist: true          # Use system-level CVE allowlist
+  #   storage_limit: -1                      # Storage quota in bytes (-1 = unlimited)
+  #   proxy_speed_kb: -1                     # Proxy cache speed limit in KB/s (-1 = unlimited)
+  #   cve_allowlist:                         # Project-specific CVE allowlist (optional)
+  #     items:
+  #       - cve_id: CVE-2021-1234
+  #       - cve_id: CVE-2021-5678
+  #     expires_at: 1735689600               # Unix timestamp (optional)
+  #   registry:                              # For proxy cache projects only
+  #     name: docker-hub
+  #     type: docker-hub
+  #     url: https://hub.docker.com
+  #     insecure: false
+  #     credential:                          # Optional credentials
+  #       type: basic
+  #       access_key: username
+  #       access_secret: password
+  #   retention_policy:                      # Tag retention policy (optional)
+  #     algorithm: or                        # Rule matching algorithm: "or" or "and"
+  #     rules:
+  #       - priority: 1                      # Lower number = higher priority
+  #         disabled: false
+  #         action: retain                   # Action to take: "retain"
+  #         template: latestPushedK          # Template: "always", "latestPushedK", "latestPulledN", "nDaysSinceLastPush", "nDaysSinceLastPull"
+  #         params:
+  #           latestPushedK: 10              # Keep 10 most recently pushed tags
+  #         tag_selectors:
+  #           - kind: doublestar             # Pattern type: "doublestar"
+  #             decoration: matches          # Match type: "matches" or "excludes"
+  #             pattern: "**"                # Tag pattern
+  #         scope_selectors:
+  #           repository:                    # Repository selectors
+  #             - kind: doublestar
+  #               decoration: repoMatches    # "repoMatches" or "repoExcludes"
+  #               pattern: "**"              # Repository pattern
+  #     trigger:
+  #       kind: Schedule                     # Trigger type: "Schedule"
+  #       settings:
+  #         cron: "0 0 0 * * *"              # Cron expression (daily at midnight)
 
-robots:
-  # - name: example-robot
-  #   description: ''
-  #   duration: -1
-  #   disable: false
-  #   permissions: []
-  - name: chorus-local
-    permissions:
-      - kind: system
-        namespace: /
-        access:
-          - resource: project
-            action: list
-          - resource: registry
-            action: list
-          - resource: registry
-            action: read
-      - kind: project
-        namespace: apps
-        access:
-          - resource: artifact
-            action: list
-          - resource: artifact
-            action: read
-          - resource: repository
-            action: list
-          - resource: repository
-            action: pull
-          - resource: repository
-            action: read
-          - resource: tag
-            action: list
-      - kind: project
-        namespace: chorus
-        access:
-          - resource: repository
-            action: list
-          - resource: repository
-            action: pull
-          - resource: repository
-            action: read
-      - kind: project
-        namespace: services
-        access:
-          - resource: repository
-            action: list
-          - resource: repository
-            action: pull
-          - resource: repository
-            action: read
-      - kind: project
-        namespace: docker_proxy
-        access:
-          - resource: artifact
-            action: list
-          - resource: artifact
-            action: read
-          - resource: repository
-            action: list
-          - resource: repository
-            action: pull
-          - resource: repository
-            action: read
-          - resource: tag
-            action: list
-  - name: chorus-build
-    permissions:
-      # System-level permissions
-      - kind: system
-        namespace: /
-        access:
-          # Audit Log
-          - resource: audit-log
-            action: list
-          # Catalog
-          - resource: catalog
-            action: read
-          # Garbage Collection
-          - resource: garbage-collection
-            action: create
-          - resource: garbage-collection
-            action: list
-          - resource: garbage-collection
-            action: read
-          - resource: garbage-collection
-            action: stop
-          - resource: garbage-collection
-            action: update
-          # Job Service Monitor
-          - resource: jobservice-monitor
-            action: list
-          - resource: jobservice-monitor
-            action: stop
-          # Label
-          - resource: label
-            action: create
-          - resource: label
-            action: delete
-          - resource: label
-            action: read
-          - resource: label
-            action: update
-          # Preheat Instance
-          - resource: preheat-instance
-            action: create
-          - resource: preheat-instance
-            action: delete
-          - resource: preheat-instance
-            action: list
-          - resource: preheat-instance
-            action: read
-          - resource: preheat-instance
-            action: update
-          # Project
-          - resource: project
-            action: create
-          - resource: project
-            action: list
-          # Purge Audit
-          - resource: purge-audit
-            action: create
-          - resource: purge-audit
-            action: list
-          - resource: purge-audit
-            action: read
-          - resource: purge-audit
-            action: stop
-          - resource: purge-audit
-            action: update
-          # Quota
-          - resource: quota
-            action: list
-          - resource: quota
-            action: read
-          # Registry
-          - resource: registry
-            action: create
-          - resource: registry
-            action: delete
-          - resource: registry
-            action: list
-          - resource: registry
-            action: read
-          - resource: registry
-            action: update
-          # Replication
-          - resource: replication
-            action: create
-          - resource: replication
-            action: list
-          - resource: replication
-            action: read
-          # Replication Adapter
-          - resource: replication-adapter
-            action: list
-          # Replication Policy
-          - resource: replication-policy
-            action: create
-          - resource: replication-policy
-            action: delete
-          - resource: replication-policy
-            action: list
-          - resource: replication-policy
-            action: read
-          - resource: replication-policy
-            action: update
-          # Scan All
-          - resource: scan-all
-            action: create
-          - resource: scan-all
-            action: read
-          - resource: scan-all
-            action: stop
-          - resource: scan-all
-            action: update
-          # Scanner
-          - resource: scanner
-            action: create
-          - resource: scanner
-            action: delete
-          - resource: scanner
-            action: list
-          - resource: scanner
-            action: read
-          - resource: scanner
-            action: update
-          # Security Hub
-          - resource: security-hub
-            action: list
-          - resource: security-hub
-            action: read
-          # System Volumes
-          - resource: system-volumes
-            action: read
-      # Project-level permissions for chorus
-      - kind: project
-        namespace: chorus
-        access:
-          # Accessory
-          - resource: accessory
-            action: list
-          # Artifact
-          - resource: artifact
-            action: create
-          - resource: artifact
-            action: delete
-          - resource: artifact
-            action: list
-          - resource: artifact
-            action: read
-          # Artifact Addition
-          - resource: artifact-addition
-            action: read
-          # Artifact Label
-          - resource: artifact-label
-            action: create
-          - resource: artifact-label
-            action: delete
-          # Immutable Tag
-          - resource: immutable-tag
-            action: create
-          - resource: immutable-tag
-            action: delete
-          - resource: immutable-tag
-            action: list
-          - resource: immutable-tag
-            action: update
-          # Label
-          - resource: label
-            action: create
-          - resource: label
-            action: delete
-          - resource: label
-            action: list
-          - resource: label
-            action: read
-          - resource: label
-            action: update
-          # Log
-          - resource: log
-            action: list
-          # Project Metadata
-          - resource: metadata
-            action: create
-          - resource: metadata
-            action: delete
-          - resource: metadata
-            action: list
-          - resource: metadata
-            action: read
-          - resource: metadata
-            action: update
-          # Notification Policy
-          - resource: notification-policy
-            action: create
-          - resource: notification-policy
-            action: delete
-          - resource: notification-policy
-            action: list
-          - resource: notification-policy
-            action: read
-          - resource: notification-policy
-            action: update
-          # Preheat Policy
-          - resource: preheat-policy
-            action: create
-          - resource: preheat-policy
-            action: delete
-          - resource: preheat-policy
-            action: list
-          - resource: preheat-policy
-            action: read
-          - resource: preheat-policy
-            action: update
-          # Project
-          - resource: project
-            action: delete
-          - resource: project
-            action: read
-          - resource: project
-            action: update
-          # Quota
-          - resource: quota
-            action: read
-          # Repository
-          - resource: repository
-            action: delete
-          - resource: repository
-            action: list
-          - resource: repository
-            action: pull
-          - resource: repository
-            action: push
-          - resource: repository
-            action: read
-          - resource: repository
-            action: update
-          # SBOM
-          - resource: sbom
-            action: create
-          - resource: sbom
-            action: read
-          - resource: sbom
-            action: stop
-          # Scan
-          - resource: scan
-            action: create
-          - resource: scan
-            action: read
-          - resource: scan
-            action: stop
-          # Scanner
-          - resource: scanner
-            action: create
-          - resource: scanner
-            action: read
-          # Tag
-          - resource: tag
-            action: create
-          - resource: tag
-            action: delete
-          - resource: tag
-            action: list
-          # Tag Retention
-          - resource: tag-retention
-            action: create
-          - resource: tag-retention
-            action: delete
-          - resource: tag-retention
-            action: list
-          - resource: tag-retention
-            action: read
-          - resource: tag-retention
-            action: update
-      # Project-level permissions for services
-      - kind: project
-        namespace: services
-        access:
-          # Accessory
-          - resource: accessory
-            action: list
-          # Artifact
-          - resource: artifact
-            action: create
-          - resource: artifact
-            action: delete
-          - resource: artifact
-            action: list
-          - resource: artifact
-            action: read
-          # Artifact Addition
-          - resource: artifact-addition
-            action: read
-          # Artifact Label
-          - resource: artifact-label
-            action: create
-          - resource: artifact-label
-            action: delete
-          # Immutable Tag
-          - resource: immutable-tag
-            action: create
-          - resource: immutable-tag
-            action: delete
-          - resource: immutable-tag
-            action: list
-          - resource: immutable-tag
-            action: update
-          # Label
-          - resource: label
-            action: create
-          - resource: label
-            action: delete
-          - resource: label
-            action: list
-          - resource: label
-            action: read
-          - resource: label
-            action: update
-          # Log
-          - resource: log
-            action: list
-          # Project Metadata
-          - resource: metadata
-            action: create
-          - resource: metadata
-            action: delete
-          - resource: metadata
-            action: list
-          - resource: metadata
-            action: read
-          - resource: metadata
-            action: update
-          # Notification Policy
-          - resource: notification-policy
-            action: create
-          - resource: notification-policy
-            action: delete
-          - resource: notification-policy
-            action: list
-          - resource: notification-policy
-            action: read
-          - resource: notification-policy
-            action: update
-          # Preheat Policy
-          - resource: preheat-policy
-            action: create
-          - resource: preheat-policy
-            action: delete
-          - resource: preheat-policy
-            action: list
-          - resource: preheat-policy
-            action: read
-          - resource: preheat-policy
-            action: update
-          # Project
-          - resource: project
-            action: delete
-          - resource: project
-            action: read
-          - resource: project
-            action: update
-          # Quota
-          - resource: quota
-            action: read
-          # Repository
-          - resource: repository
-            action: delete
-          - resource: repository
-            action: list
-          - resource: repository
-            action: pull
-          - resource: repository
-            action: push
-          - resource: repository
-            action: read
-          - resource: repository
-            action: update
-          # SBOM
-          - resource: sbom
-            action: create
-          - resource: sbom
-            action: read
-          - resource: sbom
-            action: stop
-          # Scan
-          - resource: scan
-            action: create
-          - resource: scan
-            action: read
-          - resource: scan
-            action: stop
-          # Scanner
-          - resource: scanner
-            action: create
-          - resource: scanner
-            action: read
-          # Tag
-          - resource: tag
-            action: create
-          - resource: tag
-            action: delete
-          - resource: tag
-            action: list
-          # Tag Retention
-          - resource: tag-retention
-            action: create
-          - resource: tag-retention
-            action: delete
-          - resource: tag-retention
-            action: list
-          - resource: tag-retention
-            action: read
-          - resource: tag-retention
-            action: update
-      # Project-level permissions for apps
-      - kind: project
-        namespace: apps
-        access:
-          # Accessory
-          - resource: accessory
-            action: list
-          # Artifact
-          - resource: artifact
-            action: create
-          - resource: artifact
-            action: delete
-          - resource: artifact
-            action: list
-          - resource: artifact
-            action: read
-          # Artifact Addition
-          - resource: artifact-addition
-            action: read
-          # Artifact Label
-          - resource: artifact-label
-            action: create
-          - resource: artifact-label
-            action: delete
-          # Immutable Tag
-          - resource: immutable-tag
-            action: create
-          - resource: immutable-tag
-            action: delete
-          - resource: immutable-tag
-            action: list
-          - resource: immutable-tag
-            action: update
-          # Label
-          - resource: label
-            action: create
-          - resource: label
-            action: delete
-          - resource: label
-            action: list
-          - resource: label
-            action: read
-          - resource: label
-            action: update
-          # Log
-          - resource: log
-            action: list
-          # Project Metadata
-          - resource: metadata
-            action: create
-          - resource: metadata
-            action: delete
-          - resource: metadata
-            action: list
-          - resource: metadata
-            action: read
-          - resource: metadata
-            action: update
-          # Notification Policy
-          - resource: notification-policy
-            action: create
-          - resource: notification-policy
-            action: delete
-          - resource: notification-policy
-            action: list
-          - resource: notification-policy
-            action: read
-          - resource: notification-policy
-            action: update
-          # Preheat Policy
-          - resource: preheat-policy
-            action: create
-          - resource: preheat-policy
-            action: delete
-          - resource: preheat-policy
-            action: list
-          - resource: preheat-policy
-            action: read
-          - resource: preheat-policy
-            action: update
-          # Project
-          - resource: project
-            action: delete
-          - resource: project
-            action: read
-          - resource: project
-            action: update
-          # Quota
-          - resource: quota
-            action: read
-          # Repository
-          - resource: repository
-            action: delete
-          - resource: repository
-            action: list
-          - resource: repository
-            action: pull
-          - resource: repository
-            action: push
-          - resource: repository
-            action: read
-          - resource: repository
-            action: update
-          # SBOM
-          - resource: sbom
-            action: create
-          - resource: sbom
-            action: read
-          - resource: sbom
-            action: stop
-          # Scan
-          - resource: scan
-            action: create
-          - resource: scan
-            action: read
-          - resource: scan
-            action: stop
-          # Scanner
-          - resource: scanner
-            action: create
-          - resource: scanner
-            action: read
-          # Tag
-          - resource: tag
-            action: create
-          - resource: tag
-            action: delete
-          - resource: tag
-            action: list
-          # Tag Retention
-          - resource: tag-retention
-            action: create
-          - resource: tag-retention
-            action: delete
-          - resource: tag-retention
-            action: list
-          - resource: tag-retention
-            action: read
-          - resource: tag-retention
-            action: update
+replications: {}
+  # Example replication with all available settings and their defaults:
+  # - name: example-replication
+  #   mode: pull                    # Required: 'pull' or 'push'
+  #   description: ""               # Optional description
+  #   registry:                     # Required: source (pull) or destination (push) registry
+  #     name: example-registry
+  #     type: harbor                # Registry type: harbor, docker-hub, etc.
+  #     url: https://registry.example.com
+  #     description: ""
+  #     insecure: false
+  #     credential:                 # Optional credentials
+  #       type: basic
+  #       access_key: username
+  #       access_secret: password
+  #   dest_namespace: ""            # Default: preserve source namespace
+  #   filters: []                   # Default: no filters (replicate all)
+  #   flattening: 1                 # Default: flatten 1 level (0-3)
+  #   trigger:                      # Default: manual trigger
+  #     mode: manual                # Options: manual, scheduled, event_based
+  #     cron: ""                    # Required if mode=scheduled
+  #   replicate_deletion: false     # Default: don't replicate deletions
+  #   bandwidth: -1                 # Default: unlimited (-1 = no limit, in KB/s)
+  #   override: true                # Default: override existing images
+  #   enabled: true                 # Default: policy is enabled
+  #   copyByChunk: false            # Default: don't use chunked copy
+
+robots: {}
+  # Example system-level robot account (has access across all projects):
+  # - name: example-system-robot
+  #   description: System-level robot for CI/CD
+  #   duration: -1                           # Duration in days (-1 = never expires)
+  #   disable: false                         # Disable the robot account
+  #   permissions:
+  #     # System-level permissions (namespace must be "/")
+  #     - kind: system
+  #       namespace: /
+  #       access:
+  #         - resource: project              # Resource type
+  #           action: list                   # Action: create, delete, list, read, update, push, pull, etc.
+  #           effect: allow                  # Effect: allow or deny (default: allow)
+  #         - resource: registry
+  #           action: read
+  #           effect: allow
+  #     # Project-level permissions (namespace is project name)
+  #     - kind: project
+  #       namespace: my-project
+  #       access:
+  #         - resource: repository
+  #           action: pull
+  #           effect: allow
+  #         - resource: repository
+  #           action: push
+  #           effect: allow
+  #         - resource: artifact
+  #           action: read
+  #           effect: allow
+  #         # Example of deny rule
+  #         - resource: artifact
+  #           action: delete
+  #           effect: deny

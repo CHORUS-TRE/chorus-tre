@@ -20,6 +20,15 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: "harbor-replications"
+  namespace: {{ .Release.Namespace }}
+data:
+  "replications.yaml": |-
+{{- .Values.replications | toYaml | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: "harbor-robots"
   namespace: {{ .Release.Namespace }}
 data:
