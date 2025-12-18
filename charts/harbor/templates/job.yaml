@@ -27,7 +27,7 @@ spec:
         app.kubernetes.io/component: config-job
     spec:
       restartPolicy: Never
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.configJob.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
