@@ -124,6 +124,8 @@ configJob:
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+  imagePullSecrets:
+  - name: regcred
   backoffLimit: 3
   ttlSecondsAfterFinished: 120
   verifySSL: "true"
