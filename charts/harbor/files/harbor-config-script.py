@@ -649,6 +649,24 @@ class HarborConfigurator:
                 logger.error("  Response: %s", e.response.text)
             raise
 
+    def refresh_robot_secret(self, robot_id: int, robot_name: str, secret_dir: Path) -> bool:
+        """Refresh robot secret to match the predefined secret from file"""
+        robot_secret = self.get_robot_secret(robot_name, secret_dir)
+
+        try:
+            response = self.session.patch(
+                f"{self.url}/api/v2.0/robots/{robot_id}",
+                json={"secret": robot_secret}
+            )
+            response.raise_for_status()
+            logger.info("Refreshed secret for robot '%s' (ID: %s)", robot_name, robot_id)
+            return True
+        except requests.exceptions.RequestException as e:
+            logger.error("Failed refreshing secret for robot '%s': %s", robot_name, e)
+            if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                logger.error("  Response: %s", e.response.text)
+            raise
+
     def create_robot(self, robot: RobotConfig, secret_dir: Path) -> Optional[Dict[str, str]]:
         """Create new system-level robot account"""
         robot_name = robot.name
@@ -947,6 +965,7 @@ def main() -> None:
                 if robot_name in existing_robots:
                     robot_id = existing_robots[robot_name]
                     harbor.update_robot(robot_id, robot, secret_dir)
+                    harbor.refresh_robot_secret(robot_id, robot.name, secret_dir)
                     robots_updated += 1
                 else:
                     if harbor.create_robot(robot, secret_dir):
