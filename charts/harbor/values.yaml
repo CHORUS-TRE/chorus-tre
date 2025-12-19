@@ -117,15 +117,13 @@ configJob:
   enabled: true
   priorityClassName: medium-priority
   image:
-    domain: "harbor.build.chorus-tre.ch"
-    namespace: "docker_proxy/library"
+    domain: "docker.io"
+    namespace: "library"
     tag: "3.12-slim"
     pullPolicy: IfNotPresent
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-  imagePullSecrets:
-  - name: regcred
   backoffLimit: 3
   ttlSecondsAfterFinished: 120
   verifySSL: "true"
