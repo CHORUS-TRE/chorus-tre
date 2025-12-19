@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "harbor-config-script"
+  namespace: {{ .Release.Namespace }}
+data:
+  "harbor-config-script.py": |-
+{{ .Files.Get "files/harbor-config-script.py" | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "harbor-projects"
+  namespace: {{ .Release.Namespace }}
+data:
+  "projects.yaml": |-
+{{- .Values.projects | toYaml | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "harbor-replications"
+  namespace: {{ .Release.Namespace }}
+data:
+  "replications.yaml": |-
+{{- .Values.replications | toYaml | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "harbor-robots"
+  namespace: {{ .Release.Namespace }}
+data:
+  "robots.yaml": |-
+{{- .Values.robots | toYaml | nindent 4 }}

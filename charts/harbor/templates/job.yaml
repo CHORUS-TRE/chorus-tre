@@ -1,0 +1,131 @@
+{{- if .Values.configJob.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: harbor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: config-job
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+    {{- with .Values.configJob.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  backoffLimit: {{ .Values.configJob.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.configJob.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: harbor
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: config-job
+    spec:
+      restartPolicy: Never
+      {{- with .Values.configJob.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+      - name: wait-for-harbor
+        image: "{{ .Values.configJob.image.domain }}/{{ .Values.configJob.image.namespace }}/busybox:stable"
+        imagePullPolicy: {{ .Values.configJob.image.pullPolicy }}
+        command:
+          - sh
+          - -c
+          - |
+            echo "Waiting for Harbor API to be ready..."
+            until wget --spider --timeout=2 --tries=1 http://{{ .Release.Name }}-core/api/v2.0/ping 2>/dev/null; do
+              echo "Harbor Core API not ready yet, waiting..."
+              sleep 5
+            done
+            echo "Harbor Core API is ready!"
+
+            echo "Waiting for Harbor JobService to be ready..."
+            until wget --timeout=2 --tries=1 -O /dev/null http://{{ .Release.Name }}-jobservice 2>&1 | grep -q "401 Unauthorized"; do
+              echo "Harbor JobService not ready yet, waiting..."
+              sleep 5
+            done
+            echo "Harbor JobService is ready!"
+      containers:
+      - name: harbor-config
+        image: "{{ .Values.configJob.image.domain }}/{{ .Values.configJob.image.namespace }}/python:{{ .Values.configJob.image.tag }}"
+        imagePullPolicy: {{ .Values.configJob.image.pullPolicy }}
+        # TODO: discuss building our own image
+        # with necessary dependencies pre-installed
+        command:
+          - sh
+          - -c
+          - |
+            pip install --no-cache-dir requests pyyaml pydantic && \
+            python3 /scripts/harbor-config-script.py
+        env:
+          - name: HARBOR_URL
+            value: "http://{{ .Release.Name }}-core"
+          - name: HARBOR_ADMIN_USER
+            value: "admin"
+          - name: HARBOR_ADMIN_PASSWORD
+            {{- if .Values.harbor.existingSecretAdminPassword }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.harbor.existingSecretAdminPassword }}
+                key: {{ .Values.harbor.existingSecretAdminPasswordKey }}
+            {{- else }}
+            value: "Harbor12345"
+            {{- end }}
+          - name: HARBOR_VERIFY_SSL
+            value: "{{ .Values.configJob.verifySSL }}"
+          - name: LOG_LEVEL
+            value: "{{ .Values.configJob.logLevel }}"
+          - name: CONFIG_DIR
+            value: "/config"
+          - name: SECRET_DIR
+            value: "/secrets"
+        volumeMounts:
+          - name: script
+            mountPath: /scripts
+            readOnly: true
+          - name: projects-config
+            mountPath: /config/projects.yaml
+            subPath: projects.yaml
+            readOnly: true
+          - name: replications-config
+            mountPath: /config/replications.yaml
+            subPath: replications.yaml
+            readOnly: true
+          - name: robots-config
+            mountPath: /config/robots.yaml
+            subPath: robots.yaml
+            readOnly: true
+          {{- range .Values.robots }}
+          - name: robot-secret-{{ .name }}
+            mountPath: /secrets/{{ .name }}
+            subPath: secret
+            readOnly: true
+          {{- end }}
+        resources:
+          {{- toYaml .Values.configJob.resources | nindent 10 }}
+      volumes:
+        - name: script
+          configMap:
+            name: harbor-config-script
+        - name: projects-config
+          configMap:
+            name: harbor-projects
+        - name: replications-config
+          configMap:
+            name: harbor-replications
+        - name: robots-config
+          configMap:
+            name: harbor-robots
+        {{- range .Values.robots }}
+        - name: robot-secret-{{ .name }}
+          secret:
+            secretName: {{ $.Values.configJob.robotSecretPrefix }}{{ .name }}
+        {{- end }}
+{{- end }}
