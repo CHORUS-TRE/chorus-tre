@@ -123,7 +123,7 @@ configJob:
     pullPolicy: IfNotPresent
   annotations:
     argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
   imagePullSecrets:
   - name: regcred
   backoffLimit: 3
