@@ -58,6 +58,7 @@ chorusBackend:
   jq:
     imageNamespace: "docker_proxy/backplane"
     tag: "latest" # this is the only tag available
+  acceptanceRepository: "backend-acceptance"
   acceptanceTestsNamespace: "chorus-backend-acceptance"
 
 chorusWebui:

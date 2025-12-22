@@ -167,16 +167,6 @@ spec:
                       workingDir: "/src"
                   - name: acceptance-tests
                     steps:
-                      - - name: stop-previous-workflows
-                          templateRef:
-                            name: {{ $fullName }}-stop-previous-workflows-template
-                            template: stop-previous-workflows
-                          arguments:
-                            parameters:
-                              - name: repo
-                                value: "{{`{{workflow.labels.repo}}`}}"
-                              - name: ref
-                                value: "{{`{{workflow.labels.ref}}`}}"
                       - - name: docker-build
                           templateRef:
                             name: {{ $fullName }}-docker-build-template
@@ -192,7 +182,7 @@ spec:
                               - name: dockerfile
                                 value: "docker/dockerfiles/backend.dockerfile"
                               - name: repository
-                                value: "backend-acceptance"
+                                value: {{ .Values.chorusBackend.acceptanceRepository | quote }}
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
