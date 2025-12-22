@@ -67,6 +67,7 @@ spec:
                     - name: repoFullName
                     - name: ref
                     - name: sha
+                    - name: tag
 
                 hooks:
                   running:
@@ -247,6 +248,10 @@ spec:
                 dependencyName: ci-chorus-backend
                 dataKey: body.pull_request.head.sha
               dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: ci-chorus-backend
+                dataTemplate: "pr-{{`{{ .Input.body.pull_request.number }}`}}-{{`{{ .Input.body.pull_request.head.sha | substr 0 7 }}`}}"
+              dest: spec.arguments.parameters.4.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
                 dependencyName: ci-chorus-backend
