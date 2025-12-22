@@ -52,12 +52,13 @@ chorusWorkbenchOperator:
 chorusBackend:
   dockerDataStorage:
     storageClassName: ""
-    storageRequest: ""
+    storageRequest: "20Gi"
   golang:
     tag: "1.24.3-bookworm"
   jq:
     imageNamespace: "docker_proxy/backplane"
     tag: "latest" # this is the only tag available
+  acceptanceRepository: "backend-acceptance"
   acceptanceTestsNamespace: "chorus-backend-acceptance"
 
 chorusWebui:
