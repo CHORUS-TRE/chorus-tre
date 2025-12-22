@@ -27,7 +27,7 @@ spec:
             type: string
             value:
               # The goal is to publish tagged releases.
-              - "refs/heads/master"
+              #- "refs/heads/master"
               - "refs/tags/v*"
 
     - name: ci-chorus-backend
@@ -100,6 +100,8 @@ spec:
                     steps:
                       - - name: run-tests
                           template: test
+                      - - name: run-acceptance-tests
+                          template: acceptance-tests
 
                   - name: test
                     inputs:
@@ -142,6 +144,91 @@ spec:
                           GIT_CONFIG_VALUE_0=https://github.com/
                           go test -v ./...
                       workingDir: "/src"
+                  - name: acceptance-tests
+                    steps:
+                      - - name: stop-previous-workflows
+                          templateRef:
+                            name: {{ $fullName }}-stop-previous-workflows-template
+                            template: stop-previous-workflows
+                          arguments:
+                            parameters:
+                              - name: repo
+                                value: "{{`{{workflow.labels.repo}}`}}"
+                              - name: ref
+                                value: "{{`{{workflow.labels.ref}}`}}"
+                      - - name: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: image
+                                value: "backend"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: sha
+                                value: "{{`{{workflow.parameters.sha}}`}}"
+                              - name: dockerfile
+                                value: "docker/dockerfiles/backend.dockerfile"
+                              - name: repository
+                                value: "backend-acceptance"
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                              - name: gitSecretName
+                                value: {{ $githubSecretName | quote }}
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
+                      - - name: backend-acceptance-tests
+                          templateRef:
+                            name: {{ $fullName }}-backend-acceptance-tests-workflow-template
+                            template: main
+                          hooks:
+                            exit:
+                              templateRef:
+                                name: {{ $fullName }}-backend-acceptance-tests-workflow-template
+                                template: cleanup-namespace
+                              arguments:
+                                parameters:
+                                  - name: chorusBackendAcceptanceNamespace
+                                    value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
+                                  - name: releaseName
+                                    value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
+                          arguments:
+                            parameters:
+                              - name: githubSecretName
+                                value: {{ $githubSecretName }}
+                              - name: releaseName
+                                value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
+                              - name: chorusBackendAcceptanceNamespace
+                                value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
+                              - name: chorusBackendImageTag
+                                value: "{{`{{steps.docker-build.outputs.parameters.imageVersion}}`}}"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
           parameters:
             - src:
@@ -246,6 +333,8 @@ spec:
                         - name: githubSecret
                           value: {{ $githubSecretName }}
 
+# TODO: remove all steps related to acceptance tests below
+# once it works within the ci-chorus-backend workflow.
                 templates:
                   - name: build-chorus-backend
                     steps:
@@ -294,9 +383,6 @@ spec:
                                     key: password
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
-
-# TODO: discuss the possibility to first publish the image to a temporary project on Harbor,
-# and only push to chorus project if acceptance tests pass.
 
                       - - name: acceptance-tests
                           templateRef:
