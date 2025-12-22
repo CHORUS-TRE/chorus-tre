@@ -262,6 +262,15 @@ spec:
                 dependencyName: ci-chorus-backend
                 dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/description
+            # Set labels for use by stop-previous-workflows
+            - src:
+                dependencyName: ci-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: ci-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.pull_request.head.ref | replace "/" "-" }}`}}'
+              dest: metadata.labels.ref
 
     - template:
         conditions: build-chorus-backend
