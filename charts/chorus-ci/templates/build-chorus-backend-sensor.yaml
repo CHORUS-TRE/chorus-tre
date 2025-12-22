@@ -61,6 +61,16 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: go-test
 
+                volumeClaimTemplates:
+                  - metadata:
+                      name: docker-data
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.chorusBackend.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                      storageClassName: {{ .Values.chorusBackend.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
+
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -99,6 +109,16 @@ spec:
                 templates:
                   - name: go-test
                     steps:
+                      - - name: stop-previous-workflows
+                          templateRef:
+                            name: {{ $fullName }}-stop-previous-workflows-template
+                            template: stop-previous-workflows
+                          arguments:
+                            parameters:
+                              - name: repo
+                                value: "{{`{{workflow.labels.repo}}`}}"
+                              - name: ref
+                                value: "{{`{{workflow.labels.ref}}`}}"
                       - - name: run-tests
                           template: test
                       - - name: run-acceptance-tests

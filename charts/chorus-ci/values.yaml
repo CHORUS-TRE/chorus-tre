@@ -52,7 +52,7 @@ chorusWorkbenchOperator:
 chorusBackend:
   dockerDataStorage:
     storageClassName: ""
-    storageRequest: ""
+    storageRequest: "20Gi"
   golang:
     tag: "1.24.3-bookworm"
   jq:
