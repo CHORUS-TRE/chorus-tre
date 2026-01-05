@@ -301,7 +301,6 @@ spec:
                 dataTemplate: '{{`{{ .Input.body.pull_request.head.ref | replace "/" "-" }}`}}'
               dest: metadata.labels.ref
 
-##############
     - template:
         conditions: build-chorus-backend-master
         name: github-workflow-trigger-build-chorus-backend-master
@@ -388,6 +387,8 @@ spec:
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
                               - name: gitSecretName
                                 value: {{ $githubSecretName | quote }}
+                              - name: addLatestTag
+                                value: "true"
                             artifacts:
                               - name: source
                                 git:
@@ -442,7 +443,6 @@ spec:
                 dependencyName: build-chorus-backend-master
                 dataTemplate: "Master build {{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/description
-##############
 
     - template:
         conditions: build-chorus-backend
