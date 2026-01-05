@@ -30,6 +30,20 @@ spec:
               #- "refs/heads/master"
               - "refs/tags/v*"
 
+    - name: build-chorus-backend-master
+      eventSourceName: {{ $fullName }}-github
+      eventName: chorus-backend
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - push
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/master"
+
     - name: ci-chorus-backend
       eventSourceName: {{ $fullName }}-github
       eventName: chorus-backend
@@ -286,6 +300,125 @@ spec:
                 dependencyName: ci-chorus-backend
                 dataTemplate: '{{`{{ .Input.body.pull_request.head.ref | replace "/" "-" }}`}}'
               dest: metadata.labels.ref
+
+##############
+    - template:
+        conditions: build-chorus-backend-master
+        name: github-workflow-trigger-build-chorus-backend-master
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: build-master
+
+                volumeClaimTemplates:
+                  - metadata:
+                      name: docker-data
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.chorusBackend.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                      storageClassName: {{ .Values.chorusBackend.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
+
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: revision
+                    - name: ref
+                    - name: sha
+                    - name: tag
+
+                hooks:
+                  # Add the same running/exit hooks for GitHub notifications
+
+                templates:
+                  - name: build-master
+                    steps:
+                      - - name: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: image
+                                value: "backend"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: sha
+                                value: "{{`{{workflow.parameters.sha}}`}}"
+                              - name: dockerfile
+                                value: "docker/dockerfiles/backend.dockerfile"
+                              - name: repository
+                                value: "backend-master"
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                              - name: gitSecretName
+                                value: {{ $githubSecretName | quote }}
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
+
+          parameters:
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataKey: body.after
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataKey: body.ref
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.4.value
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataTemplate: "n/a"
+              dest: spec.arguments.parameters.5.value
+            # Add workflow name generation
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataTemplate: "build-chorus-backend-master-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+            # Add title and description
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataTemplate: "Build Master {{`{{ .Input.body.repository.full_name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: build-chorus-backend-master
+                dataTemplate: "Master build {{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
+##############
 
     - template:
         conditions: build-chorus-backend
