@@ -268,6 +268,9 @@ spec:
               metadata:
                 generateName: "-"
               spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: build-master-chorus-backend
+
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -276,9 +279,6 @@ spec:
                     - name: sha
                     - name: tag
                     - name: repository
-                      value: {{ .Values.chorusBackend.masterRepository | quote }}
-                    - name: addLatestTag
-                      value: "true"
 
                 hooks:
                   running:
@@ -333,7 +333,7 @@ spec:
                               - name: gitSecretName
                                 value: {{ $githubSecretName | quote }}
                               - name: addLatestTag
-                                value: "{{`{{workflow.parameters.addLatestTag}}`}}"
+                                value: "true"
                             artifacts:
                               - name: source
                                 git:
