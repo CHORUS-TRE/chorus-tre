@@ -2,6 +2,5 @@
 **/i2b2-* @yvesjaggi
 **/didata @yvesjaggi
 **/chorus-ci/build-backend-sensor.yaml @sami-sweng @jnfrei
-**/chorus-ci/backend-acceptance-tests-setup.yaml @sami-sweng @jnfrei
-**/chorus-ci/backend-acceptance-tests-template.yaml @sami-sweng @jnfrei
+**/chorus-ci/backend-* @sami-sweng @jnfrei
 **/chorus-ci/build-web-ui-sensor.yaml @nicedexter
