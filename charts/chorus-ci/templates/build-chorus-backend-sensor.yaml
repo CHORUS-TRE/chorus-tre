@@ -330,7 +330,7 @@ spec:
                         - name: gitSecretName
                           value: {{ $githubSecretName | quote }}
                         - name: addLatestTag
-                          value: "true"
+                          value: "{{`{{workflow.parameters.addLatestTag}}`}}"
                       artifacts:
                         - name: source
                           git:
