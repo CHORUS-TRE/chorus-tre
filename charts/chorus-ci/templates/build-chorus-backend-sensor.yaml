@@ -275,7 +275,7 @@ spec:
                   parameters:
                     - name: repoUrl
                     - name: repoFullName
-                    - name: revisions
+                    - name: revision
                     - name: ref
                     - name: sha
                     - name: tag
