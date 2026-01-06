@@ -45,7 +45,7 @@ spec:
               - "opened"
               - "synchronize"
 
-    - name: ci-chorus-backend-master
+    - name: master-chorus-backend
       eventSourceName: {{ $fullName }}-github
       eventName: chorus-backend
       filters:
@@ -159,8 +159,106 @@ spec:
               dest: metadata.labels.ref
 
     - template:
-        conditions: ci-chorus-backend-master
-        name: github-workflow-trigger-ci-chorus-backend-master
+        conditions: master-chorus-backend
+        name: github-workflow-trigger-ci-master-chorus-backend
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: ref
+                    - name: sha
+                    - name: tag
+                    - name: repository
+                      value: {{ .Values.chorusBackend.acceptanceRepository | quote }}
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                  exit:
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+
+                workflowTemplateRef:
+                  name: {{ $fullName }}-chorus-backend-ci-workflow-template
+
+          parameters:
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: spec.arguments.parameters.4.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master-chorus-backend-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "CI Master {{`{{ .Input.body.repository.full_name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "Master - {{`{{ .Input.body.head_commit.message }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
+            # Set labels for use by stop-previous-workflows
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master"
+              dest: metadata.labels.ref
+
+    - template:
+        conditions: master-chorus-backend
+        name: github-workflow-trigger-build-master-chorus-backend
         k8s:
           operation: create
           source:
@@ -209,52 +307,87 @@ spec:
                         - name: githubSecret
                           value: {{ $githubSecretName }}
 
-                workflowTemplateRef:
-                  name: {{ $fullName }}-chorus-backend-ci-workflow-template
+                templates:
+                  - templateRef:
+                      name: {{ $fullName }}-docker-build-template
+                      template: docker-build
+                    arguments:
+                      parameters:
+                        - name: image
+                          value: "backend"
+                        - name: tag
+                          value: "{{`{{workflow.parameters.tag}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: dockerfile
+                          value: "docker/dockerfiles/backend.dockerfile"
+                        - name: repository
+                          value: {{ .Values.chorusBackend.masterRepository | quote }}
+                        - name: registry
+                          value: {{ .Values.sensor.registry | quote }}
+                        - name: dockerConfigSecret
+                          value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                        - name: gitSecretName
+                          value: {{ $githubSecretName | quote }}
+                        - name: addLatestTag
+                          value: "true"
+                      artifacts:
+                        - name: source
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
 
           parameters:
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataKey: body.repository.clone_url
               dest: spec.arguments.parameters.0.value
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataKey: body.repository.full_name
               dest: spec.arguments.parameters.1.value
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataKey: body.ref
               dest: spec.arguments.parameters.2.value
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataKey: body.head_commit.id
               dest: spec.arguments.parameters.3.value
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataTemplate: "master-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: spec.arguments.parameters.4.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
-                dependencyName: ci-chorus-backend-master
-                dataTemplate: "ci-chorus-backend-master-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+                dependencyName: master-chorus-backend
+                dataTemplate: "master-chorus-backend-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
               dest: metadata.generateName
               operation: prepend
             # Generate a nice title and description
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataTemplate: "CI Master {{`{{ .Input.body.repository.full_name }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/title
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataTemplate: "Master - {{`{{ .Input.body.head_commit.message }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/description
             # Set labels for use by stop-previous-workflows
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
               dest: metadata.labels.repo
             - src:
-                dependencyName: ci-chorus-backend-master
+                dependencyName: master-chorus-backend
                 dataTemplate: "master"
               dest: metadata.labels.ref
 
