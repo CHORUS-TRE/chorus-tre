@@ -308,42 +308,45 @@ spec:
                           value: {{ $githubSecretName }}
 
                 templates:
-                  - templateRef:
-                      name: {{ $fullName }}-docker-build-template
-                      template: docker-build
-                    arguments:
-                      parameters:
-                        - name: image
-                          value: "backend"
-                        - name: tag
-                          value: "{{`{{workflow.parameters.tag}}`}}"
-                        - name: sha
-                          value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: dockerfile
-                          value: "docker/dockerfiles/backend.dockerfile"
-                        - name: repository
-                          value: {{ .Values.chorusBackend.masterRepository | quote }}
-                        - name: registry
-                          value: {{ .Values.sensor.registry | quote }}
-                        - name: dockerConfigSecret
-                          value: {{ .Values.sensor.dockerConfig.secretName | quote }}
-                        - name: gitSecretName
-                          value: {{ $githubSecretName | quote }}
-                        - name: addLatestTag
-                          value: "{{`{{workflow.parameters.addLatestTag}}`}}"
-                      artifacts:
-                        - name: source
-                          git:
-                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
-                            revision: "{{`{{workflow.parameters.sha}}`}}"
-                            usernameSecret:
-                              name: {{ $githubSecretName }}
-                              key: username
-                            passwordSecret:
-                              name: {{ $githubSecretName }}
-                              key: password
-                            depth: 1
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                  - name: build-master-chorus-backend
+                    steps:
+                      - - name: docker-build
+                          templateRef:
+                            name: {{ $fullName }}-docker-build-template
+                            template: docker-build
+                          arguments:
+                            parameters:
+                              - name: image
+                                value: "backend"
+                              - name: tag
+                                value: "{{`{{workflow.parameters.tag}}`}}"
+                              - name: sha
+                                value: "{{`{{workflow.parameters.sha}}`}}"
+                              - name: dockerfile
+                                value: "docker/dockerfiles/backend.dockerfile"
+                              - name: repository
+                                value: {{ .Values.chorusBackend.masterRepository | quote }}
+                              - name: registry
+                                value: {{ .Values.sensor.registry | quote }}
+                              - name: dockerConfigSecret
+                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                              - name: gitSecretName
+                                value: {{ $githubSecretName | quote }}
+                              - name: addLatestTag
+                                value: "{{`{{workflow.parameters.addLatestTag}}`}}"
+                            artifacts:
+                              - name: source
+                                git:
+                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                                  revision: "{{`{{workflow.parameters.sha}}`}}"
+                                  usernameSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: username
+                                  passwordSecret:
+                                    name: {{ $githubSecretName }}
+                                    key: password
+                                  depth: 1
+                                  ref: "{{`{{workflow.parameters.ref}}`}}"
 
           parameters:
             - src:
@@ -375,7 +378,7 @@ spec:
             # Generate a nice title and description
             - src:
                 dependencyName: master-chorus-backend
-                dataTemplate: "CI Master {{`{{ .Input.body.repository.full_name }}`}}"
+                dataTemplate: "Build Master {{`{{ .Input.body.repository.full_name }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/title
             - src:
                 dependencyName: master-chorus-backend
