@@ -23,6 +23,8 @@ spec:
       - name: dockerConfigSecret
       - name: gitSecretName
         value: "git-secret-not-provided"
+      - name: addLatestTag
+        value: "false"
 
   templates:
   - name: docker-build
@@ -37,6 +39,8 @@ spec:
         - name: dockerConfigSecret
         - name: gitSecretName
           default: "git-secret-not-provided"
+        - name: addLatestTag
+          default: "false"
       artifacts:
         - name: source
           path: "/src"
@@ -87,6 +91,8 @@ spec:
           value: "{{`{{inputs.parameters.image}}`}}"
         - name: TAG
           value: "{{`{{inputs.parameters.tag}}`}}"
+        - name: ADD_LATEST_TAG
+          value: "{{`{{inputs.parameters.addLatestTag}}`}}"
       command: [sh, -e, -c]
       args:
         - >-
@@ -104,7 +110,12 @@ spec:
           echo -n "${version}" > /tmp/image-version.txt;
 
           tag="${REGISTRY}/${REPOSITORY}/${IMAGE}:${version}";
-          tag_latest="${REGISTRY}/${REPOSITORY}/${IMAGE}:latest";
+          if [ "${ADD_LATEST_TAG}" = "true" ]; then
+            tag_latest="${REGISTRY}/${REPOSITORY}/${IMAGE}:latest";
+            TAG_LATEST_ARG="--tag ${tag_latest}";
+          else
+            TAG_LATEST_ARG="";
+          fi;
           tag_cache="${REGISTRY}/cache/${IMAGE}-cache";
 
           CACHE_FROM="\
@@ -130,7 +141,7 @@ spec:
           --file "${DOCKERFILE}"
           --label "org.opencontainers.image.revision=${SHA}"
           --tag "${tag}"
-          --tag "${tag_latest}"
+          ${TAG_LATEST_ARG}
           ${CACHE_FROM}
           ${CACHE_TO}
           ${BUILD_SECRETS}

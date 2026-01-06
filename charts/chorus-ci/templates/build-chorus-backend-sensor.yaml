@@ -45,6 +45,20 @@ spec:
               - "opened"
               - "synchronize"
 
+    - name: master-chorus-backend
+      eventSourceName: {{ $fullName }}-github
+      eventName: chorus-backend
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - push
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/master"
+
   triggers:
     - template:
         conditions: ci-chorus-backend
@@ -58,19 +72,6 @@ spec:
               metadata:
                 generateName: "-"
               spec:
-                serviceAccountName: {{ $serviceAccountName }}
-                entrypoint: go-test
-
-                volumeClaimTemplates:
-                  - metadata:
-                      name: docker-data
-                    spec:
-                      accessModes: ["ReadWriteOnce"]
-                      resources:
-                        requests:
-                          storage: {{ .Values.chorusBackend.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
-                      storageClassName: {{ .Values.chorusBackend.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
-
                 arguments:
                   parameters:
                     - name: repoUrl
@@ -78,6 +79,8 @@ spec:
                     - name: ref
                     - name: sha
                     - name: tag
+                    - name: repository
+                      value: {{ .Values.chorusBackend.acceptanceRepository | quote }}
 
                 hooks:
                   running:
@@ -106,140 +109,8 @@ spec:
                         - name: githubSecret
                           value: {{ $githubSecretName }}
 
-                templates:
-                  - name: go-test
-                    steps:
-                      - - name: stop-previous-workflows
-                          templateRef:
-                            name: {{ $fullName }}-stop-previous-workflows-template
-                            template: stop-previous-workflows
-                          arguments:
-                            parameters:
-                              - name: repo
-                                value: "{{`{{workflow.labels.repo}}`}}"
-                              - name: ref
-                                value: "{{`{{workflow.labels.ref}}`}}"
-                      - - name: run-tests
-                          template: test
-                      - - name: run-acceptance-tests
-                          template: acceptance-tests
-
-                  - name: test
-                    inputs:
-                      artifacts:
-                        - name: git
-                          path: "/src"
-                          git:
-                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
-                            revision: "{{`{{workflow.parameters.sha}}`}}"
-                            usernameSecret:
-                              name: {{ $githubSecretName }}
-                              key: username
-                            passwordSecret:
-                              name: {{ $githubSecretName }}
-                              key: password
-                            ref: "{{`{{workflow.parameters.ref}}`}}"
-                    volumes:
-                      - name: github-secret
-                        secret:
-                          secretName: {{ $githubSecretName }}
-                    container:
-                      env:
-                        - name: GIT_USERNAME
-                          valueFrom:
-                            secretKeyRef:
-                              name: {{ $githubSecretName }}
-                              key: username
-                        - name: GIT_PASSWORD
-                          valueFrom:
-                            secretKeyRef:
-                              name: {{ $githubSecretName }}
-                              key: password
-                      image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default "latest" }}
-                      command: [sh, -e, -c]
-                      args:
-                        - >
-                          GOPRIVATE=github.com/CHORUS-TRE/*
-                          GIT_CONFIG_COUNT=1
-                          GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf
-                          GIT_CONFIG_VALUE_0=https://github.com/
-                          go test -v ./...
-                      workingDir: "/src"
-                  - name: acceptance-tests
-                    steps:
-                      - - name: docker-build
-                          templateRef:
-                            name: {{ $fullName }}-docker-build-template
-                            template: docker-build
-                          arguments:
-                            parameters:
-                              - name: image
-                                value: "backend"
-                              - name: tag
-                                value: "{{`{{workflow.parameters.tag}}`}}"
-                              - name: sha
-                                value: "{{`{{workflow.parameters.sha}}`}}"
-                              - name: dockerfile
-                                value: "docker/dockerfiles/backend.dockerfile"
-                              - name: repository
-                                value: {{ .Values.chorusBackend.acceptanceRepository | quote }}
-                              - name: registry
-                                value: {{ .Values.sensor.registry | quote }}
-                              - name: dockerConfigSecret
-                                value: {{ .Values.sensor.dockerConfig.secretName | quote }}
-                              - name: gitSecretName
-                                value: {{ $githubSecretName | quote }}
-                            artifacts:
-                              - name: source
-                                git:
-                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
-                                  revision: "{{`{{workflow.parameters.sha}}`}}"
-                                  usernameSecret:
-                                    name: {{ $githubSecretName }}
-                                    key: username
-                                  passwordSecret:
-                                    name: {{ $githubSecretName }}
-                                    key: password
-                                  depth: 1
-                                  ref: "{{`{{workflow.parameters.ref}}`}}"
-                      - - name: backend-acceptance-tests
-                          templateRef:
-                            name: {{ $fullName }}-backend-acceptance-tests-workflow-template
-                            template: main
-                          hooks:
-                            exit:
-                              templateRef:
-                                name: {{ $fullName }}-backend-acceptance-tests-workflow-template
-                                template: cleanup-namespace
-                              arguments:
-                                parameters:
-                                  - name: chorusBackendAcceptanceNamespace
-                                    value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
-                                  - name: releaseName
-                                    value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
-                          arguments:
-                            parameters:
-                              - name: githubSecretName
-                                value: {{ $githubSecretName }}
-                              - name: releaseName
-                                value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
-                              - name: chorusBackendAcceptanceNamespace
-                                value: {{ .Values.chorusBackend.acceptanceTestsNamespace }}
-                              - name: chorusBackendImageTag
-                                value: "{{`{{steps.docker-build.outputs.parameters.imageVersion}}`}}"
-                            artifacts:
-                              - name: source
-                                git:
-                                  repo: "{{`{{workflow.parameters.repoUrl}}`}}"
-                                  revision: "{{`{{workflow.parameters.sha}}`}}"
-                                  usernameSecret:
-                                    name: {{ $githubSecretName }}
-                                    key: username
-                                  passwordSecret:
-                                    name: {{ $githubSecretName }}
-                                    key: password
-                                  depth: 1
-                                  ref: "{{`{{workflow.parameters.ref}}`}}"
+                workflowTemplateRef:
+                  name: {{ $fullName }}-chorus-backend-ci-workflow-template
 
           parameters:
             - src:
@@ -285,6 +156,239 @@ spec:
             - src:
                 dependencyName: ci-chorus-backend
                 dataTemplate: '{{`{{ .Input.body.pull_request.head.ref | replace "/" "-" }}`}}'
+              dest: metadata.labels.ref
+
+    - template:
+        conditions: master-chorus-backend
+        name: github-workflow-trigger-ci-master-chorus-backend
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: ref
+                    - name: sha
+                    - name: tag
+                    - name: repository
+                      value: {{ .Values.chorusBackend.acceptanceRepository | quote }}
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                  exit:
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+
+                workflowTemplateRef:
+                  name: {{ $fullName }}-chorus-backend-ci-workflow-template
+
+          parameters:
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: spec.arguments.parameters.4.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master-chorus-backend-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "CI Master {{`{{ .Input.body.repository.full_name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "Master - {{`{{ .Input.body.head_commit.message }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
+            # Set labels for use by stop-previous-workflows
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master"
+              dest: metadata.labels.ref
+
+    - template:
+        conditions: master-chorus-backend
+        name: github-workflow-trigger-build-master-chorus-backend
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: ref
+                    - name: sha
+                    - name: tag
+                    - name: repository
+                      value: {{ .Values.chorusBackend.masterRepository | quote }}
+                    - name: addLatestTag
+                      value: "true"
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                  exit:
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+
+                templates:
+                  - templateRef:
+                      name: {{ $fullName }}-docker-build-template
+                      template: docker-build
+                    arguments:
+                      parameters:
+                        - name: image
+                          value: "backend"
+                        - name: tag
+                          value: "{{`{{workflow.parameters.tag}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: dockerfile
+                          value: "docker/dockerfiles/backend.dockerfile"
+                        - name: repository
+                          value: {{ .Values.chorusBackend.masterRepository | quote }}
+                        - name: registry
+                          value: {{ .Values.sensor.registry | quote }}
+                        - name: dockerConfigSecret
+                          value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                        - name: gitSecretName
+                          value: {{ $githubSecretName | quote }}
+                        - name: addLatestTag
+                          value: "{{`{{workflow.parameters.addLatestTag}}`}}"
+                      artifacts:
+                        - name: source
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+
+          parameters:
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: spec.arguments.parameters.4.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master-chorus-backend-{{`{{ .Input.body.head_commit.id | substr 0 7 }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "CI Master {{`{{ .Input.body.repository.full_name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "Master - {{`{{ .Input.body.head_commit.message }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
+            # Set labels for use by stop-previous-workflows
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: master-chorus-backend
+                dataTemplate: "master"
               dest: metadata.labels.ref
 
     - template:
