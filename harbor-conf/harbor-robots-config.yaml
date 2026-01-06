@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: harbor-robots-config
+  namespace: harbor
+data:
+  robots.yaml: |
+    - name: test-ci-robot
+      project: test-app
+      description: "Test CI robot"
+      duration: -1
+      permissions:
+        - kind: project
+          namespace: test-app
+          access:
+            - resource: repository
+              action: push
+            - resource: repository
+              action: pull
+

@@ -1,0 +1,320 @@
+apiVersion: argoproj.io/v1alpha1
+# Make sure to create the following before running this workflow:
+# - namespace (e.g. chorus-backend-acceptance)
+# - role
+# - rolebinding
+# - regcred secret
+kind: Workflow
+metadata:
+  annotations:
+    workflows.argoproj.io/description: 'Jonathan test backend acceptance workflow'
+    workflows.argoproj.io/title: 'WIP Backend Acceptance Workflow'
+  #generateName: backend-acceptance-workflow-
+  name: backend-acceptance-workflow
+  namespace: argo
+spec:
+  entrypoint: main
+  onExit: cleanup-namespace
+  # DEPRECATED: Use Hooks[exit].Template instead.
+  serviceAccountName: chorus-ci-sa
+  arguments:
+    parameters:
+    - name: repoUrl
+      value: https://github.com/CHORUS-TRE/chorus-backend.git
+    - name: repoFullName
+      value: CHORUS-TRE/chorus-backend
+    - name: repoRevision
+      value: feat/test-backend-dockerfile-image
+    - name: releaseName
+      value: acceptance
+    - name: chorusBackendAcceptanceNamespace
+      value: chorus-backend-acceptance
+    - name: githubSecretName
+      value: argo-workflows-github-chorus-backend
+    - name: chorusBackendImageTag
+      value: 20251104-0b8b2b12
+  # hooks: TODO
+  templates:
+  - name: main
+    steps:
+    - - name: helm-deploy
+        template: helm-deploy
+        arguments:
+          parameters:
+          - name: chorusBackendAcceptanceNamespace
+            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+          - name: chorusBackendImageTag
+            value: "{{`{{workflow.parameters.chorusBackendImageTag}}`}}"
+          - name: repoUrl
+            value: "{{`{{workflow.parameters.repoUrl}}`}}"
+          - name: repoRevision
+            value: "{{`{{workflow.parameters.repoRevision}}`}}"
+          - name: releaseName
+            value: "{{`{{workflow.parameters.releaseName}}`}}"
+    - - name: wait-for-pods
+        template: wait-for-pods
+        arguments:
+          parameters:
+          - name: chorusBackendAcceptanceNamespace
+            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+    - - name: fetch-config
+        template: fetch-config
+        arguments:
+          parameters:
+          - name: chorusBackendAcceptanceNamespace
+            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+          - name: releaseName
+            value: "{{`{{workflow.parameters.releaseName}}`}}"
+    - - name: run-tests
+        template: run-tests
+        arguments:
+          parameters:
+          - name: repoUrl
+            value: "{{`{{workflow.parameters.repoUrl}}`}}"
+          - name: repoRevision
+            value: "{{`{{workflow.parameters.repoRevision}}`}}"
+          - name: githubSecretName
+            value: "{{`{{workflow.parameters.githubSecretName}}`}}"
+          - name: configContent
+            value: "{{`{{steps.fetch-config.outputs.parameters.configContent}}`}}"
+            # Workaround to pass file content between steps
+            # since artifacts are not set up yet
+          - name: chorusBackendAcceptanceNamespace
+            value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+          - name: releaseName
+            value: "{{`{{workflow.parameters.releaseName}}`}}"
+
+  - name: cleanup-namespace
+    container:
+      #image: harbor.build.chorus-tre.ch/docker_proxy/alpine/helm:3
+      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/k8s:1.31.13
+      env:
+      - name: RELEASE_NAME
+        value: "{{`{{workflow.parameters.releaseName}}`}}"
+      - name: NAMESPACE
+        value: "{{`{{workflow.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true --wait --timeout 2m
+          kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found=true --wait
+
+          HELM_COUNT=$(helm list -n "$NAMESPACE" --no-headers 2>/dev/null | wc -l)
+          # The helm list command returns an empty line when there are no releases
+          if [ "$HELM_COUNT" -gt 1 ]; then
+            echo "ERROR: Some Helm releases still exist!"
+            helm list -n "$NAMESPACE"
+            exit 1
+          fi
+
+          PVC_COUNT=$(kubectl get pvc -n "$NAMESPACE" --no-headers 2>/dev/null | wc -l)
+          if [ "$PVC_COUNT" -gt 0 ]; then
+            echo "ERROR: Some PVCs are still present!"
+            kubectl get pvc -n "$NAMESPACE"
+            exit 1
+          fi
+
+  - name: helm-deploy
+    inputs:
+      parameters:
+      - name: repoUrl
+      - name: repoRevision
+      - name: chorusBackendAcceptanceNamespace
+      - name: chorusBackendImageTag
+      - name: releaseName
+      artifacts:
+        - name: git
+          path: "/src"
+          git:
+            repo: "{{`{{inputs.parameters.repoUrl}}`}}"
+            revision: "{{`{{inputs.parameters.repoRevision}}`}}"
+            depth: 1
+    container:
+      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/helm:3
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: IMAGE_TAG
+        value: "{{`{{inputs.parameters.chorusBackendImageTag}}`}}"
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      - name: DEFAULT_VALUES
+        value: "/src/deploy/backend/values.yaml"
+      - name: OVERRIDING_VALUES
+        value: "/src/configs/ci/values.yaml"
+      - name: CHART
+        value: "/src/deploy/backend"
+      command: [sh, -e, -c]
+      args:
+        - |
+          helm dependency update /src/deploy/backend
+          # Dry-run
+          helm upgrade --install "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --values "$DEFAULT_VALUES" --values "$OVERRIDING_VALUES" --set-string image.tag="$IMAGE_TAG" --dry-run=server -oyaml
+          # Deploy
+          helm upgrade --install "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --values "$DEFAULT_VALUES" --values "$OVERRIDING_VALUES" --set-string image.tag="$IMAGE_TAG" --timeout 5m --wait
+      workingDir: "/src"
+
+  - name: wait-for-pods
+    inputs:
+      parameters:
+      - name: chorusBackendAcceptanceNamespace
+    container:
+      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/kubectl:1.34.1
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      command: [sh, -e, -c]
+      args:
+        - |
+          echo "Waiting for pods in namespace $NAMESPACE to be ready..."
+
+          if ! kubectl wait --for=condition=Ready pods --all -n "$NAMESPACE" --timeout=300s; then
+            echo "Timeout reached! Pod status:"
+            kubectl get pods -n "$NAMESPACE" -o wide
+            kubectl describe pods -n "$NAMESPACE"
+            exit 1
+          fi
+
+          echo "All pods are ready!"
+
+  - name: fetch-config
+    inputs:
+      parameters:
+      - name: chorusBackendAcceptanceNamespace
+      - name: releaseName
+    outputs:
+      # Workaround to pass file content between steps
+      # since artifacts are not set up yet
+      parameters:
+      - name: configContent
+        valueFrom:
+          path: /tmp/config.yaml
+    container:
+      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/kubectl:1.34.1
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: CONFIG_MAP_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}-backend"
+      command: [sh, -e, -c]
+      args:
+        - |
+          # Verify ConfigMap exists before trying to get it
+          if ! kubectl get configmap "$CONFIG_MAP_NAME" -n "$NAMESPACE" &>/dev/null; then
+            echo "ERROR: ConfigMap '$CONFIG_MAP_NAME' not found in namespace '$NAMESPACE'"
+            kubectl get configmap -n "$NAMESPACE"  # Show available configmaps
+            exit 1
+          fi
+
+          kubectl get configmap "$CONFIG_MAP_NAME" -n "$NAMESPACE" -o jsonpath='{.data.config\.yaml}' | base64 -w 0 > /tmp/config.yaml
+
+          # Verify the output is not empty
+          if [ ! -s /tmp/config.yaml ]; then
+            echo "ERROR: ConfigMap exists but config.yaml key is empty or missing!"
+            kubectl get configmap "$CONFIG_MAP_NAME" -n "$NAMESPACE" -o yaml
+            exit 1
+          fi
+
+  - name: run-tests
+    inputs:
+      parameters:
+      - name: repoUrl
+      - name: repoRevision
+      - name: configContent
+      - name: githubSecretName
+      - name: chorusBackendAcceptanceNamespace
+      - name: releaseName
+      artifacts:
+        - name: git
+          path: "/src"
+          git:
+            repo: "{{`{{inputs.parameters.repoUrl}}`}}"
+            revision: "{{`{{inputs.parameters.repoRevision}}`}}"
+            depth: 1
+    sidecars:
+    # TODO: discuss leveraging kubernetes DNS directly instead of port-forwarding
+    - name: port-forward-sidecar
+      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/kubectl:1.34.1
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      command: [sh, -c]
+      args:
+      - |
+        echo "Starting port-forward for backend service..."
+        kubectl -n $NAMESPACE port-forward service/$RELEASE_NAME-backend 5000:5000 &
+        echo "Starting port-forward for backend-db service..."
+        kubectl -n $NAMESPACE port-forward service/$RELEASE_NAME-postgresql 5432:5432 &
+        wait
+    - name: backend-logs
+      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/kubectl:1.34.1
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      command: [sh, -c]
+      args:
+      - |
+        echo "Starting log stream for backend pods..."
+        kubectl -n $NAMESPACE logs -l app.kubernetes.io/instance=$RELEASE_NAME -l app.kubernetes.io/name=backend -f
+    - name: backend-db-logs
+      image: harbor.build.chorus-tre.ch/docker_proxy/alpine/kubectl:1.34.1
+      env:
+      - name: NAMESPACE
+        value: "{{`{{inputs.parameters.chorusBackendAcceptanceNamespace}}`}}"
+      - name: RELEASE_NAME
+        value: "{{`{{inputs.parameters.releaseName}}`}}"
+      command: [sh, -c]
+      args:
+      - |
+        echo "Starting log stream for backend db pods..."
+        kubectl -n $NAMESPACE logs -l app.kubernetes.io/instance=$RELEASE_NAME -l app.kubernetes.io/name=postgresql -f
+    container:
+      image: harbor.build.chorus-tre.ch/docker_proxy/library/golang:1.25-bookworm
+      # TODO: investigate configuring resources for this step (currently takes ~5min to complete)
+      # update: adding the following resource requests did not improve performance
+      # resources:
+      #   requests:
+      #     memory: "4Gi"
+      #     cpu: "1000m"
+      env:
+      - name: GIT_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: "{{`{{inputs.parameters.githubSecretName}}`}}"
+            key: username
+      - name: GIT_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: "{{`{{inputs.parameters.githubSecretName}}`}}"
+            key: password
+      - name: CONFIG_CONTENT
+        value: "{{`{{inputs.parameters.configContent}}`}}"
+      - name: TEST_CONFIG_FILE
+        value: "/src/config.yaml"
+      - name: DB_HOST
+        value: "localhost"
+      command: [sh, -e, -c]
+      args:
+        - |
+          echo "$CONFIG_CONTENT" | base64 -d > config.yaml
+          if [ ! -s config.yaml ]; then
+            echo "WARNING: config.yaml is empty!"
+          else
+            echo ""
+            echo "###### start config.yaml content ######"
+            cat config.yaml
+            echo "###### end config.yaml content ######"
+            echo ""
+          fi
+
+          export GOPRIVATE=github.com/CHORUS-TRE/*
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf
+          export GIT_CONFIG_VALUE_0=https://github.com/
+          go mod download
+          go test -v -p 1 -timeout 15m --tags acceptance ./tests/acceptance/...
+      workingDir: "/src"

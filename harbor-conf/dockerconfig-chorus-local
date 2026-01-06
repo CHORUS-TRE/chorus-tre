@@ -1,0 +1,7 @@
+{
+  "auths": {
+    "harbor-core.harbor.svc.cluster.local": {
+      "auth": "cm9ib3QkY2hvcnVzLWxvY2FsOjh2U1BPN2Nob3J1c2xvY2Fs"
+    }
+  }
+}

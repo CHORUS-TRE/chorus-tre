@@ -1,0 +1,90 @@
+# Example project with all available settings and their defaults:
+# - project_name: example-project
+#   public: false                          # Make project publicly accessible
+#   auto_scan: true                        # Automatically scan images on push
+#   severity: low                          # Severity threshold: low, medium, high, critical
+#   enable_content_trust: false            # Enable Docker Content Trust
+#   enable_content_trust_cosign: false     # Enable Cosign signature verification
+#   prevent_vul: false                     # Prevent vulnerable images from running
+#   auto_sbom_generation: false            # Automatically generate SBOM
+#   reuse_sys_cve_allowlist: true          # Use system-level CVE allowlist
+#   storage_limit: -1                      # Storage quota in bytes (-1 = unlimited)
+#   proxy_speed_kb: -1                     # Proxy cache speed limit in KB/s (-1 = unlimited)
+#   cve_allowlist:                         # Project-specific CVE allowlist (optional)
+#     items:
+#       - cve_id: CVE-2021-1234
+#       - cve_id: CVE-2021-5678
+#     expires_at: 1735689600               # Unix timestamp (optional)
+#   registry:                              # For proxy cache projects only
+#     name: docker-hub
+#     type: docker-hub
+#     url: https://hub.docker.com
+#     insecure: false
+#     credential:                          # Optional credentials
+#       type: basic
+#       access_key: username
+#       access_secret: password
+#   retention_policy:                      # Tag retention policy (optional)
+#     algorithm: or                        # Rule matching algorithm: "or" or "and"
+#     rules:
+#       - priority: 1                      # Lower number = higher priority
+#         disabled: false
+#         action: retain                   # Action to take: "retain"
+#         template: latestPushedK          # Template: "always", "latestPushedK", "latestPulledN", "nDaysSinceLastPush", "nDaysSinceLastPull"
+#         params:
+#           latestPushedK: 10              # Keep 10 most recently pushed tags
+#         tag_selectors:
+#           - kind: doublestar             # Pattern type: "doublestar"
+#             decoration: matches          # Match type: "matches" or "excludes"
+#             pattern: "**"                # Tag pattern
+#         scope_selectors:
+#           repository:                    # Repository selectors
+#             - kind: doublestar
+#               decoration: repoMatches    # "repoMatches" or "repoExcludes"
+#               pattern: "**"              # Repository pattern
+#     trigger:
+#       kind: Schedule                     # Trigger type: "Schedule"
+#       settings:
+#         cron: "0 0 0 * * *"              # Cron expression (daily at midnight)
+
+- project_name: apps
+  public: true
+  auto_scan: false
+
+- project_name: chorus
+  public: true
+  auto_scan: false
+
+- project_name: services
+  public: true
+  auto_scan: false
+  retention_policy:
+    rules:
+      - priority: 1                      # Lower number = higher priority
+        disabled: false
+        action: retain                   # Action to take: "retain"
+        template: latestPushedK          # Template: "always", "latestPushedK", "latestPulledN", "nDaysSinceLastPush", "nDaysSinceLastPull"
+        params:
+          latestPushedK: 10              # Keep 10 most recently pushed tags
+        tag_selectors:
+          - kind: doublestar             # Pattern type: "doublestar"
+            decoration: matches          # Match type: "matches" or "excludes"
+            pattern: "**"                # Tag pattern
+        scope_selectors:
+          repository:                    # Repository selectors
+            - kind: doublestar
+              decoration: repoMatches    # "repoMatches" or "repoExcludes"
+              pattern: "**"              # Repository pattern
+    trigger:
+      kind: Schedule                     # Trigger type: "Schedule"
+      settings:
+        cron: "0 0 0 * * *"              # Cron expression (daily at midnight)
+
+- project_name: docker_proxy
+  public: true
+  auto_scan: false
+  registry:
+    name: docker-hub
+    type: docker-hub
+    url: https://hub.docker.com
+    insecure: false

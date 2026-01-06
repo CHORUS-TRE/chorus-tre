@@ -1,0 +1,241 @@
+---
+realm: "chorus"
+displayName: ""
+displayNameHtml: ""
+revokeRefreshToken: true
+enabled: true
+passwordPolicy: "length(8) and specialChars(1) and upperCase(1) and lowerCase(1) and\
+  \ digits(1) and notUsername and notEmail and notContainsUsername"
+webAuthnPolicySignatureAlgorithms:
+  - "ES256"
+  - "RS256"
+webAuthnPolicyPasswordlessSignatureAlgorithms:
+  - "ES256"
+  - "RS256"
+clients:
+  - clientId: "admin-cli"
+    name: "${client_admin-cli}"
+    redirectUris: []
+    webOrigins: []
+    standardFlowEnabled: false
+    directAccessGrantsEnabled: true
+    publicClient: true
+    frontchannelLogout: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "false"
+      client.use.lightweight.access.token.enabled: "true"
+    nodeReRegistrationTimeout: 0
+    access: {}
+  - clientId: "broker"
+    name: "${client_broker}"
+    redirectUris: []
+    webOrigins: []
+    bearerOnly: true
+    publicClient: false
+    frontchannelLogout: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "true"
+    fullScopeAllowed: false
+    nodeReRegistrationTimeout: 0
+    access: {}
+  - clientId: "realm-management"
+    name: "${client_realm-management}"
+    redirectUris: []
+    webOrigins: []
+    bearerOnly: true
+    publicClient: false
+    frontchannelLogout: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "true"
+    fullScopeAllowed: false
+    nodeReRegistrationTimeout: 0
+    access: {}
+  - clientId: "chorus"
+    name: "Chorus"
+    rootUrl: "$(CHORUS_ROOT_URL)"
+    adminUrl: "$(CHORUS_ADMIN_URL)"
+    baseUrl: "$(CHORUS_BASE_URL)"
+    secret: "$(CHORUS_CLIENT_SECRET)"
+    redirectUris:
+      - "$(CHORUS_REDIRECT_URIS)"
+    webOrigins:
+      - "$(CHORUS_WEB_ORIGINS)"
+    implicitFlowEnabled: true
+    directAccessGrantsEnabled: true
+    publicClient: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "false"
+      oidc.ciba.grant.enabled: "false"
+      exclude.issuer.from.auth.response: "false"
+      backchannel.logout.session.required: "true"
+      client_credentials.use_refresh_token: "false"
+      frontchannel.logout.session.required: "true"
+      post.logout.redirect.uris: "+"
+      display.on.consent.screen: "false"
+      oauth2.device.authorization.grant.enabled: "true"
+      backchannel.logout.revoke.offline.tokens: "false"
+      use.refresh.tokens: "true"
+      exclude.session.state.from.auth.response: "false"
+    optionalClientScopes:
+      - "offline_access"
+    access: {}
+clientScopes:
+  - name: "acr"
+    description: "OpenID Connect scope for add acr (authentication context class reference)\
+      \ to the token"
+    protocol: "openid-connect"
+    attributes:
+      include.in.token.scope: "false"
+      display.on.consent.screen: "false"
+    protocolMappers:
+      - name: "acr loa level"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-acr-mapper"
+        consentRequired: false
+        config:
+          id.token.claim: "true"
+          introspection.token.claim: "true"
+          access.token.claim: "true"
+  - name: "organization"
+    description: "Additional claims about the organization a subject belongs to"
+    protocol: "openid-connect"
+    attributes:
+      include.in.token.scope: "true"
+      consent.screen.text: "${organizationScopeConsentText}"
+      display.on.consent.screen: "true"
+    protocolMappers:
+      - name: "organization"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-organization-membership-mapper"
+        consentRequired: false
+        config:
+          id.token.claim: "true"
+          introspection.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "organization"
+          jsonType.label: "String"
+          multivalued: "true"
+  - name: "microprofile-jwt"
+    description: "Microprofile - JWT built-in scope"
+    protocol: "openid-connect"
+    attributes:
+      include.in.token.scope: "true"
+      display.on.consent.screen: "false"
+    protocolMappers:
+      - name: "groups"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usermodel-realm-role-mapper"
+        consentRequired: false
+        config:
+          introspection.token.claim: "true"
+          multivalued: "true"
+          user.attribute: "foo"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "groups"
+          jsonType.label: "String"
+      - name: "upn"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usermodel-attribute-mapper"
+        consentRequired: false
+        config:
+          introspection.token.claim: "true"
+          userinfo.token.claim: "true"
+          user.attribute: "username"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "upn"
+          jsonType.label: "String"
+  - name: "basic"
+    description: "OpenID Connect scope for add all basic claims to the token"
+    protocol: "openid-connect"
+    attributes:
+      include.in.token.scope: "false"
+      display.on.consent.screen: "false"
+    protocolMappers:
+      - name: "auth_time"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usersessionmodel-note-mapper"
+        consentRequired: false
+        config:
+          user.session.note: "AUTH_TIME"
+          id.token.claim: "true"
+          introspection.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "auth_time"
+          jsonType.label: "long"
+      - name: "sub"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-sub-mapper"
+        consentRequired: false
+        config:
+          introspection.token.claim: "true"
+          access.token.claim: "true"
+  - name: "service_account"
+    description: "Specific scope for a client enabled for service accounts"
+    protocol: "openid-connect"
+    attributes:
+      include.in.token.scope: "false"
+      display.on.consent.screen: "false"
+    protocolMappers:
+      - name: "Client IP Address"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usersessionmodel-note-mapper"
+        consentRequired: false
+        config:
+          user.session.note: "clientAddress"
+          id.token.claim: "true"
+          introspection.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "clientAddress"
+          jsonType.label: "String"
+      - name: "Client Host"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usersessionmodel-note-mapper"
+        consentRequired: false
+        config:
+          user.session.note: "clientHost"
+          id.token.claim: "true"
+          introspection.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "clientHost"
+          jsonType.label: "String"
+      - name: "Client ID"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usersessionmodel-note-mapper"
+        consentRequired: false
+        config:
+          user.session.note: "client_id"
+          id.token.claim: "true"
+          introspection.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "client_id"
+          jsonType.label: "String"
+  - name: "groups"
+    description: ""
+    protocol: "openid-connect"
+    attributes:
+      include.in.token.scope: "false"
+      display.on.consent.screen: "true"
+      gui.order: ""
+      consent.screen.text: ""
+    protocolMappers:
+      - name: "groups"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-group-membership-mapper"
+        consentRequired: false
+        config:
+          full.path: "false"
+          introspection.token.claim: "true"
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          lightweight.claim: "false"
+          access.token.claim: "true"
+          claim.name: "groups"
+defaultLocale: ""
+attributes: {}
+keycloakVersion: "26.1.5"

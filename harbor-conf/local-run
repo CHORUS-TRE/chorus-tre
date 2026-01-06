@@ -1,0 +1,52 @@
+
+kubectl create namespace argocd
+helm install argocd ./charts/argo-cd \
+  --namespace argocd \
+  --set argo-cd.global.domain=argo-cd.chorus-tre.local \
+  --set argo-cd.global.priorityClassName="" \
+  --set argo-cd.server.ingress.enabled=false \
+  --set argo-cd.redis.enabled=true
+
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+kubectl create namespace harbor
+helm install harbor ./charts/harbor \
+  --values harbor-conf/values.yaml \
+  --namespace harbor \
+  --set harbor.expose.type=nodePort \
+  --set harbor.expose.tls.enabled=false \
+  --set harbor.externalURL=http://localhost:30002 \
+  --set harbor.persistence.enabled=false \
+  --set harbor.harborAdminPassword=Harbor12345 \
+  --set harbor.metrics.enabled=false \
+  --set harbor.metrics.serviceMonitor.enabled=false \
+  --set harbor.registry.priorityClassName="" \
+  --set harbor.portal.priorityClassName="" \
+  --set harbor.nginx.priorityClassName="" \
+  --set harbor.trivy.priorityClassName="" \
+  --set harbor.exporter.priorityClassName="" \
+  --set harbor.database.type=internal \
+  --set harbor.database.external.existingSecret="" \
+  --set harbor.redis.type=internal \
+  --set harbor.existingSecretAdminPassword="" \
+  --set harbor.existingSecretSecretKey="" \
+  --set harbor.core.secretName="" \
+  --set harbor.core.existingSecret="" \
+  --set harbor.core.existingXsrfSecret="" \
+  --set harbor.jobservice.existingSecret="" \
+  --set harbor.registry.existingSecret="" \
+  --set harbor.registry.credentials.existingSecret=""
+
+kubectl wait --for=condition=ready pod -l component=core -n harbor --timeout=600s
+
+kubectl port-forward -n harbor svc/harbor 30002:80
+
+kubectl apply -f harbor-conf/harbor-projects-config.yaml
+kubectl apply -f harbor-conf/harbor-robots-config.yaml
+kubectl apply -f harbor-conf/harbor-config-script.yaml
+
+kubectl apply -f harbor-conf/harbor-post-sync-job.yaml
+kubectl logs -f job/harbor-configure -n harbor

@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm-config
+  namespace: keycloak
+data:
+  # infra realm
+  ## alertmanager
+  ALERTMANAGER_ROOT_URL: "http://alertmanager.local"
+  ALERTMANAGER_ADMIN_URL: "http://alertmanager.local"
+  ALERTMANAGER_BASE_URL: "/"
+  ALERTMANAGER_REDIRECT_URIS: "http://alertmanager.local/*"
+  ALERTMANAGER_WEB_ORIGINS: "http://alertmanager.local"
+  ## grafana
+  GRAFANA_ROOT_URL: "http://grafana.local"
+  GRAFANA_ADMIN_URL: "http://grafana.local"
+  GRAFANA_BASE_URL: "/"
+  GRAFANA_REDIRECT_URIS: "http://grafana.local/login/generic_oauth"
+  GRAFANA_WEB_ORIGINS: "http://grafana.local"
+  ## harbor
+  HARBOR_ROOT_URL: "http://harbor.local"
+  HARBOR_ADMIN_URL: "http://harbor.local"
+  HARBOR_BASE_URL: "/harbor/projects"
+  HARBOR_REDIRECT_URIS: "http://harbor.local/c/oidc/callback"
+  HARBOR_WEB_ORIGINS: "http://harbor.local"
+  ## matomo
+  MATOMO_ROOT_URL: "http://makoto.local"
+  MATOMO_ADMIN_URL: "http://makoto.local"
+  MATOMO_BASE_URL: "/"
+  MATOMO_REDIRECT_URIS: "http://makoto.local/index.php?module=LoginOIDC&action=callback&provider=oidc,http://makoto.local"
+  MATOMO_WEB_ORIGINS: "http://makoto.local"
+  ## prometheus
+  PROMETHEUS_ROOT_URL: "http://prometheus.local"
+  PROMETHEUS_ADMIN_URL: "http://prometheus.local"
+  PROMETHEUS_BASE_URL: "/"
+  PROMETHEUS_REDIRECT_URIS: "http://prometheus.local/*,http://alertmanager.local/*"
+  PROMETHEUS_WEB_ORIGINS: "http://prometheus.local"
+  # chorus realm
+  ## chorus
+  CHORUS_ROOT_URL: "http://backend.local"
+  CHORUS_ADMIN_URL: "http://backend.local"
+  CHORUS_BASE_URL: "/"
+  CHORUS_REDIRECT_URIS: "http://backend.local/*,http://chorus.local/*,http://localhost:3000/*,http://localhost:5000/*"
+  CHORUS_WEB_ORIGINS: "http://backend.local/*,http://chorus.local/*,http://localhost:3000/*,http://localhost:5000/*"

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: harbor-projects-config
+  namespace: harbor
+data:
+  projects.yaml: |
+    - name: test-app
+      public: false
+      auto_scan: true
+      severity: "medium"
+      storage_quota: -1

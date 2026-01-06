@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: harbor-configure
+  namespace: harbor
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: configure
+        image: python:3.11-slim
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          pip install --quiet requests pyyaml
+          python /script/configure.py
+        env:
+        - name: HARBOR_URL
+          value: "http://harbor.harbor.svc.cluster.local"
+        - name: HARBOR_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: harbor-core
+              key: HARBOR_ADMIN_PASSWORD
+        - name: HARBOR_VERIFY_SSL
+          value: "false"
+        volumeMounts:
+        - name: script
+          mountPath: /script
+        - name: projects-config
+          mountPath: /config/projects.yaml
+          subPath: projects.yaml
+        - name: robots-config
+          mountPath: /config/robots.yaml
+          subPath: robots.yaml
+      volumes:
+      - name: script
+        configMap:
+          name: harbor-config-script
+      - name: projects-config
+        configMap:
+          name: harbor-projects-config
+      - name: robots-config
+        configMap:
+          name: harbor-robots-config

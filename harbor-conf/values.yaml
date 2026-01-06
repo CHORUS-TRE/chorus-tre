@@ -1,0 +1,111 @@
+projects:
+  - project_name: apps
+    auto_scan: false
+  - project_name: chorus
+    auto_scan: false
+  - project_name: services
+    auto_scan: false
+    retention_policy:
+      rules:
+        - priority: 1
+          disabled: false
+          action: retain
+          template: latestPushedK
+          params:
+            latestPushedK: 10
+          tag_selectors:
+            - kind: doublestar
+              decoration: matches
+              pattern: "**"
+          scope_selectors:
+            repository:
+              - kind: doublestar
+                decoration: repoMatches
+                pattern: "**"
+      trigger:
+        kind: Schedule
+        settings:
+          cron: "0 0 0 * * *"
+  - project_name: docker_proxy
+    auto_scan: false
+    registry:
+      name: docker-hub
+      type: docker-hub
+      url: https://hub.docker.com
+      insecure: false
+
+replications:
+  - name: harbor-build
+    mode: pull
+    registry:
+      name: harbor-build
+      type: harbor
+      url: https://harbor.build.chorus-tre.ch
+    filters:
+    - type: name
+      value: "{apps,chorus,services}/**"
+    trigger:
+      mode: scheduled
+      cron: "0 */5 * * * *"
+    enabled: false
+
+robots:
+  - name: chorus-local
+    permissions:
+      - kind: system
+        namespace: /
+        access:
+          - resource: project
+            action: list
+          - resource: registry
+            action: list
+          - resource: registry
+            action: read
+      - kind: project
+        namespace: apps
+        access:
+          - resource: artifact
+            action: list
+          - resource: artifact
+            action: read
+          - resource: repository
+            action: list
+          - resource: repository
+            action: pull
+          - resource: repository
+            action: read
+          - resource: tag
+            action: list
+      - kind: project
+        namespace: chorus
+        access:
+          - resource: repository
+            action: list
+          - resource: repository
+            action: pull
+          - resource: repository
+            action: read
+      - kind: project
+        namespace: services
+        access:
+          - resource: repository
+            action: list
+          - resource: repository
+            action: pull
+          - resource: repository
+            action: read
+      - kind: project
+        namespace: docker_proxy
+        access:
+          - resource: artifact
+            action: list
+          - resource: artifact
+            action: read
+          - resource: repository
+            action: list
+          - resource: repository
+            action: pull
+          - resource: repository
+            action: read
+          - resource: tag
+            action: list

@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "HARBOR_URL": "http://localhost:30002",
+                "HARBOR_ADMIN_PASSWORD": "Harbor12345",
+                "LOG_LEVEL": "INFO",
+                "CONFIG_DIR": "/Users/jo8466/Projects/chorus-tre/harbor-conf/python-script/config",
+                "SECRET_DIR": "/Users/jo8466/Projects/chorus-tre/harbor-conf/python-script/secrets"
+            }
+        }
+    ]
+}

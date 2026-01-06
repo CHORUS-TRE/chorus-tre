@@ -1,0 +1,32 @@
+kubectl create secret generic keycloak-db-secret --from-literal=postgres-password=password --from-literal=password=password -n keycloak
+kubectl create secret generic keycloak-secret --from-literal=adminPassword=password -n keycloak
+
+kubectl create configmap master-realm --from-file=./realm-export/master-realm.json -n keycloak
+kubectl create configmap infra-realm --from-file=./realm-export/infra-realm.json -n keycloak
+kubectl create configmap chorus-realm --from-file=./realm-export/chorus-realm.json -n keycloak
+
+kubectl apply -f ./configmaps/keycloak-realm-config.yaml -n keycloak
+kubectl apply -f ./secrets/keycloak-realm-secret.yaml -n keycloak
+
+helm dependency build ./charts/keycloak
+
+helm install -f keycloak-values.yaml keycloak ./charts/keycloak -n keycloak &
+helm install -f min-keycloak-values.yaml keycloak ./charts/keycloak -n keycloak &
+
+kubectl set image statefulsets.apps/keycloak-postgresql postgresql=docker.io/bitnamilegacy/postgresql:17.4.0-debian-12-r1 -n keycloak
+
+helm upgrade -f keycloak-values.yaml keycloak ./charts/keycloak -n keycloak --force-conflicts &
+helm upgrade -f min-keycloak-values.yaml keycloak ./charts/keycloak -n keycloak --force-conflicts &
+
+kubectl port-forward service/keycloak 8080:80 -n keycloak
+
+
+
+
+
+
+yq -p=json -o=yaml realm-export/chorus-int-infra-realm-export.json > realm-export/chorus-int-infra-realm-export.yaml
+
+NOTE:
+- remove all uuid from the realm export json file
+- remove "verifiableCredentialsEnabled" and "adminPermissionsEnabled" from the realm export

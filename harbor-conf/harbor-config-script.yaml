@@ -1,0 +1,287 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: harbor-config-script
+  namespace: harbor
+data:
+  configure.py: |
+    #!/usr/bin/env python3
+    import os
+    import sys
+    import requests
+    import yaml
+    from typing import Dict, List, Any, Optional
+
+    class HarborConfigurator:
+        def __init__(self, url: str, username: str, password: str):
+            self.url = url.rstrip('/')
+            self.session = requests.Session()
+            self.session.auth = (username, password)
+            verify_ssl = os.getenv('HARBOR_VERIFY_SSL', 'true').lower()
+            self.session.verify = verify_ssl in ('true', '1', 'yes')
+            self.csrf_token = None
+            
+            # Perform initial request to get CSRF token
+            self._fetch_csrf_token()
+        
+        def _fetch_csrf_token(self):
+            """Fetch CSRF token from response header"""
+            try:
+                response = self.session.get(f"{self.url}/api/v2.0/systeminfo")
+                response.raise_for_status()
+                
+                # Get CSRF token from response header
+                self.csrf_token = response.headers.get('X-Harbor-CSRF-Token')
+                if self.csrf_token:
+                    print(f"✓ CSRF token obtained from response header")
+                else:
+                    print(f"⚠️  No CSRF token in response header")
+            except Exception as e:
+                print(f"WARNING: Could not fetch CSRF token: {e}")
+        
+        def _get_headers(self):
+            """Get headers with CSRF token for requests"""
+            headers = {'Content-Type': 'application/json'}
+            if self.csrf_token:
+                headers['X-Harbor-CSRF-Token'] = self.csrf_token
+            return headers
+
+        def get_projects(self) -> List[str]:
+            """Get existing project names"""
+            try:
+                response = self.session.get(f"{self.url}/api/v2.0/projects")
+                response.raise_for_status()
+                
+                # Update CSRF token from response
+                new_token = response.headers.get('X-Harbor-CSRF-Token')
+                if new_token:
+                    self.csrf_token = new_token
+                
+                return [p['name'] for p in response.json()]
+            except requests.exceptions.RequestException as e:
+                print(f"ERROR getting projects: {e}")
+                raise
+        def create_project(self, project: Dict[str, Any]) -> bool:
+            """Create project if it doesn't exist"""
+            existing = self.get_projects()
+            project_name = project['name']
+
+            if project_name in existing:
+                print(f"✓ Project '{project_name}' already exists")
+                return False
+
+            data = {
+                "project_name": project_name,
+                "metadata": {
+                    "public": str(project.get('public', False)).lower(),
+                    "auto_scan": str(project.get('auto_scan', True)).lower(),
+                    "severity": project.get('severity', 'low'),
+                    "enable_content_trust": str(project.get('enable_content_trust', False)).lower(),
+                    "reuse_sys_cve_allowlist": str(project.get('reuse_sys_cve_allowlist', True)).lower(),
+                },
+                "storage_limit": project.get('storage_quota', -1)
+            }
+
+            try:
+                headers = self._get_headers()
+                response = self.session.post(
+                    f"{self.url}/api/v2.0/projects",
+                    json=data,
+                    headers=headers
+                )
+                response.raise_for_status()
+                
+                # Update CSRF token from response
+                new_token = response.headers.get('X-Harbor-CSRF-Token')
+                if new_token:
+                    self.csrf_token = new_token
+                
+                print(f"✓ Created project '{project_name}'")
+                return True
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 409:
+                    # Project already exists - this is fine
+                    print(f"✓ Project '{project_name}' already exists (from API)")
+                    return False
+                else:
+                    print(f"ERROR creating project '{project_name}': {e}")
+                    if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                        print(f"  Response: {e.response.text}")
+                    raise
+            except requests.exceptions.RequestException as e:
+                print(f"ERROR creating project '{project_name}': {e}")
+                if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                    print(f"  Response: {e.response.text}")
+                raise
+        
+        def get_project_robots(self, project_name: str) -> List[str]:
+            """Get existing robot account names for a specific project"""
+            try:
+                # Try to get all robots and filter by project
+                response = self.session.get(f"{self.url}/api/v2.0/robots")
+                response.raise_for_status()
+                
+                # Update CSRF token from response
+                new_token = response.headers.get('X-Harbor-CSRF-Token')
+                if new_token:
+                    self.csrf_token = new_token
+                
+                robots = response.json()
+                # Filter robots that belong to this project (check if project is in the robot name)
+                project_robots = []
+                for r in robots:
+                    robot_name = r.get('name', '')
+                    # Robot names are formatted as: robot$<project>+<name>
+                    if f"+{project_name}+" in robot_name or robot_name.startswith(f"robot${project_name}+"):
+                        project_robots.append(robot_name)
+                
+                print(f"   Found {len(project_robots)} existing robots in project '{project_name}': {project_robots}")
+                return project_robots
+            except requests.exceptions.RequestException as e:
+                # If we can't get the list, just log a warning and continue
+                # The 409 CONFLICT handling will catch duplicates anyway
+                print(f"   Note: Could not list existing robots ({e})")
+                return []
+        
+        def create_robot(self, robot: Dict[str, Any]) -> Optional[Dict[str, str]]:
+            """Create robot account if it doesn't exist"""
+            robot_name = robot['name']
+            project_name = robot.get('project', '')
+            
+            if not project_name:
+                print(f"ERROR: Robot '{robot_name}' must have a project specified")
+                return None
+            
+            # Get existing robots for this project
+            existing = self.get_project_robots(project_name)
+            
+            # Harbor formats robot names, check various possible formats
+            possible_names = [
+                robot_name,
+                f"robot${robot_name}",
+                f"robot${project_name}+{robot_name}",
+            ]
+            
+            for name in possible_names:
+                if name in existing:
+                    print(f"✓ Robot '{name}' already exists in project '{project_name}'")
+                    return None
+
+            data = {
+                "name": robot_name,
+                "description": robot.get('description', ''),
+                "duration": robot.get('duration', -1),
+                "level": "project",
+                "disable": False,
+                "permissions": robot.get('permissions', [])
+            }
+            
+            try:
+                headers = self._get_headers()
+                response = self.session.post(
+                    f"{self.url}/api/v2.0/robots",
+                    json=data,
+                    headers=headers
+                )
+                response.raise_for_status()
+                result = response.json()
+                
+                # Update CSRF token from response
+                new_token = response.headers.get('X-Harbor-CSRF-Token')
+                if new_token:
+                    self.csrf_token = new_token
+                
+                print(f"✓ Created robot '{robot_name}'")
+
+                return {
+                    'name': result['name'],
+                    'secret': result['secret'],
+                    'token': result.get('token', '')
+                }
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 409:
+                    # Robot already exists - this is fine
+                    print(f"✓ Robot '{robot_name}' already exists in project '{project_name}'")
+                    return None
+                else:
+                    print(f"ERROR creating robot '{robot_name}': {e}")
+                    if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                        print(f"  Response: {e.response.text}")
+                    raise
+            except requests.exceptions.RequestException as e:
+                print(f"ERROR creating robot '{robot_name}': {e}")
+                if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                    print(f"  Response: {e.response.text}")
+                raise
+
+    def main():
+        # Get Harbor connection info
+        harbor_url = os.getenv('HARBOR_URL')
+        admin_user = os.getenv('HARBOR_ADMIN_USER', 'admin')
+        admin_pass = os.getenv('HARBOR_ADMIN_PASSWORD')
+
+        if not harbor_url or not admin_pass:
+            print("ERROR: HARBOR_URL and HARBOR_ADMIN_PASSWORD must be set")
+            sys.exit(1)
+
+        print(f"🌊 Configuring Harbor at {harbor_url}")
+        print(f"   Admin user: {admin_user}")
+
+        try:
+            harbor = HarborConfigurator(harbor_url, admin_user, admin_pass)
+        except Exception as e:
+            print(f"ERROR: Failed to initialize Harbor client: {e}")
+            sys.exit(1)
+
+        # Load and apply projects
+        projects_created = 0
+        try:
+            with open('/config/projects.yaml', 'r') as f:
+                projects = yaml.safe_load(f) or []
+                print(f"\n📦 Processing {len(projects)} projects...")
+                for project in projects:
+                    if harbor.create_project(project):
+                        projects_created += 1
+        except FileNotFoundError:
+            print("⚠️  No projects.yaml found, skipping projects")
+        except Exception as e:
+            print(f"ERROR processing projects: {e}")
+            sys.exit(1)
+
+        # Load and apply robots
+        robot_secrets = []
+        robots_created = 0
+        try:
+            with open('/config/robots.yaml', 'r') as f:
+                robots = yaml.safe_load(f) or []
+                print(f"\n🤖 Processing {len(robots)} robot accounts...")
+                for robot in robots:
+                    result = harbor.create_robot(robot)
+                    if result:
+                        robot_secrets.append(result)
+                        robots_created += 1
+        except FileNotFoundError:
+            print("⚠️  No robots.yaml found, skipping robots")
+        except Exception as e:
+            print(f"ERROR processing robots: {e}")
+            sys.exit(1)
+
+        # Output robot secrets for storage (if any were created)
+        if robot_secrets:
+            print("\n🔐 New robot secrets created (store these securely!):")
+            print("=" * 80)
+            for secret in robot_secrets:
+                print(f"\nRobot: {secret['name']}")
+                print(f"Secret: {secret['secret']}")
+                if secret.get('token'):
+                    print(f"Token: {secret['token']}")
+            print("=" * 80)
+            print("\n⚠️  WARNING: Save these credentials - they won't be shown again!")
+
+        # Summary
+        print(f"\n✅ Harbor configuration complete!")
+        print(f"   Projects created: {projects_created}")
+        print(f"   Robots created: {robots_created}")
+
+    if __name__ == '__main__':
+        main()

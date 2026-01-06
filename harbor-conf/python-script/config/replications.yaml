@@ -1,0 +1,39 @@
+# Example replication with all available settings and their defaults:
+# - name: example-replication
+#   mode: pull                    # Required: 'pull' or 'push'
+#   description: ""               # Optional description
+#   registry:                     # Required: source (pull) or destination (push) registry
+#     name: example-registry
+#     type: harbor                # Registry type: harbor, docker-hub, etc.
+#     url: https://registry.example.com
+#     description: ""
+#     insecure: false
+#     credential:                 # Optional credentials
+#       type: basic
+#       access_key: username
+#       access_secret: password
+#   dest_namespace: ""            # Default: preserve source namespace
+#   filters: []                   # Default: no filters (replicate all)
+#   flattening: 1                 # Default: flatten 1 level (0-3)
+#   trigger:                      # Default: manual trigger
+#     mode: manual                # Options: manual, scheduled, event_based
+#     cron: ""                    # Required if mode=scheduled
+#   replicate_deletion: false     # Default: don't replicate deletions
+#   bandwidth: -1                 # Default: unlimited (-1 = no limit, in KB/s)
+#   override: true                # Default: override existing images
+#   enabled: true                 # Default: policy is enabled
+#   copyByChunk: false            # Default: don't use chunked copy
+
+- name: harbor-build
+  mode: pull
+  registry:
+    name: harbor-build
+    type: harbor
+    url: https://harbor.build.chorus-tre.ch
+  filters:
+  - type: name
+    value: "{apps,chorus,services}/**"
+  trigger:
+    mode: scheduled
+    cron: "0 */5 * * * *"
+  enabled: false
