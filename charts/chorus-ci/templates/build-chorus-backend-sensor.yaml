@@ -271,6 +271,24 @@ spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: build-master-chorus-backend
 
+                volumeClaimTemplates:
+                  - metadata:
+                      name: docker-data
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.chorusBackend.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                      storageClassName: {{ .Values.chorusBackend.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
+
+                volumes:
+                  - name: docker-config
+                    secret:
+                      secretName: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                      items:
+                        - key: .dockerconfigjson
+                          path: config.json
+
                 arguments:
                   parameters:
                     - name: repoUrl
