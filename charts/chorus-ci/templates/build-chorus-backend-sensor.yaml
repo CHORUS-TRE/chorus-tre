@@ -308,7 +308,7 @@ spec:
                           value: {{ $githubSecretName }}
 
                 templates:
-                  - name: build-chorus-backend
+                  - name: build-master-chorus-backend
                     steps:
                       - - name: docker-build
                           templateRef:
