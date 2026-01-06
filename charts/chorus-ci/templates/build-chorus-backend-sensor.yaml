@@ -275,10 +275,10 @@ spec:
                   parameters:
                     - name: repoUrl
                     - name: repoFullName
+                    - name: revision
                     - name: ref
                     - name: sha
                     - name: tag
-                    - name: repository
 
                 hooks:
                   running:
@@ -338,7 +338,7 @@ spec:
                               - name: source
                                 git:
                                   repo: "{{`{{workflow.parameters.repoUrl}}`}}"
-                                  revision: "{{`{{workflow.parameters.sha}}`}}"
+                                  revision: "{{`{{workflow.parameters.revision}}`}}"
                                   usernameSecret:
                                     name: {{ $githubSecretName }}
                                     key: username
