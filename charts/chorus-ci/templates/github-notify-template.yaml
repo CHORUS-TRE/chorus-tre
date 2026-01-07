@@ -21,6 +21,8 @@ spec:
         - name: repoFullName
         - name: sha
         - name: githubSecret
+        - name: contextSuffix
+          value: "n/a"
 
     volumes:
       - name: github-secret
@@ -42,6 +44,13 @@ spec:
             shutdown="Terminate"
           else
             shutdown=""
+          fi;
+
+          context_suffix="{{`{{inputs.parameters.contextSuffix}}`}}";
+          if [ "$context_suffix" = "n/a" ]; then
+            context="{{ $name }}";
+          else
+            context="{{ $name }}-${context_suffix}";
           fi;
 
           case "{{`{{workflow.status}}`}}" in
@@ -87,4 +96,4 @@ spec:
           -f "state=$state"
           -f "description={{`{{workflow.mainEntrypoint}}`}} $verb $status_desc"
           -f "target_url=https://argo-workflows.build.chorus-tre.ch/workflows/{{`{{workflow.namespace}}`}}/{{`{{workflow.name}}`}}"
-          -f "context={{ $name }}"
+          -f "context=$context"
