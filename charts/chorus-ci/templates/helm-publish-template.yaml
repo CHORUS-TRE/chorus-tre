@@ -31,6 +31,8 @@ spec:
         - name: dockerConfigSecret
         - name: chartsProject
           default: "charts"
+        - name: chartVersion
+          default: "n/a"
       artifacts:
         - name: source
           path: "/src"
@@ -60,6 +62,8 @@ spec:
           value: "{{`{{inputs.parameters.chartName}}`}}"
         - name: CHARTS_PROJECT
           value: "{{`{{inputs.parameters.chartsProject}}`}}"
+        - name: CHART_VERSION
+          value: "{{`{{inputs.parameters.chartVersion}}`}}"
       command: [sh, -e, -c]
       args:
         - >-
@@ -76,6 +80,10 @@ spec:
           | helm registry login -u "${username}" --password-stdin "${REGISTRY}";
 
           helm dependency build "${CHARTS_DIR}/${CHART_NAME}";
-          helm package "${CHARTS_DIR}/${CHART_NAME}";
+          if [ "${CHART_VERSION}" = "n/a" ]; then
+            helm package "${CHARTS_DIR}/${CHART_NAME}";
+          else
+            helm package --app-version="${CHART_VERSION}" --version="${CHART_VERSION}" "${CHARTS_DIR}/${CHART_NAME}";
+          fi;
           helm push ${CHART_NAME}-*.tgz "oci://${REGISTRY}/${CHARTS_PROJECT}";
       workingDir: "/src"

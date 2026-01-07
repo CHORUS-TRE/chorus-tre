@@ -530,6 +530,8 @@ spec:
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
+                              - name: chartVersion
+                                value: "{{`{{workflow.parameters.tag}}`}}"
                             artifacts:
                               - name: source
                                 git:
