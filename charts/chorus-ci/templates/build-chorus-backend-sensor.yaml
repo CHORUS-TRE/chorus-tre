@@ -312,6 +312,8 @@ spec:
                           value: "{{`{{workflow.parameters.sha}}`}}"
                         - name: githubSecret
                           value: {{ $githubSecretName }}
+                        - name: contextSuffix
+                          value: "build"
                   exit:
                     templateRef:
                       name: {{ $fullName }}-github-notify-template
@@ -324,6 +326,8 @@ spec:
                           value: "{{`{{workflow.parameters.sha}}`}}"
                         - name: githubSecret
                           value: {{ $githubSecretName }}
+                        - name: contextSuffix
+                          value: "build"
 
                 templates:
                   - name: build-master-chorus-backend
