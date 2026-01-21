@@ -17,15 +17,15 @@ spec:
     namespace: {{ .namespace | quote }}
   project: {{ $environmentName | quote }}
   sources:
-  - chart: {{ .chartPath | quote }}
+  - repoURL: {{ .repoURL | quote }}
+    path: {{ .chartPath | quote }}
+    targetRevision: {{ .revision | default "HEAD" | quote }}
     helm:
       valueFiles:
       - {{ printf "\"$values/%s\"" .valuesPath }}
       parameters:
         - name: podLabels.commit-sha
           value: $ARGOCD_APP_REVISION_SHORT
-    repoURL: {{ .repoURL | quote }}
-    targetRevision: {{ .revision | default "HEAD" | quote }}
   - ref: values
     repoURL: {{ .repoURL | quote }}
     targetRevision: {{ .revision | default "HEAD" | quote }}
