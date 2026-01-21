@@ -19,8 +19,8 @@ To verify these resources, run:
 
   kubectl get appprojects,applicationsets -n argocd
 
-
 {{- if $hasRollingRelease }}
+
 Rolling releases applications can be checked with
 
   kubectl get application -l rolling-release=true -n argocd
