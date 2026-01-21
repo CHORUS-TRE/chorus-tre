@@ -7,7 +7,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: {{ printf "%s-%s" $environmentName .name | quote }}
+  name: {{ printf "\"%s-%s\"" $environmentName .name | quote }}
   namespace: {{ $namespaceOverride | default "argocd" | quote }}
 spec:
   destination:
@@ -18,7 +18,7 @@ spec:
   - chart: {{ .chartPath | quote }}
     helm:
       valueFiles:
-      - {{ printf "$values/%s".valuesPath }}
+      - {{ printf "\"$values/%s\"" .valuesPath }}
       parameters:
         - name: podLabels.commit-sha
           value: $ARGOCD_APP_REVISION_SHORT
