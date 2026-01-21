@@ -7,7 +7,7 @@ Environment: {{ .name }}
   - AppProject:       {{ .name }}
   - ApplicationSet:   {{ .name }}
 {{- if .rollingRelease }}
-{{- range .Values.rollingRelease }}
+{{- range .rollingRelease }}
   - Application: {{ .name }}
 {{- end }}
 {{- end }}
