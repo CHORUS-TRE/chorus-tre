@@ -1,0 +1,37 @@
+{{- $namespaceOverride := .Values.namespaceOverride }}
+{{- range .Values.environments }}
+{{- $environmentName := .name }}
+{{- $clusterName := .cluster }}
+{{- range .rollingRelease }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ printf "%s-%s" $environmentName .name | quote }}
+  namespace: {{ $namespaceOverride | default "argocd" | quote }}
+spec:
+  destination:
+    name: {{ $clusterName | quote }}
+    namespace: {{ .namespace | quote }}
+  project: {{ $environmentName | quote }}
+  sources:
+  - chart: {{ .chartPath | quote }}
+    helm:
+      valueFiles:
+      - {{ printf "$values/%s".valuesPath }}
+      parameters:
+        - name: podLabels.commit-sha
+          value: $ARGOCD_APP_REVISION_SHORT
+    repoURL: {{ .repoURL | quote }}
+    targetRevision: HEAD
+  - ref: values
+    repoURL: {{ .repoURL | quote }}
+    targetRevision: HEAD
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - preserveResourcesOnDeletion=true
+    - ServerSideApply=false

@@ -2,15 +2,30 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-environments:
-  - name: chorus-build
-    description: CHORUS build
-    envRepoURL: https://github.com/CHORUS-TRE/environment-template.git
-    registryURL: harbor.build.chorus-tre.local
-    cluster: chorus-build
-
-  - name: chorus
-    description: CHORUS
-    envRepoURL: https://github.com/CHORUS-TRE/environment-template.git
-    registryURL: harbor.build.chorus-tre.local
-    cluster: chorus
+# environments:
+#  - name: chorus-build
+#    description: CHORUS build
+#    envRepoURL: https://github.com/CHORUS-TRE/environment-template.git
+#    registryURL: harbor.build.chorus-tre.local
+#    cluster: chorus-build
+#  - name: chorus
+#    description: CHORUS
+#    envRepoURL: https://github.com/CHORUS-TRE/environment-template.git
+#    registryURL: harbor.build.chorus-tre.local
+#    cluster: chorus
+#  - name: chorus-dev
+#    description: CHORUS dev
+#    envRepoURL: https://github.com/CHORUS-TRE/environments-template.git
+#    registryURL: harbor.build.chorus-tre.ch
+#    cluster: chorus-dev
+#    rollingRelease:
+#    - name: web-ui
+#      namespace: frontend
+#      repoURL: https://github.com/CHORUS-TRE/chorus-web-ui.git
+#      chartPath: charts/web-ui
+#      valuesPath: rolling-release/chorus-dev/values.yaml
+#    - name: backend
+#      namespace: backend
+#      repoURL: https://github.com/CHORUS-TRE/chorus-backend.git
+#      chartPath: charts/backend
+#      valuesPath: rolling-release/chorus-dev/values.yaml
