@@ -24,8 +24,10 @@
 #      repoURL: https://github.com/CHORUS-TRE/chorus-web-ui.git
 #      chartPath: charts/web-ui
 #      valuesPath: rolling-release/chorus-dev/values.yaml
+#      revision: HEAD
 #    - name: backend
 #      namespace: backend
 #      repoURL: https://github.com/CHORUS-TRE/chorus-backend.git
 #      chartPath: charts/backend
 #      valuesPath: rolling-release/chorus-dev/values.yaml
+#      revision: HEAD

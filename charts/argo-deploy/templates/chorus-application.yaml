@@ -23,10 +23,10 @@ spec:
         - name: podLabels.commit-sha
           value: $ARGOCD_APP_REVISION_SHORT
     repoURL: {{ .repoURL | quote }}
-    targetRevision: HEAD
+    targetRevision: {{ .revision | default "HEAD" | quote }}
   - ref: values
     repoURL: {{ .repoURL | quote }}
-    targetRevision: HEAD
+    targetRevision: {{ .revision | default "HEAD" | quote }}
   syncPolicy:
     automated:
       prune: true
