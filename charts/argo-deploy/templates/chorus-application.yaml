@@ -35,3 +35,5 @@ spec:
     - CreateNamespace=true
     - preserveResourcesOnDeletion=true
     - ServerSideApply=false
+{{- end }}
+{{- end }}
