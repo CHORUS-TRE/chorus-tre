@@ -1,3 +1,4 @@
+{{- $hasRollingRelease := false }}
 The following Argo CD resources have been deployed:
 
 {{- range .Values.environments }}
@@ -7,6 +8,7 @@ Environment: {{ .name }}
   - AppProject:       {{ .name }}
   - ApplicationSet:   {{ .name }}
 {{- if .rollingRelease }}
+{{- $hasRollingRelease = true }}
 {{- range .rollingRelease }}
   - Application:      {{ .name }}
 {{- end }}
@@ -17,7 +19,7 @@ To verify these resources, run:
 
   kubectl get appprojects,applicationsets -n argocd
 
-{{- if .rollingRelease }}
+{{- if $hasRollingRelease }}
 Rolling releases applications can be checked with
 
   kubectl get application -l rolling-release=true -n argocd
