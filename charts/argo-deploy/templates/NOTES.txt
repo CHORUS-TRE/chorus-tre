@@ -8,7 +8,7 @@ Environment: {{ .name }}
   - ApplicationSet:   {{ .name }}
 {{- if .rollingRelease }}
 {{- range .rollingRelease }}
-  - Application: {{ .name }}
+  - Application:      {{ .name }}
 {{- end }}
 {{- end }}
 {{- end }}
