@@ -294,8 +294,22 @@ keycloak:
 
 # Client configuration for various applications
 # used by keycloak-config-cli to setup clients
+# if `chorus.enabled` is true, chorus and matomo clients are expected
+# otherwise, argocd and argo-workflows clients are expected
 client:
   existingSecret: keycloak-client-secret
+  # argocd:
+  #   rootUrl: "http://argocd.local"
+  #   adminUrl: "http://argocd.local"
+  #   baseUrl: "/"
+  #   redirectUris: '["http://argocd.local/*"]'
+  #   webOrigins: '["http://argocd.local"]'
+  # argoWorkflows:
+  #   rootUrl: "http://argo-workflows.local"
+  #   adminUrl: "http://argo-workflows.local"
+  #   baseUrl: "/"
+  #   redirectUris: '["http://argo-workflows.local/*"]'
+  #   webOrigins: '["http://argo-workflows.local"]'
   alertmanager:
     rootUrl: "http://alertmanager.local"
     adminUrl: "http://alertmanager.local"
@@ -314,12 +328,12 @@ client:
     baseUrl: "/harbor/projects"
     redirectUris: '["http://harbor.local/c/oidc/callback"]'
     webOrigins: '["http://harbor.local"]'
-  matomo:
-    rootUrl: "http://makoto.local"
-    adminUrl: "http://makoto.local"
-    baseUrl: "/"
-    redirectUris: '["http://makoto.local/index.php?module=LoginOIDC&action=callback&provider=oidc","http://makoto.local"]'
-    webOrigins: '["http://makoto.local"]'
+  # matomo:
+  #   rootUrl: "http://makoto.local"
+  #   adminUrl: "http://makoto.local"
+  #   baseUrl: "/"
+  #   redirectUris: '["http://makoto.local/index.php?module=LoginOIDC&action=callback&provider=oidc","http://makoto.local"]'
+  #   webOrigins: '["http://makoto.local"]'
   prometheus:
     rootUrl: "http://prometheus.local"
     adminUrl: "http://prometheus.local"
