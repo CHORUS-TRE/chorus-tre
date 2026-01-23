@@ -5,12 +5,6 @@ metadata:
   name: "keycloak-realm-config"
   namespace: {{ $currentScope.Release.Namespace }}
 data:
-{{- range $path, $_ :=  .Files.Glob  "files/realm/common/*-realm.yaml" }}
-  {{ base $path }}: |-
-{{- with $currentScope }}
-{{ .Files.Get $path | nindent 4 }}
-{{- end }}
-{{- end }}
 {{- if .Values.client.chorus.enabled }}
 {{- range $path, $_ :=  .Files.Glob  "files/realm/remote/*-realm.yaml" }}
   {{ base $path }}: |-
