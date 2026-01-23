@@ -294,8 +294,10 @@ keycloak:
 
 # Client configuration for various applications
 # used by keycloak-config-cli to setup clients
-# if `chorus.enabled` is true, chorus and matomo clients are expected
-# otherwise, argocd and argo-workflows clients are expected
+# Build cluster requires:
+# argocd, argo-workflows, alertmanager, grafana, harbor, prometheus
+# Remote cluster requires:
+# alertmanager, grafana, harbor, matomo, prometheus, chorus
 client:
   existingSecret: keycloak-client-secret
   # argocd:
@@ -310,43 +312,42 @@ client:
   #   baseUrl: "/workflows/argo"
   #   redirectUris: '["http://argo-workflows.local/oauth2/callback"]'
   #   webOrigins: '["http://argo-workflows.local"]'
-  alertmanager:
-    rootUrl: "http://alertmanager.local"
-    adminUrl: "http://alertmanager.local"
-    baseUrl: "/"
-    redirectUris: '["http://alertmanager.local/*"]'
-    webOrigins: '["http://alertmanager.local"]'
-  grafana:
-    rootUrl: "http://grafana.local"
-    adminUrl: "http://grafana.local"
-    baseUrl: "/"
-    redirectUris: '["http://grafana.local/login/generic_oauth"]'
-    webOrigins: '["http://grafana.local"]'
-  harbor:
-    rootUrl: "http://harbor.local"
-    adminUrl: "http://harbor.local"
-    baseUrl: "/harbor/projects"
-    redirectUris: '["http://harbor.local/c/oidc/callback"]'
-    webOrigins: '["http://harbor.local"]'
+  # alertmanager:
+  #   rootUrl: "http://alertmanager.local"
+  #   adminUrl: "http://alertmanager.local"
+  #   baseUrl: "/"
+  #   redirectUris: '["http://alertmanager.local/*"]'
+  #   webOrigins: '["http://alertmanager.local"]'
+  # grafana:
+  #   rootUrl: "http://grafana.local"
+  #   adminUrl: "http://grafana.local"
+  #   baseUrl: "/"
+  #   redirectUris: '["http://grafana.local/login/generic_oauth"]'
+  #   webOrigins: '["http://grafana.local"]'
+  # harbor:
+  #   rootUrl: "http://harbor.local"
+  #   adminUrl: "http://harbor.local"
+  #   baseUrl: "/harbor/projects"
+  #   redirectUris: '["http://harbor.local/c/oidc/callback"]'
+  #   webOrigins: '["http://harbor.local"]'
   # matomo:
   #   rootUrl: "http://makoto.local"
   #   adminUrl: "http://makoto.local"
   #   baseUrl: "/"
   #   redirectUris: '["http://makoto.local/index.php?module=LoginOIDC&action=callback&provider=oidc","http://makoto.local"]'
   #   webOrigins: '["http://makoto.local"]'
-  prometheus:
-    rootUrl: "http://prometheus.local"
-    adminUrl: "http://prometheus.local"
-    baseUrl: "/"
-    redirectUris: '["http://prometheus.local/*","http://alertmanager.local/*"]'
-    webOrigins: '["http://prometheus.local"]'
-  chorus:
-    enabled: false
-    rootUrl: "http://backend.local"
-    adminUrl: "http://backend.local"
-    baseUrl: "/"
-    redirectUris: '["http://backend.local/*","http://chorus.local/*"]'
-    webOrigins: '["http://backend.local/*","http://chorus.local/*"]'
+  # prometheus:
+  #   rootUrl: "http://prometheus.local"
+  #   adminUrl: "http://prometheus.local"
+  #   baseUrl: "/"
+  #   redirectUris: '["http://prometheus.local/*","http://alertmanager.local/*"]'
+  #   webOrigins: '["http://prometheus.local"]'
+  # chorus:
+  #   rootUrl: "http://backend.local"
+  #   adminUrl: "http://backend.local"
+  #   baseUrl: "/"
+  #   redirectUris: '["http://backend.local/*","http://chorus.local/*"]'
+  #   webOrigins: '["http://backend.local/*","http://chorus.local/*"]'
 
 certificate:
   enabled: false
