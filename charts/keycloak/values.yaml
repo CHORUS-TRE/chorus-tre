@@ -299,16 +299,16 @@ keycloak:
 client:
   existingSecret: keycloak-client-secret
   # argocd:
-  #   rootUrl: "http://argocd.local"
-  #   adminUrl: "http://argocd.local"
-  #   baseUrl: "/"
-  #   redirectUris: '["http://argocd.local/*"]'
-  #   webOrigins: '["http://argocd.local"]'
+  #   rootUrl: "http://argo-cd.local"
+  #   adminUrl: "http://argo-cd.local"
+  #   baseUrl: "/applications"
+  #   redirectUris: '["http://argo-cd.local/auth/callback"]'
+  #   webOrigins: '["http://argo-cd.local"]'
   # argoWorkflows:
   #   rootUrl: "http://argo-workflows.local"
   #   adminUrl: "http://argo-workflows.local"
-  #   baseUrl: "/"
-  #   redirectUris: '["http://argo-workflows.local/*"]'
+  #   baseUrl: "/workflows/argo"
+  #   redirectUris: '["http://argo-workflows.local/oauth2/callback"]'
   #   webOrigins: '["http://argo-workflows.local"]'
   alertmanager:
     rootUrl: "http://alertmanager.local"
