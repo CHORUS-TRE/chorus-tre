@@ -11,24 +11,42 @@ This bundles the [keycloak chart][] with an option to put a certificate from cer
 
 You must create a Kubernetes Secret containing the client credentials for the realms. The name of this secret is configurable via the Helm value `.Values.client.existingSecret`. Default is "keycloak-client-secret".
 
-Example:
+**Build cluster secret example**
 
+Realms: master and infra
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: keycloak-client-secret
 stringData:
-  # master and infra realm
   GOOGLE_CLIENT_ID: "my-google-client-id"
   GOOGLE_CLIENT_SECRET: "my-google-client-secret"
-  # infra realm only
+  ALERTMANAGER_CLIENT_SECRET: "my-alertmanager-secret"
+  ARGO_CD_CLIENT_SECRET: "my-argo-cd-secret"
+  ARGO_WORKFLOWS_CLIENT_SECRET: "my-argo-workflows-secret"
+  GRAFANA_CLIENT_SECRET: "my-grafana-secret"
+  HARBOR_CLIENT_SECRET: "my-harbor-secret"
+  PROMETHEUS_CLIENT_SECRET: "my-prometheus-secret"
+type: Opaque
+```
+
+**Remote cluster secret example**
+
+Realms: master, infra and chorus
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-client-secret
+stringData:
+  GOOGLE_CLIENT_ID: "my-google-client-id"
+  GOOGLE_CLIENT_SECRET: "my-google-client-secret"
   ALERTMANAGER_CLIENT_SECRET: "my-alertmanager-secret"
   GRAFANA_CLIENT_SECRET: "my-grafana-secret"
   HARBOR_CLIENT_SECRET: "my-harbor-secret"
   MATOMO_CLIENT_SECRET: "my-matomo-secret"
   PROMETHEUS_CLIENT_SECRET: "my-prometheus-secret"
-  # chorus realm only
   CHORUS_CLIENT_SECRET: "my-chorus-client-secret"
 type: Opaque
 ```

@@ -6,18 +6,25 @@ revokeRefreshToken: true
 enabled: true
 registrationAllowed: true
 roles:
-  realm:
-    - name: "grafana-editor"
-      description: ""
-      composite: false
-      clientRole: false
-      containerId: "infra"
-    - name: "grafana-admin"
-      description: ""
-      composite: false
-      clientRole: false
-      containerId: "infra"
+  client:
+    grafana:
+      - name: editor
+        description: ""
+        composite: false
+        clientRole: true
+        attributes: {}
+      - name: admin
+        description: ""
+        composite: false
+        clientRole: true
+        attributes: {}
 groups:
+  - name: "ArgoCDAdmins"
+    path: "/ArgoCDAdmins"
+    subGroups: []
+  - name: "ArgoWorkflowsAdmins"
+    path: "/ArgoWorkflowsAdmins"
+    subGroups: []
   - name: "HarborAdmins"
     path: "/HarborAdmins"
     subGroups: []
@@ -30,10 +37,14 @@ groups:
           - name: "Administrators"
             path: "/Grafana/Editors/Administrators"
             subGroups: []
-            realmRoles:
-              - "grafana-admin"
-        realmRoles:
-          - "grafana-editor"
+            realmRoles: []
+            clientRoles:
+              grafana:
+                - admin
+        realmRoles: []
+        clientRoles:
+          grafana:
+            - editor
 passwordPolicy: "length(8) and specialChars(1) and upperCase(1) and lowerCase(1) and\
   \ digits(1) and notUsername and notEmail and notContainsUsername"
 webAuthnPolicySignatureAlgorithms:
@@ -170,14 +181,14 @@ clients:
       - "offline_access"
       - "groups"
     access: {}
-  - clientId: "matomo"
-    name: "Matomo"
-    rootUrl: "$(MATOMO_ROOT_URL)"
-    adminUrl: "$(MATOMO_ADMIN_URL)"
-    baseUrl: "$(MATOMO_BASE_URL)"
-    secret: "$(MATOMO_CLIENT_SECRET)"
-    redirectUris: $(MATOMO_REDIRECT_URIS)
-    webOrigins: $(MATOMO_WEB_ORIGINS)
+  - clientId: "argocd"
+    name: "Argo CD"
+    rootUrl: "$(ARGO_CD_ROOT_URL)"
+    adminUrl: "$(ARGO_CD_ADMIN_URL)"
+    baseUrl: "$(ARGO_CD_BASE_URL)"
+    secret: "$(ARGO_CD_CLIENT_SECRET)"
+    redirectUris: $(ARGO_CD_REDIRECT_URIS)
+    webOrigins: $(ARGO_CD_WEB_ORIGINS)
     publicClient: false
     protocol: "openid-connect"
     attributes:
@@ -193,10 +204,34 @@ clients:
       use.refresh.tokens: "true"
       exclude.session.state.from.auth.response: "false"
     optionalClientScopes:
-      - "address"
-      - "phone"
       - "offline_access"
-      - "microprofile-jwt"
+      - "groups"
+    access: {}
+  - clientId: "argo-workflows"
+    name: "Argo Workflows"
+    rootUrl: "$(ARGO_WORKFLOWS_ROOT_URL)"
+    adminUrl: "$(ARGO_WORKFLOWS_ADMIN_URL)"
+    baseUrl: "$(ARGO_WORKFLOWS_BASE_URL)"
+    secret: "$(ARGO_WORKFLOWS_CLIENT_SECRET)"
+    redirectUris: $(ARGO_WORKFLOWS_REDIRECT_URIS)
+    webOrigins: $(ARGO_WORKFLOWS_WEB_ORIGINS)
+    publicClient: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "false"
+      oidc.ciba.grant.enabled: "false"
+      exclude.issuer.from.auth.response: "false"
+      backchannel.logout.session.required: "true"
+      client_credentials.use_refresh_token: "false"
+      frontchannel.logout.session.required: "true"
+      display.on.consent.screen: "false"
+      oauth2.device.authorization.grant.enabled: "false"
+      backchannel.logout.revoke.offline.tokens: "false"
+      use.refresh.tokens: "true"
+      exclude.session.state.from.auth.response: "false"
+    optionalClientScopes:
+      - "offline_access"
+      - "groups"
     access: {}
   - clientId: "alertmanager"
     name: "Alertmanager"

@@ -294,8 +294,36 @@ keycloak:
 
 # Client configuration for various applications
 # used by keycloak-config-cli to setup clients
+# Uncomment either build cluster clients or remote cluster clients, not both
 client:
   existingSecret: keycloak-client-secret
+  # Build cluster clients
+  # argocd:
+  #   rootUrl: "http://argo-cd.local"
+  #   adminUrl: "http://argo-cd.local"
+  #   baseUrl: "/applications"
+  #   redirectUris: '["http://argo-cd.local/auth/callback"]'
+  #   webOrigins: '["http://argo-cd.local"]'
+  # argoWorkflows:
+  #   rootUrl: "http://argo-workflows.local"
+  #   adminUrl: "http://argo-workflows.local"
+  #   baseUrl: "/workflows/argo"
+  #   redirectUris: '["http://argo-workflows.local/oauth2/callback"]'
+  #   webOrigins: '["http://argo-workflows.local"]'
+  # Remote cluster clients
+  chorus:
+    rootUrl: "http://backend.local"
+    adminUrl: "http://backend.local"
+    baseUrl: "/"
+    redirectUris: '["http://backend.local/*","http://chorus.local/*"]'
+    webOrigins: '["http://backend.local/*","http://chorus.local/*"]'
+  matomo:
+    rootUrl: "http://makoto.local"
+    adminUrl: "http://makoto.local"
+    baseUrl: "/"
+    redirectUris: '["http://makoto.local/index.php?module=LoginOIDC&action=callback&provider=oidc","http://makoto.local"]'
+    webOrigins: '["http://makoto.local"]'
+  # Common clients
   alertmanager:
     rootUrl: "http://alertmanager.local"
     adminUrl: "http://alertmanager.local"
@@ -314,25 +342,12 @@ client:
     baseUrl: "/harbor/projects"
     redirectUris: '["http://harbor.local/c/oidc/callback"]'
     webOrigins: '["http://harbor.local"]'
-  matomo:
-    rootUrl: "http://makoto.local"
-    adminUrl: "http://makoto.local"
-    baseUrl: "/"
-    redirectUris: '["http://makoto.local/index.php?module=LoginOIDC&action=callback&provider=oidc","http://makoto.local"]'
-    webOrigins: '["http://makoto.local"]'
   prometheus:
     rootUrl: "http://prometheus.local"
     adminUrl: "http://prometheus.local"
     baseUrl: "/"
     redirectUris: '["http://prometheus.local/*","http://alertmanager.local/*"]'
     webOrigins: '["http://prometheus.local"]'
-  chorus:
-    enabled: false
-    rootUrl: "http://backend.local"
-    adminUrl: "http://backend.local"
-    baseUrl: "/"
-    redirectUris: '["http://backend.local/*","http://chorus.local/*"]'
-    webOrigins: '["http://backend.local/*","http://chorus.local/*"]'
 
 certificate:
   enabled: false
