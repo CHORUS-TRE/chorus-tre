@@ -4,15 +4,28 @@ metadata:
   name: {{ .Values.keycloak.keycloakConfigCli.extraEnvVarsCM }}
   namespace: {{ .Release.Namespace }}
 data:
-{{- if .Values.client.argocd }}
+{{- if .Values.client.chorus }}
+  # Remote cluster clients
+  # chorus
+  CHORUS_ROOT_URL: {{ .Values.client.chorus.rootUrl | quote }}
+  CHORUS_ADMIN_URL: {{ .Values.client.chorus.adminUrl | quote }}
+  CHORUS_BASE_URL: {{ .Values.client.chorus.baseUrl | quote }}
+  CHORUS_REDIRECT_URIS: {{ .Values.client.chorus.redirectUris | quote }}
+  CHORUS_WEB_ORIGINS: {{ .Values.client.chorus.webOrigins | quote }}
+  # matomo
+  MATOMO_ROOT_URL: {{ .Values.client.matomo.rootUrl | quote }}
+  MATOMO_ADMIN_URL: {{ .Values.client.matomo.adminUrl | quote }}
+  MATOMO_BASE_URL: {{ .Values.client.matomo.baseUrl | quote }}
+  MATOMO_REDIRECT_URIS: {{ .Values.client.matomo.redirectUris | quote }}
+  MATOMO_WEB_ORIGINS: {{ .Values.client.matomo.webOrigins | quote }}
+{{- else }}
+  # Build cluster clients
   # argo-cd
   ARGO_CD_ROOT_URL: {{ .Values.client.argocd.rootUrl | quote }}
   ARGO_CD_ADMIN_URL: {{ .Values.client.argocd.adminUrl | quote }}
   ARGO_CD_BASE_URL: {{ .Values.client.argocd.baseUrl | quote }}
   ARGO_CD_REDIRECT_URIS: {{ .Values.client.argocd.redirectUris | quote }}
   ARGO_CD_WEB_ORIGINS: {{ .Values.client.argocd.webOrigins | quote }}
-{{- end }}
-{{- if .Values.client.argoWorkflows }}
   # argo-workflows
   ARGO_WORKFLOWS_ROOT_URL: {{ .Values.client.argoWorkflows.rootUrl | quote }}
   ARGO_WORKFLOWS_ADMIN_URL: {{ .Values.client.argoWorkflows.adminUrl | quote }}
@@ -20,51 +33,28 @@ data:
   ARGO_WORKFLOWS_REDIRECT_URIS: {{ .Values.client.argoWorkflows.redirectUris | quote }}
   ARGO_WORKFLOWS_WEB_ORIGINS: {{ .Values.client.argoWorkflows.webOrigins | quote }}
 {{- end }}
-{{- if .Values.client.alertmanager }}
+  # Common clients
   # alertmanager
   ALERTMANAGER_ROOT_URL: {{ .Values.client.alertmanager.rootUrl | quote }}
   ALERTMANAGER_ADMIN_URL: {{ .Values.client.alertmanager.adminUrl | quote }}
   ALERTMANAGER_BASE_URL: {{ .Values.client.alertmanager.baseUrl | quote }}
   ALERTMANAGER_REDIRECT_URIS: {{ .Values.client.alertmanager.redirectUris | quote }}
   ALERTMANAGER_WEB_ORIGINS: {{ .Values.client.alertmanager.webOrigins | quote }}
-{{- end }}
-{{- if .Values.client.grafana }}
   # grafana
   GRAFANA_ROOT_URL: {{ .Values.client.grafana.rootUrl | quote }}
   GRAFANA_ADMIN_URL: {{ .Values.client.grafana.adminUrl | quote }}
   GRAFANA_BASE_URL: {{ .Values.client.grafana.baseUrl | quote }}
   GRAFANA_REDIRECT_URIS: {{ .Values.client.grafana.redirectUris | quote }}
   GRAFANA_WEB_ORIGINS: {{ .Values.client.grafana.webOrigins | quote }}
-{{- end }}
-{{- if .Values.client.harbor }}
   # harbor
   HARBOR_ROOT_URL: {{ .Values.client.harbor.rootUrl | quote }}
   HARBOR_ADMIN_URL: {{ .Values.client.harbor.adminUrl | quote }}
   HARBOR_BASE_URL: {{ .Values.client.harbor.baseUrl | quote }}
   HARBOR_REDIRECT_URIS: {{ .Values.client.harbor.redirectUris | quote }}
   HARBOR_WEB_ORIGINS: {{ .Values.client.harbor.webOrigins | quote }}
-{{- end }}
-{{- if .Values.client.prometheus }}
   # prometheus
   PROMETHEUS_ROOT_URL: {{ .Values.client.prometheus.rootUrl | quote }}
   PROMETHEUS_ADMIN_URL: {{ .Values.client.prometheus.adminUrl | quote }}
   PROMETHEUS_BASE_URL: {{ .Values.client.prometheus.baseUrl | quote }}
   PROMETHEUS_REDIRECT_URIS: {{ .Values.client.prometheus.redirectUris | quote }}
   PROMETHEUS_WEB_ORIGINS: {{ .Values.client.prometheus.webOrigins | quote }}
-{{- end }}
-{{- if .Values.client.matomo }}
-  # matomo
-  MATOMO_ROOT_URL: {{ .Values.client.matomo.rootUrl | quote }}
-  MATOMO_ADMIN_URL: {{ .Values.client.matomo.adminUrl | quote }}
-  MATOMO_BASE_URL: {{ .Values.client.matomo.baseUrl | quote }}
-  MATOMO_REDIRECT_URIS: {{ .Values.client.matomo.redirectUris | quote }}
-  MATOMO_WEB_ORIGINS: {{ .Values.client.matomo.webOrigins | quote }}
-{{- end }}
-{{- if .Values.client.chorus }}
-  # chorus
-  CHORUS_ROOT_URL: {{ .Values.client.chorus.rootUrl | quote }}
-  CHORUS_ADMIN_URL: {{ .Values.client.chorus.adminUrl | quote }}
-  CHORUS_BASE_URL: {{ .Values.client.chorus.baseUrl | quote }}
-  CHORUS_REDIRECT_URIS: {{ .Values.client.chorus.redirectUris | quote }}
-  CHORUS_WEB_ORIGINS: {{ .Values.client.chorus.webOrigins | quote }}
-{{- end }}
