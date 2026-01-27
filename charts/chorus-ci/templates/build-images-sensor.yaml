@@ -224,12 +224,13 @@ spec:
                       command: [sh, -c]
                       args:
                         - >-
+                          apk add --no-cache python3 &&
                           until docker ps;
                             do sleep 3;
                           done;
 
-                          exec ./build.sh
-                      workingDir: "/src/{{`{{inputs.parameters.path}}`}}"
+                          python3 build.py {{`{{inputs.parameters.path}}`}}
+                      workingDir: "/src"
                     sidecars:
                       - name: dind
                         image: {{ .Values.chorusImages.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.chorusImages.docker.tag | default "stable" }}-dind
