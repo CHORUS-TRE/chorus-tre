@@ -116,6 +116,21 @@ clients:
       backchannel.logout.revoke.offline.tokens: "false"
       use.refresh.tokens: "true"
       exclude.session.state.from.auth.response: "false"
+    protocolMappers:
+      - name: client roles
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-client-role-mapper
+        consentRequired: false
+        config:
+          introspection.token.claim: "true"
+          multivalued: "true"
+          userinfo.token.claim: "false"
+          user.attribute: foo
+          id.token.claim: "true"
+          lightweight.claim: "false"
+          access.token.claim: "true"
+          claim.name: roles
+          jsonType.label: String
     optionalClientScopes:
       - "offline_access"
       - "groups"
