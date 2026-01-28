@@ -125,6 +125,13 @@ clients:
           access.token.claim: "true"
           claim.name: roles
           jsonType.label: String
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
     optionalClientScopes:
       - "offline_access"
       - "groups"
@@ -151,6 +158,13 @@ clients:
       backchannel.logout.revoke.offline.tokens: "false"
       use.refresh.tokens: "true"
       exclude.session.state.from.auth.response: "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
     optionalClientScopes:
       - "offline_access"
       - "groups"
@@ -186,6 +200,13 @@ clients:
           included.client.audience: "prometheus"
           id.token.claim: "true"
           access.token.claim: "true"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
     optionalClientScopes:
       - "offline_access"
       - "groups"
@@ -212,6 +233,13 @@ clients:
       backchannel.logout.revoke.offline.tokens: "false"
       use.refresh.tokens: "true"
       exclude.session.state.from.auth.response: "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
     optionalClientScopes:
       - "address"
       - "phone"
@@ -249,6 +277,13 @@ clients:
           included.client.audience: "alertmanager"
           id.token.claim: "true"
           access.token.claim: "true"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
     optionalClientScopes:
       - "offline_access"
       - "groups"
