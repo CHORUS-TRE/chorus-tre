@@ -158,6 +158,11 @@ keycloak:
     ##
     selfSigned: false
 
+  ## @param priorityClassName Keycloak pods' Priority Class Name
+  ## ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
+  ##
+  priorityClassName: "high-priority"
+
   ## Configuration for keycloak-config-cli
   ## ref: https://github.com/adorsys/keycloak-config-cli
   ##
@@ -360,5 +365,3 @@ certificate:
 
   issuerRef:
     name: CHANGEME-issuer
-
-  priorityClassName: high-priority
