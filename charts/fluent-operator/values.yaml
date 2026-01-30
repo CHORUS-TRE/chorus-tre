@@ -5,11 +5,6 @@ fluent-operator:
   Kubernetes: false
 
   operator:
-    initcontainer:
-      image:
-        registry: harbor.build.chorus-tre.local
-        repository: docker_proxy
-        tag: "20.10"
     image:
       # TODO: decide if we want to set up a proxy for ghcr.io too
       registry: ghcr.io
@@ -19,7 +14,7 @@ fluent-operator:
       - name: regcred
 
   fluentbit:
-    # TODO: decide how we want to install CRDs (fluentbit and fluentd)
+    # TODO: install CRDs independently
     crdsEnable: true
     enable: true
     image:
@@ -48,3 +43,8 @@ fluent-operator:
             secretKeyRef:
               name: loki-bearer-token
               key: token
+
+  fluentd:
+    # Fluentd crds are needed for the operator to start properly, even if Fluentd is not used
+    crdsEnable: true
+    enable: false
