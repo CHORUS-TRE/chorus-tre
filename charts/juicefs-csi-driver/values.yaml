@@ -43,6 +43,13 @@ juicefs-csi-driver:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
       servicePort: 8080
+
+  controller:
+    priorityClassName: "high-priority"
+
+  node:
+    priorityClassName: "medium-priority"
+
   dashboard:
     auth:
       enabled: true
@@ -61,3 +68,4 @@ juicefs-csi-driver:
         - secretName: juicefs-dashboard-tls
           hosts:
             - juicefs-dashboard.chorus-tre.local
+    priorityClassName: "low-priority"

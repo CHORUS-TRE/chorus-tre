@@ -115,7 +115,7 @@ kube-prometheus-stack:
   prometheusOperator:
     admissionWebhooks:
       patch:
-        priorityClassName: batch-priority
+        priorityClassName: low-priority
 
   kubelet:
     serviceMonitor:

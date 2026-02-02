@@ -34,14 +34,6 @@ priorityClasses:
     preemptionPolicy: PreemptLowerPriority
     description: "Low priority for regular workloads"
 
-  # Batch processing workloads
-  - name: batch-priority
-    enabled: true
-    value: 50000
-    globalDefault: false
-    preemptionPolicy: PreemptLowerPriority
-    description: "Priority for batch jobs and background processing"
-
   # Preemptible workloads
   - name: preemptible
     enabled: true
@@ -49,6 +41,14 @@ priorityClasses:
     globalDefault: false
     preemptionPolicy: Never
     description: "Preemptible workloads that won't preempt others"
+
+  # Batch processing workloads
+  - name: batch-priority
+    enabled: true
+    value: 5000
+    globalDefault: false
+    preemptionPolicy: Never
+    description: "Priority for batch jobs and background processing"
 
   # Best effort workloads
   - name: best-effort
