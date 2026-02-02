@@ -1,6 +1,6 @@
 dependencies:
 - name: juicefs-csi-driver
   repository: https://juicedata.github.io/charts/
-  version: 0.30.0
-digest: sha256:c7b59c8b67627b3d4581fa387a59e24db2f4986fe285bfaa34150460ec0f83ae
-generated: "2025-09-19T16:50:53.939111+02:00"
+  version: 0.31.1
+digest: sha256:d87dfa77726b864b3a7d8313ef328ddab79658439c5957cdc33c1c5bc62435f6
+generated: "2026-02-02T09:42:55.103873+01:00"
