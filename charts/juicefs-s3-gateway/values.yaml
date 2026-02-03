@@ -1,3 +1,4 @@
 juicefs-s3-gateway:
   secret:
     enabled: false
+  options: "--umask 000" # Add all permissions to objects created by JuiceFS S3 Gateway
