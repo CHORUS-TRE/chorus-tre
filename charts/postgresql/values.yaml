@@ -67,7 +67,7 @@ postgresql:
     resourcesPreset: "small"
     persistence:
       size: 1Gi
-    priorityClassName: medium-priority
+    priorityClassName: high-priority
 
   readReplicas:
     networkPolicy:
