@@ -17,3 +17,17 @@ stringData:
   token: "your-bearer-token"
 type: Opaque
 ```
+
+### Registry Credentials
+
+If not created automatically (e.g. by [reflector](https://github.com/emberstack/kubernetes-reflector)), you must create a secret to store credentials to pull images from Harbor.
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: regcred
+data:
+  .dockerconfigjson: <your-docker-config-json-in-base64>
+type: kubernetes.io/dockerconfigjson
+```
