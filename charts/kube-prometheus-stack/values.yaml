@@ -86,8 +86,9 @@ kube-prometheus-stack:
        url: https://{{ printf "%s-loki-gateway.svc" .Release.Name }}:80
        access: proxy
        editable: false
-       jsonData:
-           tlsSkipVerify: true
+       orgId: 1
+       # jsonData:
+       #     tlsSkipVerify: true
 
   prometheus:
     ingress:
