@@ -79,6 +79,16 @@ kube-prometheus-stack:
         domain: grafana.build.chorus-tre.local
         root_url: https://grafana.build.chorus-tre.local/
 
+    additionalDataSources:
+     - name: Loki
+       type: loki
+       uid: loki
+       url: https://{{ printf "%s-loki-gateway.svc" .Release.Name }}:80
+       access: proxy
+       editable: false
+       jsonData:
+           tlsSkipVerify: true
+
   prometheus:
     ingress:
       enabled: false # What is below acts as documentation
