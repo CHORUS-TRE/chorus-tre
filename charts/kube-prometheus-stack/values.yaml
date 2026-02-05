@@ -83,12 +83,14 @@ kube-prometheus-stack:
      - name: Loki
        type: loki
        uid: loki
-       url: https://{{ printf "%s-loki-gateway.svc" .Release.Name }}:80
+       #url: http://chorus-build-loki-gateway:80
+       url: null
        access: proxy
        editable: false
-       orgId: 1
-       # jsonData:
-       #     tlsSkipVerify: true
+       jsonData:
+         httpHeaderName1: X-Scope-OrgID
+       secureJsonData:
+         httpHeaderValue1: "1"
 
   prometheus:
     ingress:
