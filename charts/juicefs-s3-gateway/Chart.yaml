@@ -1,14 +1,14 @@
 apiVersion: v2
 name: juicefs-s3-gateway
 description: A Helm chart for JuiceFS S3 Gateway.
-version: 0.0.5
-# Leaving the dependencies commented out as reference
-# but this chart is self-contained and contains
-# modification to enable priority class configuration.
-# juicefs-s3-gateway
-# 0.11.3
-# https://juicedata.github.io/charts/
+version: 0.0.6
+dependencies:
+  - name: juicefs-s3-gateway
+    version: 0.11.4
+    repository: https://juicedata.github.io/charts/
 
 maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch
+  - name: johaab
+    email: jonathan.haab@chuv.ch
