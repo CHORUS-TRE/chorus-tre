@@ -1,111 +1,22 @@
-replicaCount: 1
+juicefs-s3-gateway:
+  replicaCount: 1
 
-image:
-  repository: juicedata/mount
-  pullPolicy: IfNotPresent
-  # -- Overrides the image tag which defaults to the chart appVersion.
-  # For JuiceFS Community Edition, use ce-vx.x.x style tags
-  # For JuiceFS Enterprise Edition, use ee-vx.x.x style tags
-  # Find the latest built images in our docker image repo: https://hub.docker.com/r/juicedata/mount
-  tag: "ce-v1.2.3"
+  image:
+    repository: juicedata/mount
+    pullPolicy: IfNotPresent
+    # -- Overrides the image tag which defaults to the chart appVersion.
+    # For JuiceFS Community Edition, use ce-vx.x.x style tags
+    # For JuiceFS Enterprise Edition, use ee-vx.x.x style tags
+    # Find the latest built images in our docker image repo: https://hub.docker.com/r/juicedata/mount
+    tag: "ce-v1.2.3"
 
-port: 9000
-metricsPort: 9567
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+  secret:
+    enabled: false
 
-podAnnotations: {}
+  # -- Gateway Options. Separated by spaces
+  # Example: "--get-timeout=60 --put-timeout=60"
+  # CE Ref: https://juicefs.com/docs/community/command_reference#gateway
+  # EE Ref: https://juicefs.com/docs/cloud/reference/command_reference/#gateway
+  options: "--umask 000"
 
-service:
-  type: ClusterIP
-
-ingress:
-  enabled: false
-  className: "nginx"
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: ""
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
-
-resources:
-  limits:
-    cpu: 5000m
-    memory: 5Gi
-  requests:
-    cpu: 1000m
-    memory: 1Gi
-
-hostNetwork: false
-nodeSelector: {}
-priorityClassName: ""
-tolerations: []
-affinity: {}
-
-# -- Environment variables for init containers
-# Example:
-#  - name: GOOGLE_APPLICATION_CREDENTIALS
-#    value: "/root/.config/gcloud/application_default_credentials.json"
-initEnvs: []
-
-# -- Environment variables for the gateway container
-envs: []
-
-# -- Extra volumes for the mount pod, used when JuiceFS Client relies on extra config files
-extraVolumes:
-  #  - name: ceph-secret
-  #    secret:
-  #      secretName: ceph-secret
-extraVolumeMounts:
-  #  - name: ceph-secret
-  #    mountPath: "/etc/ceph"
-
-secret:
-  enabled: false
-  # -- The JuiceFS file system name.
-  name: ""
-  # -- JuiceFS Enterprise Edition file system token, if this token is specified,
-  # this helm chart then assumes JuiceFS EE and neglect all CE configurations
-  token: ""
-  # -- Connection URL for metadata engine (e.g. Redis)
-  # Ref: https://juicefs.com/docs/community/databases_for_metadata
-  metaurl: ""
-  # -- Object storage type, such as `s3`, `gs`, `oss`
-  # Ref: https://juicefs.com/docs/community/how_to_setup_object_storage
-  storage: ""
-  # -- Access key for object storage
-  accessKey: ""
-  # -- Secret key for object storage
-  secretKey: ""
-  # -- Object storage bucket or full endpoint
-  # CE Ref: https://juicefs.com/docs/community/how_to_setup_object_storage
-  # EE Ref (see --bucket): https://juicefs.com/docs/cloud/reference/command_reference/#auth
-  bucket: ""
-  # -- Encryption settings
-  # JFS_RSA_PASSPHRASE: xxx
-  # encrypt_rsa_key: |
-  #   -----BEGIN RSA PRIVATE KEY-----
-  #   ...
-  #   -----END RSA PRIVATE KEY-----
-
-
-# -- JuiceFS format options. Separated by spaces
-# Example: "--inodes=1000000 --block-size=4M"
-# Ref: https://juicefs.com/docs/community/command_reference#format
-formatOptions: ""
-
-# -- Gateway Options. Separated by spaces
-# Example: "--get-timeout=60 --put-timeout=60"
-# CE Ref: https://juicefs.com/docs/community/command_reference#gateway
-# EE Ref: https://juicefs.com/docs/cloud/reference/command_reference/#gateway
-options: "--umask 000"
-
-priorityClassName: "high-priority"
+  priorityClassName: "high-priority"
