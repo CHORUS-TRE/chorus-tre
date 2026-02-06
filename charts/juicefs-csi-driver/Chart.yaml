@@ -1,7 +1,7 @@
 apiVersion: v2
 name: juicefs-csi-driver
 description: A Helm chart for JuiceFS CSI Driver.
-version: 0.0.12
+version: 0.0.13
 dependencies:
   - name: juicefs-csi-driver
     version: 0.31.1
