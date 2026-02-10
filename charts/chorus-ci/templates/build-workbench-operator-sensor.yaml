@@ -44,8 +44,32 @@ spec:
             value:
               - "opened"
               - "synchronize"
+              - "ready_for_review"
+
+    # e2e tests only run on non-draft PRs (they are expensive).
+    # When a draft PR is marked as ready, ready_for_review triggers the e2e pipeline.
+    - name: e2e-workbench-operator
+      eventSourceName: {{ $fullName }}-github
+      eventName: workbench-operator
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - pull_request
+          - path: "body.action"
+            type: string
+            value:
+              - "opened"
+              - "synchronize"
+              - "ready_for_review"
+          - path: "body.pull_request.draft"
+            type: bool
+            value:
+              - "false"
 
   triggers:
+    # Unit tests — runs on every PR event (including drafts).
     - template:
         conditions: ci-workbench-operator
         name: github-workflow-trigger-ci-workbench-operator
@@ -59,7 +83,7 @@ spec:
                 generateName: "-"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
-                entrypoint: make-test
+                entrypoint: ci
 
                 arguments:
                   parameters:
@@ -96,13 +120,6 @@ spec:
                           value: {{ $githubSecretName }}
 
                 templates:
-                  - name: make-test
-                    steps:
-                      - - name: ci
-                          template: ci
-                      - - name: e2e
-                          template: e2e
-
                   - name: ci
                     inputs:
                       artifacts:
@@ -125,6 +142,95 @@ spec:
                         - make test
                       workingDir: "/src"
 
+          parameters:
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.pull_request.head.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: ci-workbench-operator
+                dataKey: body.pull_request.head.sha
+              dest: spec.arguments.parameters.3.value
+            # Append text and commit id to dynamically assign workflow name.
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "ci-workbench-operator-pr{{`{{ .Input.body.pull_request.number }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+            # Generate a nice title and description
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "CI {{`{{ .Input.body.repository.full_name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
+
+    # e2e tests — only runs on non-draft PRs.
+    # Shows a separate "chorus-ci-e2e" status check on GitHub.
+    - template:
+        conditions: e2e-workbench-operator
+        name: github-workflow-trigger-e2e-workbench-operator
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                entrypoint: e2e
+
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: ref
+                    - name: sha
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                        - name: contextSuffix
+                          value: "e2e"
+                  exit:
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                        - name: contextSuffix
+                          value: "e2e"
+
+                templates:
                   - name: e2e
                     inputs:
                       artifacts:
@@ -165,9 +271,12 @@ spec:
                         - name: docker-data
                           mountPath: /var/lib/docker
                       args:
+                        # Kubernetes version is pinned to 1.32 because cert-manager v1.16.2
+                        # (installed in e2e BeforeAll) only supports Kubernetes <= 1.32.
+                        # See https://cert-manager.io/docs/releases/
                         - >-
-                          KUBE_MAJOR="{{ .Values.chorusWorkbenchOperator.kubernetesVersion | default "1.34" }}";
-                          KUBE_VERSION=$(curl -sSL "https://dl.k8s.io/release/stable-${KUBE_MAJOR}.txt" 2>/dev/null || echo "v1.34.3");
+                          KUBE_MAJOR="{{ .Values.chorusWorkbenchOperator.kubernetesVersion | default "1.32" }}";
+                          KUBE_VERSION=$(curl -sSL "https://dl.k8s.io/release/stable-${KUBE_MAJOR}.txt" 2>/dev/null || echo "v1.32.3");
                           echo "Using Kubernetes version: ${KUBE_VERSION}";
                           curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz | tar xz -C /tmp && mv /tmp/docker/docker /usr/local/bin/;
                           curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.26.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind;
@@ -179,34 +288,34 @@ spec:
 
           parameters:
             - src:
-                dependencyName: ci-workbench-operator
+                dependencyName: e2e-workbench-operator
                 dataKey: body.repository.clone_url
               dest: spec.arguments.parameters.0.value
             - src:
-                dependencyName: ci-workbench-operator
+                dependencyName: e2e-workbench-operator
                 dataKey: body.repository.full_name
               dest: spec.arguments.parameters.1.value
             - src:
-                dependencyName: ci-workbench-operator
+                dependencyName: e2e-workbench-operator
                 dataKey: body.pull_request.head.ref
               dest: spec.arguments.parameters.2.value
             - src:
-                dependencyName: ci-workbench-operator
+                dependencyName: e2e-workbench-operator
                 dataKey: body.pull_request.head.sha
               dest: spec.arguments.parameters.3.value
             # Append text and commit id to dynamically assign workflow name.
             - src:
-                dependencyName: ci-workbench-operator
-                dataTemplate: "ci-workbench-operator-pr{{`{{ .Input.body.pull_request.number }}`}}"
+                dependencyName: e2e-workbench-operator
+                dataTemplate: "e2e-workbench-operator-pr{{`{{ .Input.body.pull_request.number }}`}}"
               dest: metadata.generateName
               operation: prepend
             # Generate a nice title and description
             - src:
-                dependencyName: ci-workbench-operator
-                dataTemplate: "CI {{`{{ .Input.body.repository.full_name }}`}}"
+                dependencyName: e2e-workbench-operator
+                dataTemplate: "e2e {{`{{ .Input.body.repository.full_name }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/title
             - src:
-                dependencyName: ci-workbench-operator
+                dependencyName: e2e-workbench-operator
                 dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/description
 
