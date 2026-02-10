@@ -279,7 +279,7 @@ spec:
                           KUBE_VERSION=$(curl -sSL "https://dl.k8s.io/release/stable-${KUBE_MAJOR}.txt" 2>/dev/null || echo "v1.32.3");
                           echo "Using Kubernetes version: ${KUBE_VERSION}";
                           curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz | tar xz -C /tmp && mv /tmp/docker/docker /usr/local/bin/;
-                          curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.26.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind;
+                          curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.31.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind;
                           curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBE_VERSION}/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl;
                           until docker ps; do sleep 3; done;
                           kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KUBE_VERSION}" --wait 60s;
