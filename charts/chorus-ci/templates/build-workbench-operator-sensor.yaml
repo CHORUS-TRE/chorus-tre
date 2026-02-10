@@ -100,6 +100,8 @@ spec:
                     steps:
                       - - name: ci
                           template: ci
+                      - - name: e2e
+                          template: e2e
 
                   - name: ci
                     inputs:
@@ -121,6 +123,58 @@ spec:
                       command: [sh, -e, -c]
                       args:
                         - make test
+                      workingDir: "/src"
+
+                  - name: e2e
+                    inputs:
+                      artifacts:
+                        - name: git
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: username
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: password
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    volumes:
+                      - name: docker-data
+                        emptyDir: {}
+                    sidecars:
+                      - name: dind
+                        image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
+                        command: ["dockerd-entrypoint.sh"]
+                        env:
+                          - name: DOCKER_TLS_CERTDIR
+                            value: ""
+                        securityContext:
+                          privileged: true
+                        mirrorVolumeMounts: true
+                    container:
+                      image: {{ .Values.chorusWorkbenchOperator.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusWorkbenchOperator.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusWorkbenchOperator.golang.tag | default "latest" }}
+                      command: [sh, -e, -c]
+                      env:
+                        - name: DOCKER_HOST
+                          value: "127.0.0.1"
+                        - name: KIND_CLUSTER
+                          value: "chart-testing"
+                      volumeMounts:
+                        - name: docker-data
+                          mountPath: /var/lib/docker
+                      args:
+                        - >-
+                          KUBE_MAJOR="{{ .Values.chorusWorkbenchOperator.kubernetesVersion | default "1.34" }}";
+                          KUBE_VERSION=$(curl -sSL "https://dl.k8s.io/release/stable-${KUBE_MAJOR}.txt" 2>/dev/null || echo "v1.34.3");
+                          echo "Using Kubernetes version: ${KUBE_VERSION}";
+                          curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz | tar xz -C /tmp && mv /tmp/docker/docker /usr/local/bin/;
+                          curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.26.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind;
+                          curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBE_VERSION}/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl;
+                          until docker ps; do sleep 3; done;
+                          kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KUBE_VERSION}" --wait 60s;
+                          make test-e2e
                       workingDir: "/src"
 
           parameters:

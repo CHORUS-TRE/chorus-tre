@@ -43,6 +43,7 @@ testConnection:
     tag: "1.37.0"
 
 chorusWorkbenchOperator:
+  kubernetesVersion: "1.34"
   dockerDataStorage:
     storageClassName: ""
     storageRequest: ""
@@ -109,6 +110,13 @@ webhookEvents:
         names:
           - chorus-backend
     secretName: chorus-ci-github-chorus-backend
+
+  - name: workbench-operator
+    repositories:
+      - owner: chorus-tre
+        names:
+          - workbench-operator
+    secretName: chorus-ci-github-workbench-operator
 
 githubSecrets:
   chorus-backend: argo-workflows-github-chorus-backend
