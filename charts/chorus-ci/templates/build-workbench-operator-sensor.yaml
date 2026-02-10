@@ -282,8 +282,6 @@ spec:
                           curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.31.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind;
                           curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBE_VERSION}/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl;
                           until docker ps; do sleep 3; done;
-                          sysctl -w fs.inotify.max_user_watches=1048576;
-                          sysctl -w fs.inotify.max_user_instances=512;
                           kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KUBE_VERSION}" --wait 60s;
                           make test-e2e
                       workingDir: "/src"
