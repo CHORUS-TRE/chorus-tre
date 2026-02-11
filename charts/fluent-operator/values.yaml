@@ -2,7 +2,7 @@ fluent-operator:
   containerRuntime: containerd
   #  If you want to deploy a default Fluent Bit pipeline (including Fluent Bit Input, Filter, and output) to collect Kubernetes logs, you'll need to set the Kubernetes parameter to true
   # see https://github.com/fluent/fluent-operator/tree/master/manifests/logging-stack
-  Kubernetes: false
+  Kubernetes: true
 
   operator:
     image:
@@ -10,8 +10,7 @@ fluent-operator:
       registry: ghcr.io
       repository: fluent/fluent-operator/fluent-operator
       tag: ""
-    imagePullSecrets:
-      - name: regcred
+    #imagePullSecrets: regcred
 
   fluentbit:
     # TODO: install CRDs independently
@@ -28,21 +27,33 @@ fluent-operator:
         requests:
           cpu: 10m
           memory: 25Mi
-    imagePullSecrets:
-      - name: regcred
-    logLevel: ""
-    priorityClassName: high-priority
-
+    #imagePullSecrets: regcred
+    tolerations:
+      - operator: Exists
+    #priorityClassName: high-priority
     output:
       loki:
-        # TODO: enable when ready
-        enabled: false
+        enable: true
         host: "loki.chorus-tre.local"
-        bearerToken:
-          valueFrom:
-            secretKeyRef:
-              name: loki-bearer-token
-              key: token
+        port: 3100
+        autoKubernetesLabels: "on"
+        labels:
+        - job=fluentbit
+        - namespace=$kubernetes['namespace_name']
+        - pod=$kubernetes['pod_name']
+        - pod_ip=$kubernetes['pod_ip']
+        - service=$kubernetes['service_name']
+        # TODO: implement auth for loki
+        httpUser: null
+        httpPassword: null
+        bearerToken: null
+        logLevel: info
+        tenantID: chorus
+#        bearerToken:
+#          valueFrom:
+#            secretKeyRef:
+#              name: loki-bearer-token
+#              key: token
 
   fluentd:
     # Fluentd crds are needed for the operator to start properly, even if Fluentd is not used
