@@ -271,18 +271,18 @@ spec:
                         - name: docker-data
                           mountPath: /var/lib/docker
                       args:
-                        # Kubernetes version is pinned to 1.32 because cert-manager v1.16.2
-                        # (installed in e2e BeforeAll) only supports Kubernetes <= 1.32.
-                        # See https://cert-manager.io/docs/releases/
+                        # Kind node image must match a version published by kind-ci.
+                        # See https://github.com/kubernetes-sigs/kind/releases for available images.
+                        # Do NOT use the latest k8s patch (e.g. stable-1.32.txt) — Kind
+                        # only ships images for the versions listed in its release notes.
                         - >-
-                          KUBE_MAJOR="{{ .Values.chorusWorkbenchOperator.kubernetesVersion | default "1.32" }}";
-                          KUBE_VERSION=$(curl -sSL "https://dl.k8s.io/release/stable-${KUBE_MAJOR}.txt" 2>/dev/null || echo "v1.32.3");
-                          echo "Using Kubernetes version: ${KUBE_VERSION}";
+                          KIND_NODE_VERSION="{{ .Values.chorusWorkbenchOperator.kindNodeVersion | default "v1.32.3" }}";
+                          echo "Using Kind node image: kindest/node:${KIND_NODE_VERSION}";
                           curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz | tar xz -C /tmp && mv /tmp/docker/docker /usr/local/bin/;
                           curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.31.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind;
-                          curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBE_VERSION}/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl;
+                          curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KIND_NODE_VERSION}/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl;
                           until docker ps; do sleep 3; done;
-                          kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KUBE_VERSION}" --wait 60s;
+                          kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KIND_NODE_VERSION}" --wait 60s;
                           make test-e2e
                       workingDir: "/src"
 
