@@ -56,7 +56,7 @@ fluent-operator:
           valueFrom:
             secretKeyRef:
               name: loki-credentials
-              key: httpPassword
+              key: tenantID
 
   fluentd:
     # Fluentd crds are needed for the operator to start properly, even if Fluentd is not used
