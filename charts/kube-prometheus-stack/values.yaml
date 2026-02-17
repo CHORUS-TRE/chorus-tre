@@ -79,6 +79,23 @@ kube-prometheus-stack:
         domain: grafana.build.chorus-tre.local
         root_url: https://grafana.build.chorus-tre.local/
 
+    env:
+      - name: LOKI_USER
+        valueFrom:
+          secretKeyRef:
+            name: loki-credentials
+            key: httpUser
+      - name: LOKI_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: loki-credentials
+            key: httpPassword
+      - name: LOKI_TENANT_ID
+        valueFrom:
+          secretKeyRef:
+            name: loki-credentials
+            key: tenantID
+
     additionalDataSources:
      - name: Loki
        type: loki
@@ -87,10 +104,13 @@ kube-prometheus-stack:
        url: null
        access: proxy
        editable: false
+       basicAuth: true
+       basicAuthUser: $LOKI_USER
        jsonData:
          httpHeaderName1: X-Scope-OrgID
        secureJsonData:
-         httpHeaderValue1: "1"
+         httpHeaderValue1: $LOKI_TENANT_ID
+         basicAuthPassword: $LOKI_PASSWORD
 
   prometheus:
     ingress:
