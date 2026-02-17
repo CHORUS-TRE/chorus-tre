@@ -10,7 +10,6 @@ fluent-operator:
       registry: ghcr.io
       repository: fluent/fluent-operator/fluent-operator
       tag: ""
-    #imagePullSecrets: regcred
 
   fluentbit:
     # TODO: install CRDs independently
@@ -27,13 +26,13 @@ fluent-operator:
         requests:
           cpu: 10m
           memory: 25Mi
-    #imagePullSecrets: regcred
     tolerations:
       - operator: Exists
     #priorityClassName: high-priority
     output:
       loki:
         enable: true
+        logLevel: info
         host: "loki.chorus-tre.local"
         port: 3100
         autoKubernetesLabels: "on"
@@ -43,17 +42,21 @@ fluent-operator:
         - pod=$kubernetes['pod_name']
         - pod_ip=$kubernetes['pod_ip']
         - service=$kubernetes['service_name']
-        # TODO: implement auth for loki
-        httpUser: null
-        httpPassword: null
-        bearerToken: null
-        logLevel: info
-        tenantID: chorus
-#        bearerToken:
-#          valueFrom:
-#            secretKeyRef:
-#              name: loki-bearer-token
-#              key: token
+        httpUser:
+          valueFrom:
+            secretKeyRef:
+              name: loki-credentials
+              key: httpUser
+        httpPassword:
+          valueFrom:
+            secretKeyRef:
+              name: loki-credentials
+              key: httpPassword
+        tenantID:
+          valueFrom:
+            secretKeyRef:
+              name: loki-credentials
+              key: httpPassword
 
   fluentd:
     # Fluentd crds are needed for the operator to start properly, even if Fluentd is not used

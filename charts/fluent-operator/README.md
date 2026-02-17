@@ -4,30 +4,19 @@
 
 ## Required Secrets
 
-### Loki Bearer Token
+### Loki Credentials
 
-You must create a Kubernetes Secret containing the bearer token to connect to Loki. The name of this secret is configurable via the Helm value `.Values.fluent-operator.fluentbit.output.loki.bearerToken.valueFrom.secretKeyRef.name`. Default is "loki-bearer-token".
+You must create a Kubernetes Secret containing the tenant ID as well as the HTTP basic authentication username and password to connect to Loki. The name of this secret is configurable via the Helm values. Default is "loki-credentials".
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: loki-bearer-token
+  name: loki-credentials
+  namespace: "your-namespace"
 stringData:
-  token: "your-bearer-token"
+  httpUser: "your-loki-uer"
+  httpPassword: "your-loki-password"
+  tenantID: "your-tenant-id"
 type: Opaque
-```
-
-### Registry Credentials
-
-If not created automatically (e.g. by [reflector](https://github.com/emberstack/kubernetes-reflector)), you must create a secret to store credentials to pull images from Harbor.
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: regcred
-data:
-  .dockerconfigjson: <your-docker-config-json-in-base64>
-type: kubernetes.io/dockerconfigjson
 ```
