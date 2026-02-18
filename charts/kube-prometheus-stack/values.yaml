@@ -82,15 +82,15 @@ kube-prometheus-stack:
     envValueFrom:
       LOKI_USER:
         secretKeyRef:
-          name: loki-credentials
+          name: loki-client-credentials
           key: httpUser
       LOKI_PASSWORD:
         secretKeyRef:
-          name: loki-credentials
+          name: loki-client-credentials
           key: httpPassword
       LOKI_TENANT_ID:
         secretKeyRef:
-          name: loki-credentials
+          name: loki-client-credentials
           key: tenantID
 
     additionalDataSources:
