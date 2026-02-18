@@ -1,5 +1,7 @@
 loki:
   deploymentMode: Distributed
+  global:
+    dnsService: "kube-dns"
   loki:
     commonConfig:
       replication_factor: 1
