@@ -43,6 +43,9 @@ testConnection:
     tag: "1.37.0"
 
 chorusWorkbenchOperator:
+  # cert-manager v1.16.2 only supports Kubernetes <= 1.32.
+  # See https://cert-manager.io/docs/releases/
+  kubernetesVersion: "1.32"
   dockerDataStorage:
     storageClassName: ""
     storageRequest: ""
@@ -109,6 +112,13 @@ webhookEvents:
         names:
           - chorus-backend
     secretName: chorus-ci-github-chorus-backend
+
+  - name: workbench-operator
+    repositories:
+      - owner: chorus-tre
+        names:
+          - workbench-operator
+    secretName: chorus-ci-github-workbench-operator
 
 githubSecrets:
   chorus-backend: argo-workflows-github-chorus-backend

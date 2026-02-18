@@ -1,3 +1,22 @@
 juicefs-s3-gateway:
+  replicaCount: 1
+
+  image:
+    repository: juicedata/mount
+    pullPolicy: IfNotPresent
+    # -- Overrides the image tag which defaults to the chart appVersion.
+    # For JuiceFS Community Edition, use ce-vx.x.x style tags
+    # For JuiceFS Enterprise Edition, use ee-vx.x.x style tags
+    # Find the latest built images in our docker image repo: https://hub.docker.com/r/juicedata/mount
+    tag: "ce-v1.2.3"
+
   secret:
     enabled: false
+
+  # -- Gateway Options. Separated by spaces
+  # Example: "--get-timeout=60 --put-timeout=60"
+  # CE Ref: https://juicefs.com/docs/community/command_reference#gateway
+  # EE Ref: https://juicefs.com/docs/cloud/reference/command_reference/#gateway
+  options: "--umask 000"
+
+  priorityClassName: "high-priority"

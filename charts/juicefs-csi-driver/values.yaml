@@ -49,6 +49,8 @@ juicefs-csi-driver:
 
   node:
     priorityClassName: "medium-priority"
+    # When set true, disable mount pods preempt application pods when in resource pressure
+    mountPodNonPreempting: true
 
   dashboard:
     auth:

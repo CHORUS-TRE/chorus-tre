@@ -1,6 +1,6 @@
 dependencies:
 - name: juicefs-s3-gateway
   repository: https://juicedata.github.io/charts/
-  version: 0.11.3
-digest: sha256:fbd53f470d5dbbe447bd4f53a8b093633551dc73c87b38ba863a3374748010b2
-generated: "2025-09-18T17:00:31.100536+02:00"
+  version: 0.11.4
+digest: sha256:e2c64d9bf4da7766edf663ee2c4190f97356c505d5958eecf88d2f0bbfdbd043
+generated: "2026-02-06T08:58:08.625763+01:00"
