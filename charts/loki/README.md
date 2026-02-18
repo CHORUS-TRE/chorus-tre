@@ -2,6 +2,21 @@
 
 Helm chart for Grafana Loki and Grafana Enterprise Logs supporting monolithic, simple scalable, and microservices modes.
 
+## DNS setting
+
+Make sure to configure Loki to use the correct DNS setting for your cluster.
+You can check which DNS service you have by running:
+
+```
+kubectl get svc --namespace=kube-system -l k8s-app=kube-dns  -o jsonpath='{.items..metadata.name}'
+```
+
+```
+loki:
+  global:
+     dnsService: "your-dns-setting-name"
+```
+
 ## Mandatory Secrets
 
 ### Loki Clients Basic Auth
