@@ -1,0 +1,116 @@
+loki:
+  deploymentMode: Distributed
+  loki:
+    commonConfig:
+      replication_factor: 1
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+    ingester:
+      chunk_encoding: snappy
+    pattern_ingester:
+        enabled: true
+    limits_config:
+      allow_structured_metadata: true
+      volume_enabled: true
+
+    storage:
+      type: s3
+      bucketNames:
+        chunks: "chorus-loki-chunks"
+        ruler: "chorus-loki-ruler"
+      s3:
+        endpoint: ""
+        # we need to force path style for host resolution to work correctly in kubernetes
+        s3ForcePathStyle: true
+        # accessKeyId: set via AWS_ACCESS_KEY_ID
+        # secretAccessKey: set via AWS_SECRET_ACCESS_KEY
+
+  gateway:
+    basicAuth:
+      enabled: true
+      existingSecret: loki-gateway-htpasswd
+
+  ingester:
+    zoneAwareReplication:
+       enabled: false
+    extraEnv:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: loki-s3-credentials
+            key: accessKeyId
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: loki-s3-credentials
+            key: secretAccessKey
+
+  querier:
+    extraEnv:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: loki-s3-credentials
+            key: accessKeyId
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: loki-s3-credentials
+            key: secretAccessKey
+
+  compactor:
+    extraEnv:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: loki-s3-credentials
+            key: accessKeyId
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: loki-s3-credentials
+            key: secretAccessKey
+
+  indexGateway:
+    extraEnv:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: loki-s3-credentials
+            key: accessKeyId
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: loki-s3-credentials
+            key: secretAccessKey
+
+  bloomPlanner:
+    replicas: 0
+  bloomBuilder:
+    replicas: 0
+  bloomGateway:
+    replicas: 0
+
+  backend:
+     replicas: 0
+  read:
+     replicas: 0
+  write:
+     replicas: 0
+
+  singleBinary:
+     replicas: 0
+
+  # We disable the canary because it is not compatible with the authentication.
+  # We'll use prometheus alerting instead to monitor the health of loki.
+  lokiCanary:
+    enabled: false
+  test:
+    enabled: false

@@ -79,6 +79,39 @@ kube-prometheus-stack:
         domain: grafana.build.chorus-tre.local
         root_url: https://grafana.build.chorus-tre.local/
 
+    env:
+      # Replace with the actual URL of your Loki gateway, e.g. http://chorus-build-loki-gateway:80
+      LOKI_URL: ""
+
+    envValueFrom:
+      LOKI_USER:
+        secretKeyRef:
+          name: loki-client-credentials
+          key: httpUser
+      LOKI_PASSWORD:
+        secretKeyRef:
+          name: loki-client-credentials
+          key: httpPassword
+      LOKI_TENANT_ID:
+        secretKeyRef:
+          name: loki-client-credentials
+          key: tenantID
+
+    additionalDataSources:
+      - name: Loki
+        type: loki
+        uid: loki
+        url: $LOKI_URL
+        access: proxy
+        editable: false
+        basicAuth: true
+        basicAuthUser: $LOKI_USER
+        jsonData:
+          httpHeaderName1: X-Scope-OrgID
+        secureJsonData:
+          httpHeaderValue1: $LOKI_TENANT_ID
+          basicAuthPassword: $LOKI_PASSWORD
+
   prometheus:
     ingress:
       enabled: false # What is below acts as documentation

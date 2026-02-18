@@ -1,0 +1,16 @@
+apiVersion: v2
+description: Fluent Operator provides great flexibility in building a logging layer based on Fluent Bit and Fluentd.
+name: fluent-operator
+version: 0.0.1
+dependencies:
+  - name: fluent-operator
+    version: 3.5.0
+    repository: https://fluent.github.io/helm-charts
+
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: floriansipp
+    email: florian.sipp@chuv.ch
+  - name: johaab
+    email: jonathan.haab@chuv.ch
