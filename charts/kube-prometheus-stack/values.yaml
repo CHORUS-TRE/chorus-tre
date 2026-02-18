@@ -94,20 +94,20 @@ kube-prometheus-stack:
           key: tenantID
 
     additionalDataSources:
-     - name: Loki
-       type: loki
-       uid: loki
-       # Replace with the actual URL of your Loki gateway, e.g. http://chorus-build-loki-gateway:80
-       url: null
-       access: proxy
-       editable: false
-       basicAuth: true
-       basicAuthUser: $LOKI_USER
-       jsonData:
-         httpHeaderName1: X-Scope-OrgID
-       secureJsonData:
-         httpHeaderValue1: $LOKI_TENANT_ID
-         basicAuthPassword: $LOKI_PASSWORD
+      - name: Loki
+        type: loki
+        uid: loki
+        # Replace with the actual URL of your Loki gateway, e.g. http://chorus-build-loki-gateway:80
+        url: null
+        access: proxy
+        editable: false
+        basicAuth: true
+        basicAuthUser: $LOKI_USER
+        jsonData:
+          httpHeaderName1: X-Scope-OrgID
+        secureJsonData:
+          httpHeaderValue1: $LOKI_TENANT_ID
+          basicAuthPassword: $LOKI_PASSWORD
 
   prometheus:
     ingress:
