@@ -45,17 +45,17 @@ fluent-operator:
         httpUser:
           valueFrom:
             secretKeyRef:
-              name: loki-credentials
+              name: loki-client-credentials
               key: httpUser
         httpPassword:
           valueFrom:
             secretKeyRef:
-              name: loki-credentials
+              name: loki-client-credentials
               key: httpPassword
         tenantID:
           valueFrom:
             secretKeyRef:
-              name: loki-credentials
+              name: loki-client-credentials
               key: tenantID
 
   fluentd:

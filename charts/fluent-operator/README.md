@@ -6,13 +6,13 @@
 
 ### Loki Credentials
 
-You must create a Kubernetes Secret containing the tenant ID as well as the HTTP basic authentication username and password to connect to Loki. The name of this secret is configurable via the Helm values. Default is "loki-credentials".
+You must create a Kubernetes Secret containing the tenant ID as well as the HTTP basic authentication username and password to connect to Loki. The name of this secret is configurable via the Helm values. Default is "loki-client-credentials".
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: loki-credentials
+  name: loki-client-credentials
   namespace: "your-namespace"
 stringData:
   httpUser: "your-loki-uer"
