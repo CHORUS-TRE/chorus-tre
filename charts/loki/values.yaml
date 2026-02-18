@@ -4,7 +4,9 @@ loki:
     dnsService: "kube-dns"
   loki:
     commonConfig:
-      replication_factor: 1
+      # Double-check the number of ingesters
+      # if you modify this
+      replication_factor: 2
     schemaConfig:
       configs:
         - from: "2024-04-01"
@@ -40,6 +42,8 @@ loki:
       existingSecret: loki-gateway-htpasswd
 
   ingester:
+    replicas: 3
+    maxUnavailable: 1
     zoneAwareReplication:
        enabled: false
     extraEnv:
@@ -55,6 +59,8 @@ loki:
             key: secretAccessKey
 
   querier:
+    replicas: 2
+    maxUnavailable: 1
     extraEnv:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
@@ -67,7 +73,13 @@ loki:
             name: loki-s3-credentials
             key: secretAccessKey
 
+  distributor:
+    replicas: 2
+    maxUnavailable: 1
+
   compactor:
+    replicas: 2
+    maxUnavailable: 1
     extraEnv:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
@@ -81,6 +93,8 @@ loki:
             key: secretAccessKey
 
   indexGateway:
+    replicas: 2
+    maxUnavailable: 1
     extraEnv:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
