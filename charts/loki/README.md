@@ -42,13 +42,13 @@ rm .htpasswd
 ### S3 credentials
 
 You can change the secret name in the Helm chart values.
-Default is chorus-logs-credentials.
+Default is chorus-logs-s3-credentials.
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: chorus-logs-credentials
+  name: chorus-logs-s3-credentials
   namespace: <namespace>
 stringData:
   accessKeyId: "my-s3-access-key-id"

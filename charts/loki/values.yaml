@@ -44,12 +44,12 @@ loki:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
           secretKeyRef:
-            name: chorus-logs-credentials
+            name: chorus-logs-s3-credentials
             key: accessKeyId
       - name: AWS_SECRET_ACCESS_KEY
         valueFrom:
           secretKeyRef:
-            name: chorus-logs-credentials
+            name: chorus-logs-s3-credentials
             key: secretAccessKey
 
   querier:
@@ -57,12 +57,12 @@ loki:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
           secretKeyRef:
-            name: chorus-logs-credentials
+            name: chorus-logs-s3-credentials
             key: accessKeyId
       - name: AWS_SECRET_ACCESS_KEY
         valueFrom:
           secretKeyRef:
-            name: chorus-logs-credentials
+            name: chorus-logs-s3-credentials
             key: secretAccessKey
 
   compactor:
@@ -70,12 +70,12 @@ loki:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
           secretKeyRef:
-            name: chorus-logs-credentials
+            name: chorus-logs-s3-credentials
             key: accessKeyId
       - name: AWS_SECRET_ACCESS_KEY
         valueFrom:
           secretKeyRef:
-            name: chorus-logs-credentials
+            name: chorus-logs-s3-credentials
             key: secretAccessKey
 
   indexGateway:
@@ -83,12 +83,12 @@ loki:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
           secretKeyRef:
-            name: chorus-logs-credentials
+            name: chorus-logs-s3-credentials
             key: accessKeyId
       - name: AWS_SECRET_ACCESS_KEY
         valueFrom:
           secretKeyRef:
-            name: chorus-logs-credentials
+            name: chorus-logs-s3-credentials
             key: secretAccessKey
 
   bloomPlanner:
