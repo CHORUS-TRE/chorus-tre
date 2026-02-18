@@ -4,7 +4,7 @@ Helm chart for Grafana Loki and Grafana Enterprise Logs supporting monolithic, s
 
 ## Mandatory Secrets
 
-### Basic Auth
+### Loki Clients Basic Auth
 
 Create a ```.htpasswd``` file
 
@@ -39,7 +39,7 @@ Finally, delete your local ```.htpasswd``` file.
 rm .htpasswd
 ```
 
-### S3 credentials
+### S3 Credentials
 
 You can change the secret name in the Helm chart values.
 Default is loki-s3-credentials.
