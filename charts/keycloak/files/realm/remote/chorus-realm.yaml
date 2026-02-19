@@ -78,6 +78,13 @@ clients:
       backchannel.logout.revoke.offline.tokens: "false"
       use.refresh.tokens: "true"
       exclude.session.state.from.auth.response: "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
     optionalClientScopes:
       - "offline_access"
     access: {}
