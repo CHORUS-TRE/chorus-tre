@@ -253,6 +253,7 @@ spec:
                       - name: dind
                         image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
                         command: ["dockerd-entrypoint.sh"]
+                        args: ["--default-cgroupns-mode=host"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
                             value: ""
@@ -264,7 +265,7 @@ spec:
                       command: [sh, -e, -c]
                       env:
                         - name: DOCKER_HOST
-                          value: "127.0.0.1"
+                          value: "tcp://127.0.0.1:2375"
                         - name: KIND_CLUSTER
                           value: "chart-testing"
                       volumeMounts:
