@@ -1,0 +1,11 @@
+apiVersion: v2
+description: |
+  A Helm chart that collects custom resource definitions (CRDs) from fluent-operator,
+  allowing for seamless integration with GitOps tools
+name: fluent-operator-crds
+version: 3.5.0
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: johaab
+    email: jonathan.haab@chuv.ch
