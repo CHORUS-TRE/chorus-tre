@@ -1,0 +1,11 @@
+apiVersion: v2
+description: |
+  A Helm chart that collects custom resource definitions (CRDs) from trivy-operator,
+  allowing for seamless integration with GitOps tools
+name: trivy-operator-crds
+version: 0.29.0 # Follows the trivy-operator app version, NOT the chart version
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: johaab
+    email: jonathan.haab@chuv.ch

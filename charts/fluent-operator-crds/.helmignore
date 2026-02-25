@@ -1,0 +1,7 @@
+# Exclude source CRDs file from chart package
+fluent-operator-setup.yaml
+
+# Exclude common development files
+*.md
+.git/
+.gitignore
