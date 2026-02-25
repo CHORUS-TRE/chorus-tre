@@ -1,0 +1,15 @@
+# List of environments to create probes for
+environments:
+# Example:
+#   - name: dev
+#     prober:
+#       url: chorus-dev-prometheus-blackbox-exporter.prometheus.svc
+#       port: 9115
+#       scheme: http
+#       path: /probe
+#     targets:
+#       - alertmanager.dev.chorus-tre.ch
+#       - auth.dev.chorus-tre.ch
+#       - grafana.dev.chorus-tre.ch
+#       - harbor.dev.chorus-tre.ch
+#       - prometheus.dev.chorus-tre.ch

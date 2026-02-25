@@ -1,0 +1,25 @@
+{{- $releaseNamespace := .Release.Namespace }}
+{{- range .Values.environments }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: "blackbox-exporter-chorus-tre-{{ .name }}"
+  namespace: {{ $releaseNamespace }}
+  labels:
+    environment: {{ .name }}
+spec:
+  jobName: http-get
+  interval: 60s
+  module: http_2xx
+  prober:
+    url: "{{ .prober.url }}:{{ .prober.port | default 9115 }}"
+    scheme: {{ .prober.scheme | default "http" }}
+    path: {{ .prober.path | default "/probe" }}
+  targets:
+    staticConfig:
+      static:
+    {{- range .targets }}
+      - {{ . }}
+    {{- end }}
+{{- end }}
