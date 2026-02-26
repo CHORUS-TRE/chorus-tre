@@ -1,7 +1,6 @@
 {{- $releaseNamespace := .Release.Namespace }}
 {{- $prober := .Values.prober }}
 {{- range .Values.environments }}
-{{- $hasAuth := hasSuffix "-with-auth" .name }}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: Probe
@@ -9,21 +8,11 @@ metadata:
   name: "blackbox-exporter-{{ .name }}"
   namespace: {{ $releaseNamespace }}
   labels:
-{{- if $hasAuth }}
-    environment: {{ trimSuffix "-with-auth" .name }}
-{{- else }}
-    environment: {{ .name }}
-{{- end }}
+    environment: {{ .environment }}
 spec:
-  jobName: http-get
-  interval: 60s
-{{- if $hasAuth }}
-  # Use the http_401 module for endpoints that require authentication,
-  # expecting a 401 Unauthorized response
-  module: http_401
-{{- else }}
-  module: http_2xx
-{{- end }}
+  jobName: {{ .jobName | default "http-get" }}
+  interval: {{ .interval | default "60s" }}
+  module: {{ .module | default "http_2xx" }}
   prober:
     url: "{{ $prober.url }}:{{ $prober.port | default 9115 }}"
     scheme: {{ $prober.scheme | default "http" }}

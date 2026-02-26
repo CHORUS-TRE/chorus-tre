@@ -17,12 +17,14 @@ This chart creates Kubernetes `Probe` custom resources (from prometheus-operator
 ### Parameters
 
 | Parameter | Description | Required | Default |
-|-----------|-------------|----------|---------|
+|-----------|-------------|----------|---------||
 | `prober.url` | Blackbox exporter service URL (global) | Yes | - |
 | `prober.port` | Blackbox exporter service port (global) | No | `9115` |
 | `prober.scheme` | Connection scheme to blackbox exporter | No | `http` |
 | `prober.path` | Probe endpoint path | No | `/probe` |
-| `environments[].name` | Environment name (used in probe naming and labels) | Yes | - |
+| `environments[].name` | Probe resource name | Yes | - |
+| `environments[].environment` | Environment label value | No | - |
+| `environments[].jobName` | Prometheus job name | No | `http-get` |
+| `environments[].interval` | Probe interval | No | `60s` |
+| `environments[].module` | Blackbox exporter module | No | `http_2xx` |
 | `environments[].targets` | List of URLs to monitor | Yes | - |
-
-**Note:** Names ending with `-with-auth` will use the `http_401` module instead of `http_2xx`.
