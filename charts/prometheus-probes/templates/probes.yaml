@@ -1,4 +1,5 @@
 {{- $releaseNamespace := .Release.Namespace }}
+{{- $prober := .Values.prober }}
 {{- range .Values.environments }}
 {{- $hasAuth := hasSuffix "-with-auth" .name }}
 ---
@@ -24,9 +25,9 @@ spec:
   module: http_2xx
 {{- end }}
   prober:
-    url: "{{ .prober.url }}:{{ .prober.port | default 9115 }}"
-    scheme: {{ .prober.scheme | default "http" }}
-    path: {{ .prober.path | default "/probe" }}
+    url: "{{ $prober.url }}:{{ $prober.port | default 9115 }}"
+    scheme: {{ $prober.scheme | default "http" }}
+    path: {{ $prober.path | default "/probe" }}
   targets:
     staticConfig:
       static:
