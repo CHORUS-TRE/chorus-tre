@@ -1,0 +1,30 @@
+# Global prober configuration (used as default for all environments)
+prober:
+  # url: chorus-build-prometheus-blackbox-exporter.prometheus.svc
+  # port: 9115
+  # scheme: http
+  # path: /probe
+
+# List of environments to create probes for
+environments: []
+  # Each environment can override jobName, interval, module, and environment label
+  #
+  # Example with defaults:
+  # - name: dev
+  #   environment: dev
+  #   jobName: http-get  # Optional: default
+  #   interval: 60s      # Optional: default
+  #   module: http_2xx   # Optional: default
+  #   targets:
+  #     - alertmanager.dev.chorus-tre.ch
+  #     - auth.dev.chorus-tre.ch
+  #     - grafana.dev.chorus-tre.ch
+  #
+  # Example with custom settings:
+  # - name: prod-with-auth
+  #   environment: prod
+  #   module: http_401  # Expect 401 for auth-protected endpoints
+  #   interval: 30s
+  #   targets:
+  #     - https://backend.prod.chorus-tre.ch/api
+  #     - https://admin.prod.chorus-tre.ch

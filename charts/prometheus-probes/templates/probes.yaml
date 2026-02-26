@@ -1,0 +1,26 @@
+{{- $releaseNamespace := .Release.Namespace }}
+{{- $prober := .Values.prober }}
+{{- range .Values.environments }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: "blackbox-exporter-{{ .name }}"
+  namespace: {{ $releaseNamespace }}
+  labels:
+    environment: {{ .environment }}
+spec:
+  jobName: {{ .jobName | default "http-get" }}
+  interval: {{ .interval | default "60s" }}
+  module: {{ .module | default "http_2xx" }}
+  prober:
+    url: "{{ $prober.url }}:{{ $prober.port | default 9115 }}"
+    scheme: {{ $prober.scheme | default "http" }}
+    path: {{ $prober.path | default "/probe" }}
+  targets:
+    staticConfig:
+      static:
+    {{- range .targets }}
+      - {{ . }}
+    {{- end }}
+{{- end }}

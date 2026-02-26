@@ -1,0 +1,9 @@
+apiVersion: v2
+name: prometheus-probes
+description: Prometheus probes used in CHORUS-TRE
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: johaab
+    email: jonathan.haab@chuv.ch
+version: 0.0.1
