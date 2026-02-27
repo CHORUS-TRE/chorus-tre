@@ -1,8 +1,28 @@
 prometheus-blackbox-exporter:
   priorityClassName: medium-priority
   config:
+
+    # Reference: https://github.com/prometheus/blackbox_exporter/blob/master/CONFIGURATION.md
     modules:
-      # Public services
+
+      # Check that certificates are valid and not expired, for endpoints that use TLS
+      http_2xx_tls:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions:
+            - "HTTP/1.1"
+            - "HTTP/2.0"
+          # We want to probe the specified URL without following redirects,
+          # to ensure that the service is responding correctly and not just redirecting to another page (e.g. a login page).
+          follow_redirects: false
+          fail_if_ssl: false
+          fail_if_not_ssl: true
+          tls_config:
+            insecure_skip_verify: false
+          preferred_ip_protocol: "ip4"
+
+      # Check that services are up, for endpoints that do not require authentication
       http_2xx:
         prober: http
         timeout: 5s
@@ -10,9 +30,16 @@ prometheus-blackbox-exporter:
           valid_http_versions:
             - "HTTP/1.1"
             - "HTTP/2.0"
-          follow_redirects: true
+          follow_redirects: false
+          fail_if_ssl: false
+          fail_if_not_ssl: false
+          tls_config:
+            insecure_skip_verify: true
           preferred_ip_protocol: "ip4"
-      # Services that requires authentication
+
+      # Check that services are up, for endpoints that require authentication
+      # we expect a 401 Unauthorized response from these endpoints,
+      # because they require authentication and we are not providing credentials in the probe.
       http_401:
         prober: http
         timeout: 5s
@@ -22,9 +49,18 @@ prometheus-blackbox-exporter:
           valid_http_versions:
             - "HTTP/1.1"
             - "HTTP/2.0"
-          follow_redirects: true
+          follow_redirects: false
           preferred_ip_protocol: "ip4"
-      # Pure TCP + TLS endpoints (as in GhostFS)
+
+      # Check that redirects are working correctly (e.g. HTTP -> HTTPS)
+      http_redirect:
+        prober: http
+        http:
+          follow_redirects: false
+          valid_status_codes: [301, 302, 307, 308]
+        timeout: 5s
+
+      # Check that pure TCP + TLS endpoints (as in GhostFS) are up
       tcp_insecure:
         prober: tcp
         timeout: 5s
@@ -32,3 +68,13 @@ prometheus-blackbox-exporter:
           tls: true
           tls_config:
             insecure_skip_verify: true
+
+      # Check that gRPC endpoints are up and responding to health checks, with valid TLS certificates
+      grpc_health:
+        prober: grpc
+        timeout: 5s
+        grpc:
+          preferred_ip_protocol: "ip4"
+          tls: true
+          tls_config:
+            insecure_skip_verify: false
