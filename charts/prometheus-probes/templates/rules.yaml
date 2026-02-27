@@ -1,0 +1,94 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tls-certificates-expiration
+  namespace: {{ .Release.Namespace }}
+spec:
+  groups:
+
+    - name: tls-certificates-expiration
+      rules:
+        - alert: TLSCertificateExpiring
+          for: 5m
+          expr: |-
+            (probe_ssl_earliest_cert_expiry - time() < 7*24*3600) and (probe_ssl_earliest_cert_expiry > 0)
+          labels:
+            severity: warning
+          annotations:
+            description: "The certificate for {{`{{ $labels.instance }}`}} is about to expire in less than 7 days."
+            summary: "Certificate for {{`{{ $labels.instance }}`}} is about to expire"
+        - alert: TLSCertificateExpired
+          for: 5m
+          expr: |-
+            (probe_ssl_earliest_cert_expiry - time() < 24*3600) and (probe_ssl_earliest_cert_expiry > 0)
+          labels:
+            severity: critical
+          annotations:
+            description: "The certificate for {{`{{ $labels.instance }}`}} is about to expire in less than 24 hours."
+            summary: "Certificate for {{`{{ $labels.instance }}`}} is expiring today"
+        - alert: TLSCertificateMetricsMissing
+          for: 15m
+          expr: |-
+            probe_success{instance=~"https://.*"} == 1 unless probe_ssl_earliest_cert_expiry
+          labels:
+            severity: warning
+          annotations:
+            description: "The endpoint {{`{{ $labels.instance }}`}} is using HTTPS but is not generating certificate expiry metrics. This might indicate a misconfiguration of the probe or that the endpoint is not properly secured with TLS."
+            summary: "HTTPS endpoint {{`{{ $labels.instance }}`}} not generating cert expiry metrics"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: services-availability
+  namespace: {{ .Release.Namespace }}
+spec:
+  groups:
+
+    - name: http-service-is-down
+      rules:
+        - alert: HTTPServiceIsDown
+          for: 5m
+          expr: |-
+            probe_success{job="http-check"} != 1
+          labels:
+            severity: critical
+          annotations:
+            description: "The service {{`{{ $labels.instance }}`}} is down"
+            summary: "{{`{{ $labels.instance }}`}} is down"
+
+    - name: http-service-is-slow
+      rules:
+        - alert: HTTPServiceIsSlow
+          for: 5m
+          expr: |-
+            probe_duration_seconds{job="http-check"} > 3
+          labels:
+            severity: warning
+          annotations:
+            description: "The service {{`{{ $labels.instance }}`}} is slow (response time > 3s)"
+            summary: "{{`{{ $labels.instance }}`}} is slow"
+
+    - name: grpc-service-is-down
+      rules:
+        - alert: GRPCServiceIsDown
+          for: 5m
+          expr: |-
+            probe_success{job="grpc-check"} != 1
+          labels:
+            severity: critical
+          annotations:
+            description: "The service {{`{{ $labels.instance }}`}} is down"
+            summary: "{{`{{ $labels.instance }}`}} is down"
+
+    - name: tcp-service-is-down
+      rules:
+        - alert: TCPServiceIsDown
+          for: 5m
+          expr: |-
+            probe_success{job="tcp-check"} != 1
+          labels:
+            severity: critical
+          annotations:
+            description: "The service {{`{{ $labels.instance }}`}} is down"
+            summary: "{{`{{ $labels.instance }}`}} is down"
