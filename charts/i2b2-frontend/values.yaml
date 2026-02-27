@@ -120,3 +120,30 @@ cm:
   pmURL: "http://chorus-env-i2b2-wildfly:8080/i2b2/rest/PMService/getServices"
   whiteListURL: "http://chorus-env-i2b2-wildfly:8080"
   ProxyPass: "http://chorus-env-i2b2-wildfly:8080/i2b2/"
+
+networkPolicy:
+  enabled: true
+  # Enable L7 Web Application Firewall for advanced HTTP traffic control
+  enabled_l7_waf: true
+  ingress:
+  # For CiliumNetworkPolicy, select pods from ingress-nginx namespace
+  - fromEndpoints:
+    - matchLabels:
+        # Note: 'k8s:' prefix is not used here as per Cilium's label selection
+        io.kubernetes.pod.namespace: ingress-nginx
+        app.kubernetes.io/name: ingress-nginx
+        app.kubernetes.io/component: controller
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
+  egress:
+  # Allow egress to i2b2-wildfly
+  - toEndpoints:
+    - matchLabels:
+        app.kubernetes.io/name: i2b2-wildfly
+        # io.kubernetes.pod.namespace: i2b2-wildfly
+    toPorts:
+    - ports:
+      - port: "8080"
+        protocol: TCP
