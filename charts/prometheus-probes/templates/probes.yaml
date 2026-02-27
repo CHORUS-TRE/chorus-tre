@@ -10,7 +10,7 @@ metadata:
   labels:
     environment: {{ .environment }}
 spec:
-  jobName: {{ .jobName | default "http-get" }}
+  jobName: {{ .jobName | default "http-check" }}
   interval: {{ .interval | default "60s" }}
   module: {{ .module | default "http_2xx" }}
   prober:

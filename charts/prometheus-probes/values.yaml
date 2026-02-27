@@ -12,7 +12,7 @@ environments: []
   # Example with defaults:
   # - name: dev
   #   environment: dev
-  #   jobName: http-get  # Optional: default
+  #   jobName: http-check  # Optional: default
   #   interval: 60s      # Optional: default
   #   module: http_2xx   # Optional: default
   #   targets:
