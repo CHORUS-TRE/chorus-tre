@@ -9,19 +9,19 @@ spec:
 
     - name: tls-certificates-expiration
       rules:
-        - alert: TLSCertifcateExpiring
+        - alert: TLSCertificateExpiring
           for: 5m
           expr: |-
-            probe_ssl_earliest_cert_expiry - time() < 7*24*3600
+            (probe_ssl_earliest_cert_expiry - time() < 7*24*3600) and (probe_ssl_earliest_cert_expiry > 0)
           labels:
             severity: warning
           annotations:
             description: "The certificate for {{ $labels.instance }} is about to expire in less than 7 days."
             summary: "Certificate for {{ $labels.instance }} is about to expire"
-        - alert: TLSCertifcateExpired
+        - alert: TLSCertificateExpired
           for: 5m
           expr: |-
-            probe_ssl_earliest_cert_expiry - time() < 24*3600
+            (probe_ssl_earliest_cert_expiry - time() < 24*3600) and (probe_ssl_earliest_cert_expiry > 0)
           labels:
             severity: critical
           annotations:
@@ -66,7 +66,7 @@ spec:
           labels:
             severity: warning
           annotations:
-            description: "The service {{ $labels.instance }} is slow (response time > 500ms)"
+            description: "The service {{ $labels.instance }} is slow (response time > 3s)"
             summary: "{{ $labels.instance }} is slow"
 
     - name: grpc-service-is-down
