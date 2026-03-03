@@ -2,7 +2,18 @@
 # CI-specific values for testing i2b2-frontend with CiliumNetworkPolicy (L7 WAF mode)
 #
 # The default values.yaml already uses Cilium-format rules with enabled_l7_waf: true.
-# This file overrides settings for CI (disable ingress, probes, volumes).
+# This file overrides settings for CI (disable ingress, probes, volumes, priorityClass).
+
+# Use nginx in CI — the real i2b2-web image needs configmaps that don't exist
+image:
+  repository: nginx
+  tag: "alpine"
+
+# PriorityClass "low-priority" doesn't exist in Kind
+priorityClassName: ""
+
+# Simple command override — nginx starts fine on its own
+command: "nginx -g 'daemon off;'"
 
 networkPolicy:
   enabled: true
