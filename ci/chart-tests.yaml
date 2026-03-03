@@ -26,23 +26,20 @@ defaults:
 
 charts:
   # ──────────────────────────────────────────────────────────────
-  # i2b2-wildfly: Backend with K8s NetworkPolicy (and Cilium option)
+  # i2b2-wildfly: Backend with K8s NetworkPolicy
+  # Uses K8s-format rules (enabled_l7_waf: false).
+  # CI values file swaps image to nginx-unprivileged:8080, nulls probes.
   # ──────────────────────────────────────────────────────────────
   i2b2-wildfly:
     namespace: i2b2
-    values:
-      networkPolicy.enabled: "true"
-      networkPolicy.enabled_l7_waf: "false"
-      # Disable probes — the real app image won't start in Kind without a DB
-      livenessProbe.enabled: "false"
-      readinessProbe.enabled: "false"
-      ingress.enabled: "false"
+    values_file: ci/test-values/i2b2-wildfly.yaml
     services:
       - port: 8080
     ingress:
       allowed:
         - labels:
             app.kubernetes.io/name: ingress-nginx
+            app.kubernetes.io/component: controller
           port: 8080
           source_namespace: ingress-nginx
         - labels:
@@ -84,16 +81,32 @@ charts:
           port: 443
 
   # ──────────────────────────────────────────────────────────────
-  # i2b2-postgres: Database with NetworkPolicy
+  # i2b2-postgres: Database with K8s NetworkPolicy
+  # Default netpol allows ingress from same namespace on 5432, denies all egress.
+  # CI values file uses vanilla postgres image, nulls probes/sidecar probes.
   # ──────────────────────────────────────────────────────────────
   i2b2-postgres:
     namespace: i2b2
-    values:
-      networkPolicy.enabled: "true"
-      networkPolicy.enabled_l7_waf: "false"
-      ingress.enabled: "false"
+    values_file: ci/test-values/i2b2-postgres.yaml
+    pre_install:
+      # The sidecar expects this secret to exist
+      - kubectl create secret generic e2e-i2b2-postgres-secret --from-literal=postgres-password=testpass -n i2b2 --dry-run=client -o yaml | kubectl apply -f -
     services:
       - port: 5432
+    ingress:
+      allowed:
+        - labels:
+            app.kubernetes.io/name: i2b2-wildfly
+          port: 5432
+      denied:
+        - labels:
+            app.kubernetes.io/name: unauthorized-app
+          port: 5432
+          source_namespace: default
+    egress:
+      denied:
+        - target: external
+          port: 443
 
   # ──────────────────────────────────────────────────────────────
   # didata: Has both NetworkPolicy and CiliumNetworkPolicy

@@ -1,0 +1,47 @@
+# ci/test-values/i2b2-postgres.yaml
+# CI-specific values for testing i2b2-postgres in Kind
+#
+# Default values.yaml uses chorusNetworkPolicy with K8s-format rules.
+# This file overrides settings that don't work in Kind.
+
+# Use the real i2b2-pg image since the statefulset template doesn't expose
+# env vars for the main container, and vanilla postgres needs POSTGRES_PASSWORD.
+# The i2b2-pg image is pre-seeded and starts without extra config.
+image:
+  repository: docker.io/i2b2/i2b2-pg
+  tag: "release-v1.8.1a.0001"
+
+# PriorityClass "medium-priority" doesn't exist in Kind
+priorityClassName: ""
+
+# Network policy — keep K8s format
+chorusNetworkPolicy:
+  enabled: true
+  enabled_l7_waf: false
+  ingress: []
+  egress: []
+
+# Disable K8s ingress
+ingress:
+  enabled: false
+
+# Null out probes — the pg_isready check needs the i2b2 user/DB
+# which doesn't exist in the vanilla postgres image
+livenessProbe: null
+readinessProbe: null
+
+# Sidecar probes also need to be nulled
+sidecar:
+  pgUser: "postgres"
+  pgDB: "postgres"
+  pgPassword:
+    existingSecret: e2e-i2b2-postgres-secret
+    key: postgres-password
+  wildflyURL: "http://localhost:8080"
+  livenessProbe: null
+  readinessProbe: null
+
+# Reduce PVC size for Kind
+volumeClaimTemplates:
+  - name: postgresql-data
+    storage: 1Gi

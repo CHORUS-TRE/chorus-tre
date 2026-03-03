@@ -96,6 +96,17 @@ section "Phase 0: Setup"
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 info "Namespace '${NAMESPACE}' ready"
 
+# Run pre_install commands if defined (e.g., create secrets)
+PRE_INSTALL_COUNT=$(yq ".charts.\"${CHART_NAME}\".pre_install | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+if [[ "$PRE_INSTALL_COUNT" -gt 0 ]]; then
+    info "Running ${PRE_INSTALL_COUNT} pre-install command(s)..."
+    for i in $(seq 0 $((PRE_INSTALL_COUNT - 1))); do
+        CMD=$(yq -r ".charts.\"${CHART_NAME}\".pre_install[$i]" "$REGISTRY")
+        info "  → $CMD"
+        eval "$CMD"
+    done
+fi
+
 # ── Phase 1: Deploy chart ─────────────────────────────────────
 section "Phase 1: Deploy"
 

@@ -1,0 +1,62 @@
+# ci/test-values/i2b2-wildfly.yaml
+# CI-specific values for testing i2b2-wildfly in Kind
+#
+# Default values.yaml uses enabled_l7_waf: false with K8s-format NetworkPolicy rules.
+# This file overrides settings that don't work in Kind (priorityClass, image, probes).
+
+# Use nginx listening on 8080 to match the service/netpol port expectations
+# The containerPort is set via service.http, and nginx default is 80,
+# so we use the nginxinc/nginx-unprivileged image which can be configured via env
+image:
+  repository: nginxinc/nginx-unprivileged
+  tag: "alpine"
+
+# PriorityClass "low-priority" doesn't exist in Kind
+priorityClassName: ""
+
+# Network policy — keep K8s format (enabled_l7_waf: false is the default)
+networkPolicy:
+  enabled: true
+  enabled_l7_waf: false
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: i2b2-frontend
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: i2b2-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+
+# Disable K8s ingress (no ingress controller in Kind)
+ingress:
+  enabled: false
+
+# Keep service.http at 8080 (matching netpol rules).
+# nginxinc/nginx-unprivileged listens on 8080 by default — perfect match.
+service:
+  type: ClusterIP
+  http: 8080
+  api: 9990
+
+# Null out probes — nginx doesn't have the wildfly health endpoint
+livenessProbe: null
+readinessProbe: null
