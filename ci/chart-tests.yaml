@@ -71,6 +71,7 @@ charts:
       allowed:
         - labels:
             app.kubernetes.io/name: ingress-nginx
+            app.kubernetes.io/component: controller
           port: 80
           source_namespace: ingress-nginx
       denied:
