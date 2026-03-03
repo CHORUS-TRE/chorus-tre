@@ -58,21 +58,13 @@ charts:
           port: 443
 
   # ──────────────────────────────────────────────────────────────
-  # i2b2-frontend: Frontend with NetworkPolicy + CiliumNetworkPolicy
+  # i2b2-frontend: Frontend with CiliumNetworkPolicy (L7 WAF mode)
+  # Default values.yaml uses Cilium-format rules with enabled_l7_waf: true.
+  # CI values file nulls out volumes/probes that need missing configmaps.
   # ──────────────────────────────────────────────────────────────
   i2b2-frontend:
     namespace: i2b2
-    values:
-      networkPolicy.enabled: "true"
-      # Use standard K8s NetworkPolicy (not Cilium L7 WAF) for basic CI testing
-      networkPolicy.enabled_l7_waf: "false"
-      ingress.enabled: "false"
-      # Disable probes — nginx starts but we don't need full health checks
-      livenessProbe.enabled: "false"
-      readinessProbe.enabled: "false"
-      # Null out volumes that reference missing configmaps
-      volumes: "null"
-      volumeMounts: "null"
+    values_file: ci/test-values/i2b2-frontend-cilium.yaml
     services:
       - port: 80
     ingress:

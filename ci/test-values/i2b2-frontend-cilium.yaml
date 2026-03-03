@@ -29,10 +29,8 @@ networkPolicy:
 ingress:
   enabled: false
 
-livenessProbe:
-  enabled: false
-readinessProbe:
-  enabled: false
+# Probes are commented out (null) in chart defaults — don't set them here.
+# The template always renders `livenessProbe: {{ toYaml }}` so null is valid.
 
 # Null out volumes that reference missing configmaps in CI
 volumes: null
