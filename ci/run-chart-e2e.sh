@@ -278,35 +278,41 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
 
         for attempt in $(seq 1 "$ALLOWED_RETRIES"); do
             POD_NAME="ingress-allow-${i}-a${attempt}"
-            if kubectl run "$POD_NAME" \
+
+            # Use a TCP-level check: we only care whether the connection is
+            # accepted (network policy allows it), NOT whether the service
+            # speaks HTTP.  wget to a non-HTTP port (e.g., postgres:5432)
+            # exits non-zero even when TCP succeeds, giving false negatives.
+            #
+            # Strategy: capture wget stderr.
+            #   - "error getting response" / "bad header" → TCP connected (PASS)
+            #   - "Operation not permitted" → Cilium/netpol DROP (retry)
+            #   - "Connection refused" → port not open yet (retry)
+            WGET_OUTPUT=$(kubectl run "$POD_NAME" \
                 --image="$TEST_IMAGE" \
                 --restart=Never \
                 --rm -i \
                 --namespace "$SRC_NS" \
                 --labels="$LABEL_ARGS" \
                 --timeout="$((CONNECT_TIMEOUT + 5))s" \
-                -- wget -qO- --timeout="$CONNECT_TIMEOUT" "http://${TARGET_SVC}.${NAMESPACE}.svc.cluster.local:${PORT}/" 2>/dev/null; then
+                -- wget -qO- --timeout="$CONNECT_TIMEOUT" \
+                   "http://${TARGET_SVC}.${NAMESPACE}.svc.cluster.local:${PORT}/" 2>&1 || true)
+
+            if echo "$WGET_OUTPUT" | grep -qiE '(error getting response|bad header|200 OK|301 |302 |404 |503 )'; then
+                # TCP connection succeeded (service responded, even if not valid HTTP)
                 pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT}"
                 INGRESS_PASSED=true
                 break
-            else
-                # TCP fallback (for non-HTTP services like postgres)
-                if kubectl run "${POD_NAME}-tcp" \
-                    --image="$TEST_IMAGE" \
-                    --restart=Never \
-                    --rm -i \
-                    --namespace "$SRC_NS" \
-                    --labels="$LABEL_ARGS" \
-                    --timeout="$((CONNECT_TIMEOUT + 5))s" \
-                    -- sh -c "echo | nc -w $CONNECT_TIMEOUT ${TARGET_SVC}.${NAMESPACE}.svc.cluster.local ${PORT} 2>/dev/null && echo TCP_OK" 2>/dev/null | grep -q "TCP_OK"; then
-                    pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} (TCP)"
-                    INGRESS_PASSED=true
-                    break
-                fi
+            elif [[ $? -eq 0 ]] && [[ -z "$WGET_OUTPUT" ]]; then
+                # wget succeeded with no output (e.g., empty 200 OK)
+                pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT}"
+                INGRESS_PASSED=true
+                break
             fi
 
             if [[ "$attempt" -lt "$ALLOWED_RETRIES" ]]; then
                 warn "Attempt ${attempt}/${ALLOWED_RETRIES} failed — retrying in ${RETRY_DELAY}s..."
+                info "  wget output: ${WGET_OUTPUT}"
                 sleep "$RETRY_DELAY"
             fi
         done
