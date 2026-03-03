@@ -223,7 +223,7 @@ if [[ "$SERVICE_COUNT" -gt 0 ]]; then
                 --rm -i \
                 --namespace "$NAMESPACE" \
                 --timeout="${CONNECT_TIMEOUT}s" \
-                -- sh -c "nc -z ${SVC_NAME} ${SVC_PORT} 2>/dev/null && echo 'TCP_OK'" 2>/dev/null | grep -q "TCP_OK"; then
+                -- sh -c "echo | nc -w $CONNECT_TIMEOUT ${SVC_NAME} ${SVC_PORT} 2>/dev/null && echo 'TCP_OK'" 2>/dev/null | grep -q "TCP_OK"; then
                 pass "Service ${SVC_NAME}:${SVC_PORT} is reachable (TCP)"
             else
                 warn "Service ${SVC_NAME}:${SVC_PORT} not responding (pod may not be ready — expected for apps needing backends)"
@@ -298,7 +298,7 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
                     --namespace "$SRC_NS" \
                     --labels="$LABEL_ARGS" \
                     --timeout="$((CONNECT_TIMEOUT + 5))s" \
-                    -- sh -c "nc -z -w $CONNECT_TIMEOUT ${TARGET_SVC}.${NAMESPACE}.svc.cluster.local ${PORT} && echo TCP_OK" 2>/dev/null | grep -q "TCP_OK"; then
+                    -- sh -c "echo | nc -w $CONNECT_TIMEOUT ${TARGET_SVC}.${NAMESPACE}.svc.cluster.local ${PORT} 2>/dev/null && echo TCP_OK" 2>/dev/null | grep -q "TCP_OK"; then
                     pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} (TCP)"
                     INGRESS_PASSED=true
                     break
@@ -322,6 +322,7 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
     for i in $(seq 0 $((DENIED_COUNT - 1))); do
         TESTS_RUN=$((TESTS_RUN + 1))
         PORT=$(yq ".charts.\"${CHART_NAME}\".ingress.denied[$i].port" "$REGISTRY")
+        SRC_NS=$(yq ".charts.\"${CHART_NAME}\".ingress.denied[$i].source_namespace // \"${NAMESPACE}\"" "$REGISTRY")
 
         LABEL_ARGS=""
         while IFS='=' read -r lkey lval; do
@@ -331,19 +332,27 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
         LABEL_ARGS="${LABEL_ARGS%,}"
 
         LABEL_DESC="${LABEL_ARGS:-<unlabeled>}"
-        info "Ingress DENIED test: pod(${LABEL_DESC}) → ${TARGET_SVC}:${PORT}"
+        info "Ingress DENIED test: pod(${LABEL_DESC}) in ns(${SRC_NS}) → ${TARGET_SVC}:${PORT}"
 
         POD_NAME="ingress-deny-${i}"
 
-        # For denied tests, we expect the connection to FAIL (timeout)
+        # Create source namespace if different
+        if [[ "$SRC_NS" != "$NAMESPACE" ]]; then
+            kubectl create namespace "$SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
+        fi
+
+        # For denied tests, we expect the connection to FAIL (timeout/drop).
+        # Use a TCP check (sh -c with /dev/tcp or nc) so non-HTTP services
+        # like databases are tested correctly. wget-to-non-HTTP would give
+        # a false positive (exits non-zero even when TCP succeeds).
         if kubectl run "$POD_NAME" \
             --image="$TEST_IMAGE" \
             --restart=Never \
             --rm -i \
-            --namespace "$NAMESPACE" \
+            --namespace "$SRC_NS" \
             ${LABEL_ARGS:+--labels="$LABEL_ARGS"} \
             --timeout="$((BLOCK_TIMEOUT + 10))s" \
-            -- sh -c "wget -qO- --timeout=$BLOCK_TIMEOUT http://${TARGET_SVC}:${PORT}/ 2>/dev/null && echo 'CONNECTED'" 2>/dev/null | grep -q "CONNECTED"; then
+            -- sh -c "echo | nc -w $BLOCK_TIMEOUT ${TARGET_SVC}.${NAMESPACE}.svc.cluster.local ${PORT} 2>/dev/null && echo 'CONNECTED'" 2>/dev/null | grep -q "CONNECTED"; then
             fail "Ingress DENIED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} — connection succeeded (expected block)"
         else
             pass "Ingress DENIED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} — correctly blocked"
