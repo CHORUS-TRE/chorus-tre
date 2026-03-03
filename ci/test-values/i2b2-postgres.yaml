@@ -33,7 +33,13 @@ livenessProbe: null
 # "rejecting connections" for 120+ seconds during first startup.
 # A tcpSocket check passes as soon as postgres opens the port (before it
 # finishes recovery), which is sufficient for NetworkPolicy testing.
+#
+# IMPORTANT: Must null out `exec` explicitly — Helm deep-merges the base
+# values.yaml (which has exec.command) with this file. Without exec: null,
+# K8s gets both exec AND tcpSocket handlers → "may not specify more than 1
+# handler type".
 readinessProbe:
+  exec: null
   tcpSocket:
     port: 5432
   initialDelaySeconds: 10
