@@ -87,6 +87,7 @@ charts:
   # ──────────────────────────────────────────────────────────────
   i2b2-postgres:
     namespace: i2b2
+    timeout: 300
     values_file: ci/test-values/i2b2-postgres.yaml
     pre_install:
       # The sidecar expects this secret to exist

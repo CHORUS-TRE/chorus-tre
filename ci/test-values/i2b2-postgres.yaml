@@ -28,18 +28,18 @@ ingress:
 # Null out liveness probe — we don't need it for CI
 livenessProbe: null
 
-# Use pg_isready as readiness probe so helm --wait only succeeds
-# after postgres is actually accepting connections (critical for tests)
+# Use tcpSocket readiness probe.
+# The i2b2-pg image takes a long time to initialize; pg_isready reports
+# "rejecting connections" for 120+ seconds during first startup.
+# A tcpSocket check passes as soon as postgres opens the port (before it
+# finishes recovery), which is sufficient for NetworkPolicy testing.
 readinessProbe:
-  exec:
-    command:
-      - pg_isready
-      - -U
-      - postgres
-  initialDelaySeconds: 5
-  periodSeconds: 3
+  tcpSocket:
+    port: 5432
+  initialDelaySeconds: 10
+  periodSeconds: 5
   timeoutSeconds: 2
-  failureThreshold: 10
+  failureThreshold: 30
 
 # Sidecar probes also need to be nulled
 sidecar:
