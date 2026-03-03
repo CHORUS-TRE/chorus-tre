@@ -279,15 +279,15 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
         for attempt in $(seq 1 "$ALLOWED_RETRIES"); do
             POD_NAME="ingress-allow-${i}-a${attempt}"
 
-            # Use a TCP-level check: we only care whether the connection is
-            # accepted (network policy allows it), NOT whether the service
-            # speaks HTTP.  wget to a non-HTTP port (e.g., postgres:5432)
-            # exits non-zero even when TCP succeeds, giving false negatives.
+            # Use wget to test connectivity. We capture ALL output (stdout +
+            # stderr) and check for signs of network-level blocking.
             #
-            # Strategy: capture wget stderr.
-            #   - "error getting response" / "bad header" → TCP connected (PASS)
-            #   - "Operation not permitted" → Cilium/netpol DROP (retry)
-            #   - "Connection refused" → port not open yet (retry)
+            # A successful TCP connection can look different depending on the
+            # service:  HTTP services return HTML, non-HTTP services (postgres)
+            # cause "error getting response".  Both mean the netpol ALLOWED it.
+            #
+            # A blocked connection shows "Operation not permitted" (Cilium DROP)
+            # or "Connection refused" / "can't connect" (port not open yet).
             WGET_OUTPUT=$(kubectl run "$POD_NAME" \
                 --image="$TEST_IMAGE" \
                 --restart=Never \
@@ -298,13 +298,11 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
                 -- wget -qO- --timeout="$CONNECT_TIMEOUT" \
                    "http://${TARGET_SVC}.${NAMESPACE}.svc.cluster.local:${PORT}/" 2>&1 || true)
 
-            if echo "$WGET_OUTPUT" | grep -qiE '(error getting response|bad header|200 OK|301 |302 |404 |503 )'; then
-                # TCP connection succeeded (service responded, even if not valid HTTP)
-                pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT}"
-                INGRESS_PASSED=true
-                break
-            elif [[ $? -eq 0 ]] && [[ -z "$WGET_OUTPUT" ]]; then
-                # wget succeeded with no output (e.g., empty 200 OK)
+            if echo "$WGET_OUTPUT" | grep -qi 'Operation not permitted\|Connection refused\|can'\''t connect\|Network is unreachable\|timed out'; then
+                # Network policy blocked the connection or service not ready
+                :
+            else
+                # No blocking indicators → TCP connection succeeded
                 pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT}"
                 INGRESS_PASSED=true
                 break
