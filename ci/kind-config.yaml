@@ -1,0 +1,12 @@
+# Kind cluster configuration for chart e2e testing with Cilium CNI.
+# Cilium replaces both the default CNI (kindnetd) and kube-proxy,
+# enabling enforcement of both K8s NetworkPolicy and CiliumNetworkPolicy.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true   # Required: Cilium will be the CNI
+  kubeProxyMode: "none"     # Let Cilium replace kube-proxy via eBPF
+nodes:
+- role: control-plane
+  # Single node is sufficient for policy enforcement testing.
+  # GitHub Actions runners have 2 vCPU / 7 GB RAM.

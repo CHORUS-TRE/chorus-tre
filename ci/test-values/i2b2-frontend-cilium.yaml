@@ -1,0 +1,39 @@
+# ci/test-values/i2b2-frontend-cilium.yaml
+# CI-specific values for testing i2b2-frontend with CiliumNetworkPolicy (L7 WAF mode)
+#
+# The default values.yaml already uses Cilium-format rules with enabled_l7_waf: true.
+# This file overrides settings for CI (disable ingress, probes, volumes).
+
+networkPolicy:
+  enabled: true
+  enabled_l7_waf: true
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: ingress-nginx
+            app.kubernetes.io/name: ingress-nginx
+            app.kubernetes.io/component: controller
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: i2b2-wildfly
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+
+ingress:
+  enabled: false
+
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+
+# Null out volumes that reference missing configmaps in CI
+volumes: null
+volumeMounts: null

@@ -1,0 +1,131 @@
+# ci/chart-tests.yaml — Central test registry for chart e2e testing
+#
+# Defines per-chart test parameters for the e2e pipeline.
+# Charts not listed here get a default smoke test (deploy + readiness check).
+#
+# Structure:
+#   defaults:              Global defaults applied to all charts
+#   charts.<name>:         Per-chart configuration
+#     namespace:           K8s namespace (default: "test")
+#     timeout:             Seconds to wait for pods Ready (default: 120)
+#     values:              Inline --set overrides (key: value)
+#     values_file:         Path to a CI-specific values file (relative to repo root)
+#     skip_deploy:         If true, skip helm install (e.g., CRD-only charts)
+#     services:            List of services to smoke-test after deployment
+#       - port:            Port to check
+#     ingress:             Ingress connectivity tests
+#       allowed:           List of {labels, port} — should succeed
+#       denied:            List of {labels, port} — should timeout/fail
+#     egress:              Egress connectivity tests
+#       allowed:           List of {target, port} — should succeed
+#       denied:            List of {target, port} — should timeout/fail
+
+defaults:
+  namespace: test
+  timeout: 120
+
+charts:
+  # ──────────────────────────────────────────────────────────────
+  # i2b2-wildfly: Backend with K8s NetworkPolicy (and Cilium option)
+  # ──────────────────────────────────────────────────────────────
+  i2b2-wildfly:
+    namespace: i2b2
+    values:
+      networkPolicy.enabled: "true"
+      networkPolicy.enabled_l7_waf: "false"
+      # Disable probes — the real app image won't start in Kind without a DB
+      livenessProbe.enabled: "false"
+      readinessProbe.enabled: "false"
+      ingress.enabled: "false"
+    services:
+      - port: 8080
+    ingress:
+      allowed:
+        - labels:
+            app.kubernetes.io/name: ingress-nginx
+          port: 8080
+          source_namespace: ingress-nginx
+        - labels:
+            app.kubernetes.io/name: i2b2-frontend
+          port: 8080
+      denied:
+        - labels:
+            app.kubernetes.io/name: unauthorized-app
+          port: 8080
+    egress:
+      denied:
+        - target: external
+          port: 443
+
+  # ──────────────────────────────────────────────────────────────
+  # i2b2-frontend: Frontend with NetworkPolicy + CiliumNetworkPolicy
+  # ──────────────────────────────────────────────────────────────
+  i2b2-frontend:
+    namespace: i2b2
+    values:
+      networkPolicy.enabled: "true"
+      # Use standard K8s NetworkPolicy (not Cilium L7 WAF) for basic CI testing
+      networkPolicy.enabled_l7_waf: "false"
+      ingress.enabled: "false"
+      # Disable probes — nginx starts but we don't need full health checks
+      livenessProbe.enabled: "false"
+      readinessProbe.enabled: "false"
+      # Null out volumes that reference missing configmaps
+      volumes: "null"
+      volumeMounts: "null"
+    services:
+      - port: 80
+    ingress:
+      allowed:
+        - labels:
+            app.kubernetes.io/name: ingress-nginx
+          port: 80
+          source_namespace: ingress-nginx
+      denied:
+        - labels:
+            app.kubernetes.io/name: unauthorized-app
+          port: 80
+    egress:
+      denied:
+        - target: external
+          port: 443
+
+  # ──────────────────────────────────────────────────────────────
+  # i2b2-postgres: Database with NetworkPolicy
+  # ──────────────────────────────────────────────────────────────
+  i2b2-postgres:
+    namespace: i2b2
+    values:
+      networkPolicy.enabled: "true"
+      networkPolicy.enabled_l7_waf: "false"
+      ingress.enabled: "false"
+    services:
+      - port: 5432
+
+  # ──────────────────────────────────────────────────────────────
+  # didata: Has both NetworkPolicy and CiliumNetworkPolicy
+  # ──────────────────────────────────────────────────────────────
+  didata:
+    namespace: didata
+    values:
+      networkPolicy.enabled: "true"
+      networkPolicy.enabled_l7_waf: "false"
+      ingress.enabled: "false"
+    services:
+      - port: 8080
+
+  # ──────────────────────────────────────────────────────────────
+  # CRD-only or infra charts — skip deploy (no pods to test)
+  # ──────────────────────────────────────────────────────────────
+  cert-manager-crds:
+    skip_deploy: true
+  fluent-operator-crds:
+    skip_deploy: true
+  prometheus-operator-crds:
+    skip_deploy: true
+  trivy-operator-crds:
+    skip_deploy: true
+  chorus-priority-class:
+    skip_deploy: true
+  self-signed-issuer:
+    skip_deploy: true
