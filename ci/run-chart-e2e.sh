@@ -261,30 +261,50 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
             kubectl create namespace "$SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
         fi
 
-        POD_NAME="ingress-allow-${i}"
-        if kubectl run "$POD_NAME" \
-            --image="$TEST_IMAGE" \
-            --restart=Never \
-            --rm -i \
-            --namespace "$SRC_NS" \
-            --labels="$LABEL_ARGS" \
-            --timeout="$((CONNECT_TIMEOUT + 5))s" \
-            -- wget -qO- --timeout="$CONNECT_TIMEOUT" "http://${TARGET_SVC}.${NAMESPACE}.svc.cluster.local:${PORT}/" 2>/dev/null; then
-            pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT}"
-        else
-            # TCP fallback
-            if kubectl run "${POD_NAME}-tcp" \
+        # Retry loop: slow-starting apps (e.g., databases) may not be
+        # accepting connections immediately after deploy. Retry up to
+        # ALLOWED_RETRIES times with a delay between attempts.
+        ALLOWED_RETRIES=5
+        RETRY_DELAY=15  # seconds between retries
+        INGRESS_PASSED=false
+
+        for attempt in $(seq 1 "$ALLOWED_RETRIES"); do
+            POD_NAME="ingress-allow-${i}-a${attempt}"
+            if kubectl run "$POD_NAME" \
                 --image="$TEST_IMAGE" \
                 --restart=Never \
                 --rm -i \
                 --namespace "$SRC_NS" \
                 --labels="$LABEL_ARGS" \
                 --timeout="$((CONNECT_TIMEOUT + 5))s" \
-                -- sh -c "nc -z -w $CONNECT_TIMEOUT ${TARGET_SVC}.${NAMESPACE}.svc.cluster.local ${PORT} && echo TCP_OK" 2>/dev/null | grep -q "TCP_OK"; then
-                pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} (TCP)"
+                -- wget -qO- --timeout="$CONNECT_TIMEOUT" "http://${TARGET_SVC}.${NAMESPACE}.svc.cluster.local:${PORT}/" 2>/dev/null; then
+                pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT}"
+                INGRESS_PASSED=true
+                break
             else
-                fail "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} — connection failed (expected success)"
+                # TCP fallback (for non-HTTP services like postgres)
+                if kubectl run "${POD_NAME}-tcp" \
+                    --image="$TEST_IMAGE" \
+                    --restart=Never \
+                    --rm -i \
+                    --namespace "$SRC_NS" \
+                    --labels="$LABEL_ARGS" \
+                    --timeout="$((CONNECT_TIMEOUT + 5))s" \
+                    -- sh -c "nc -z -w $CONNECT_TIMEOUT ${TARGET_SVC}.${NAMESPACE}.svc.cluster.local ${PORT} && echo TCP_OK" 2>/dev/null | grep -q "TCP_OK"; then
+                    pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} (TCP)"
+                    INGRESS_PASSED=true
+                    break
+                fi
             fi
+
+            if [[ "$attempt" -lt "$ALLOWED_RETRIES" ]]; then
+                warn "Attempt ${attempt}/${ALLOWED_RETRIES} failed — retrying in ${RETRY_DELAY}s..."
+                sleep "$RETRY_DELAY"
+            fi
+        done
+
+        if [[ "$INGRESS_PASSED" != "true" ]]; then
+            fail "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} — connection failed after ${ALLOWED_RETRIES} attempts (expected success)"
         fi
     done
 
