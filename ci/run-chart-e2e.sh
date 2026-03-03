@@ -96,6 +96,10 @@ section "Phase 0: Setup"
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 info "Namespace '${NAMESPACE}' ready"
 
+# Debug: show namespace labels (important for namespaceSelector-based NetworkPolicies)
+info "Namespace labels:"
+kubectl get namespace "$NAMESPACE" --show-labels 2>/dev/null || true
+
 # Run pre_install commands if defined (e.g., create secrets)
 PRE_INSTALL_COUNT=$(yq ".charts.\"${CHART_NAME}\".pre_install | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
 if [[ "$PRE_INSTALL_COUNT" -gt 0 ]]; then
@@ -183,6 +187,10 @@ echo ""
 info "Network policies:"
 kubectl get networkpolicy -n "$NAMESPACE" 2>/dev/null || true
 kubectl get ciliumnetworkpolicy -n "$NAMESPACE" 2>/dev/null || true
+
+# Debug: show full netpol spec for this release
+info "NetworkPolicy YAML (for debugging):"
+kubectl get networkpolicy -n "$NAMESPACE" -l "app.kubernetes.io/instance=${RELEASE_NAME}" -o yaml 2>/dev/null | head -60 || true
 
 # ── Phase 2: Smoke test — verify services respond ────────────
 section "Phase 2: Smoke Test"
