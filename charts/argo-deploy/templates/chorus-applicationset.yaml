@@ -28,6 +28,11 @@ spec:
             - key: stepName
               operator: In
               values:
+                - crd
+        - matchExpressions:
+            - key: stepName
+              operator: In
+              values:
                 - infrastructure
         - matchExpressions:
             - key: stepName
