@@ -25,10 +25,21 @@ chorusNetworkPolicy:
 ingress:
   enabled: false
 
-# Null out probes — the pg_isready check needs the i2b2 user/DB
-# which doesn't exist in the vanilla postgres image
+# Null out liveness probe — we don't need it for CI
 livenessProbe: null
-readinessProbe: null
+
+# Use pg_isready as readiness probe so helm --wait only succeeds
+# after postgres is actually accepting connections (critical for tests)
+readinessProbe:
+  exec:
+    command:
+      - pg_isready
+      - -U
+      - postgres
+  initialDelaySeconds: 5
+  periodSeconds: 3
+  timeoutSeconds: 2
+  failureThreshold: 10
 
 # Sidecar probes also need to be nulled
 sidecar:
