@@ -1,6 +1,7 @@
 {{- $fullName := include "chorus-ci.fullname" . -}}
 {{- $targetPort := .Values.service.targetPort -}}
 {{- $ingressHost := .Values.ingress.hosts | mustFirst -}}
+{{- $isGithubAppEnabled := .Values.githubApp.enabled -}}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: EventSource
@@ -35,22 +36,28 @@ spec:
       events:
         - "*"
 
-      {{- if .secretName }}
+      {{- if and $isGithubAppEnabled (ne .webhookSecretName "") }}
+      # GitHub App authentication (webhook lifecycle managed via GitHub App)
+      githubApp:
+        privateKey:
+          name: {{ $.Values.githubApp.privateKeySecret.name }}
+          key: {{ $.Values.githubApp.privateKeySecret.key }}
+        appID: {{ $.Values.githubApp.appID }}
+        installationID: {{ $.Values.githubApp.installationID }}
+      # webhookSecret refers to K8s secret that stores the webhook signature validation secret
+      webhookSecret:
+        name: {{ .webhookSecretName }}
+        key: {{ .webhookSecretKey }}
+      {{- else if .secretName }}
+      # Legacy PAT authentication (webhook lifecycle managed via PAT)
       # apiToken refers to K8s secret that stores the github api token
       # if apiToken is provided controller will create webhook on GitHub repo
-      # +optional
       apiToken:
-        # Name of the K8s secret that contains the access token
         name: {{ .secretName }}
-        # Key within the K8s secret whose corresponding value (must be base64 encoded) is access token
         key: token
-
       # webhookSecret refers to K8s secret that stores the github hook secret
-      # +optional
       webhookSecret:
-        # Name of the K8s secret that contains the hook secret
         name: {{ .secretName }}
-        # Key within the K8s secret whose corresponding value (must be base64 encoded) is hook secret
         key: secret
       {{- end }}
 
