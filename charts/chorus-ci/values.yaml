@@ -95,9 +95,15 @@ webhookEvents:
         names:
           - images
 
+    # The following secret is only used if githubApp.enabled is false.
     # That secret must contain the following keys:
     # - token (a GitHub pat), and secret (the webhook secret).
     secretName: chorus-ci-github-images
+
+    # The following secret is only used if githubApp.enabled is true.
+    # and the webhookSecretName is specified
+    webhookSecretName: images-webhook
+    webhookSecretKey: webhookSecret
 
   - name: chorus-web-ui
     repositories:
@@ -105,6 +111,8 @@ webhookEvents:
         names:
           - chorus-web-ui
     secretName: chorus-ci-github-chorus-web-ui
+    webhookSecretName: chorus-tre-webhook
+    webhookSecretKey: webhookSecret
 
   - name: chorus-backend
     repositories:
@@ -112,6 +120,8 @@ webhookEvents:
         names:
           - chorus-backend
     secretName: chorus-ci-github-chorus-backend
+    webhookSecretName: chorus-backend-webhook
+    webhookSecretKey: webhookSecret
 
   - name: workbench-operator
     repositories:
@@ -119,11 +129,23 @@ webhookEvents:
         names:
           - workbench-operator
     secretName: chorus-ci-github-workbench-operator
+    webhookSecretName: workbench-operator-webhook
+    webhookSecretKey: webhookSecret
 
 githubSecrets:
   chorus-backend: argo-workflows-github-chorus-backend
   chorus-web-ui: argo-workflows-github-chorus-web-ui
   workbench-operator: argo-workflows-github-workbench-operator
+
+githubApp:
+  # If enabled, the GitHub App will be used for authentication instead of a personal access token.
+  # this is for smooth transition from PAT to GitHub App,
+  # and can be removed once all secrets have been migrated to use the GitHub App.
+  enabled: false
+  appId: 123456
+  installationId: 123456
+  privateKeySecretName: chorus-build-argo-workflows-github-app
+  privateKeySecretKey: privateKey
 
 serviceAccount:
   # Specifies whether a service account should be created
