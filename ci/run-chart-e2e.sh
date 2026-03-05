@@ -469,33 +469,56 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
                 fi
             fi
 
-            # Method 3: spawn a test pod with the chart's selector labels.
-            # The netpol applies by label, so this pod is subject to the same
-            # egress rules. Useful when the real image lacks nc/bash.
+            # Method 3: spawn a labeled test pod and use wget (same approach
+            # as ingress ALLOWED — check for absence of blocking indicators).
+            # The pod gets the chart's selector labels so the same netpol applies.
+            # Retries handle Cilium identity propagation delay.
             if [[ "$EGRESS_PASSED" != "true" ]]; then
                 info "  exec failed (image may lack nc/bash) — falling back to labeled test pod"
                 POD_LABELS="app.kubernetes.io/name=${CHART_NAME},app.kubernetes.io/instance=${RELEASE_NAME}"
-                EGRESS_OUTPUT=$(kubectl run "egress-allow-${i}" \
-                    --image="$TEST_IMAGE" \
-                    --restart=Never \
-                    --rm -i \
-                    --namespace "$NAMESPACE" \
-                    --labels="$POD_LABELS" \
-                    --timeout="$((CONNECT_TIMEOUT + 10))s" \
-                    -- sh -c "nc -z -w $CONNECT_TIMEOUT $TARGET $PORT 2>/dev/null && echo EGRESS_OK" 2>&1 || true)
-                if echo "$EGRESS_OUTPUT" | grep -q "EGRESS_OK"; then
-                    EGRESS_PASSED=true
-                fi
+
+                EGRESS_RETRIES=5
+                EGRESS_RETRY_DELAY=10
+                for attempt in $(seq 1 "$EGRESS_RETRIES"); do
+                    POD_NAME="egress-allow-${i}-a${attempt}"
+                    EGRESS_OUTPUT=$(kubectl run "$POD_NAME" \
+                        --image="$TEST_IMAGE" \
+                        --restart=Never \
+                        --rm -i \
+                        --namespace "$NAMESPACE" \
+                        --labels="$POD_LABELS" \
+                        --timeout="$((CONNECT_TIMEOUT + 10))s" \
+                        -- wget -qO- --timeout="$CONNECT_TIMEOUT" \
+                           "http://${TARGET}.${NAMESPACE}.svc.cluster.local:${PORT}/" 2>&1 || true)
+
+                    if echo "$EGRESS_OUTPUT" | grep -qi 'Operation not permitted\|Connection refused\|can'\''t connect\|Network is unreachable\|timed out'; then
+                        # Blocked or not ready yet
+                        :
+                    else
+                        # No blocking indicators → connection succeeded
+                        EGRESS_PASSED=true
+                        break
+                    fi
+
+                    if [[ "$attempt" -lt "$EGRESS_RETRIES" ]]; then
+                        warn "  Attempt ${attempt}/${EGRESS_RETRIES} blocked — retrying in ${EGRESS_RETRY_DELAY}s..."
+                        info "    output: ${EGRESS_OUTPUT}"
+                        sleep "$EGRESS_RETRY_DELAY"
+                    fi
+                done
             fi
 
             if [[ "$EGRESS_PASSED" == "true" ]]; then
                 pass "Egress ALLOWED: → ${TARGET}:${PORT}"
             else
-                fail "Egress ALLOWED: → ${TARGET}:${PORT} — connection failed (expected success)"
+                fail "Egress ALLOWED: → ${TARGET}:${PORT} — connection failed after retries (expected success)"
+                info "  last output: ${EGRESS_OUTPUT:-<empty>}"
             fi
         done
 
         # ── Denied egress ─────────────────────────────────────
+        # Uses a labeled test pod (same labels as chart) so the netpol applies.
+        # Images like JBoss lack nc/bash, so exec would give false passes.
         DENIED_COUNT=$(yq ".charts.\"${CHART_NAME}\".egress.denied | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
 
         for i in $(seq 0 $((DENIED_COUNT - 1))); do
@@ -510,8 +533,16 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
 
             info "Egress DENIED test: ${CHART_POD} → ${TARGET}:${PORT}"
 
-            if kubectl exec -n "$NAMESPACE" "$CHART_POD" -- \
-                sh -c "timeout $BLOCK_TIMEOUT sh -c 'nc -z $TARGET $PORT' 2>/dev/null && echo EGRESS_OK" 2>/dev/null | grep -q "EGRESS_OK"; then
+            POD_LABELS="app.kubernetes.io/name=${CHART_NAME},app.kubernetes.io/instance=${RELEASE_NAME}"
+
+            if kubectl run "egress-deny-${i}" \
+                --image="$TEST_IMAGE" \
+                --restart=Never \
+                --rm -i \
+                --namespace "$NAMESPACE" \
+                --labels="$POD_LABELS" \
+                --timeout="$((BLOCK_TIMEOUT + 10))s" \
+                -- sh -c "echo | nc -w $BLOCK_TIMEOUT $TARGET $PORT 2>/dev/null && echo 'CONNECTED'" 2>/dev/null | grep -q "CONNECTED"; then
                 fail "Egress DENIED: → ${TARGET}:${PORT} — connection succeeded (expected block)"
             else
                 pass "Egress DENIED: → ${TARGET}:${PORT} — correctly blocked"
