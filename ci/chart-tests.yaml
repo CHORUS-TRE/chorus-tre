@@ -69,12 +69,15 @@ charts:
 
   # ──────────────────────────────────────────────────────────────
   # i2b2-frontend: Frontend with CiliumNetworkPolicy (L7 WAF mode)
-  # Default values.yaml uses Cilium-format rules with enabled_l7_waf: true.
-  # CI values file nulls out volumes/probes that need missing configmaps.
+  # Uses real i2b2-web image (Apache httpd). Configmap created by chart.
+  # depends_on deploys wildfly (which transitively deploys postgres).
   # ──────────────────────────────────────────────────────────────
   i2b2-frontend:
     namespace: i2b2
+    timeout: 180
     values_file: ci/test-values/i2b2-frontend-cilium.yaml
+    depends_on:
+      - i2b2-wildfly
     services:
       - port: 80
     ingress:
@@ -89,6 +92,9 @@ charts:
             app.kubernetes.io/name: unauthorized-app
           port: 80
     egress:
+      allowed:
+        - target: e2e-i2b2-wildfly
+          port: 8080
       denied:
         - target: external
           port: 443

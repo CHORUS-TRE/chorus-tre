@@ -131,20 +131,31 @@ jobs:
             OVERALL_EXIT=1
           fi
 
-          # Clean up between charts: uninstall release, its dependencies, and delete test pods
+          # Clean up between charts: uninstall release, its dependencies (transitively), and delete test pods
           CHART_NS=$(yq ".charts.\"${chart_name}\".namespace // .defaults.namespace // \"test\"" ci/chart-tests.yaml)
           helm uninstall "e2e-${chart_name}" -n "${CHART_NS}" 2>/dev/null || true
 
-          # Uninstall dependency releases (reverse order)
-          DEP_COUNT=$(yq ".charts.\"${chart_name}\".depends_on | length // 0" ci/chart-tests.yaml 2>/dev/null || echo 0)
-          if [ "$DEP_COUNT" -gt 0 ]; then
-            for dep_i in $(seq $((DEP_COUNT - 1)) -1 0); do
-              DEP_NAME=$(yq -r ".charts.\"${chart_name}\".depends_on[$dep_i]" ci/chart-tests.yaml)
-              DEP_NS=$(yq ".charts.\"${DEP_NAME}\".namespace // \"${CHART_NS}\"" ci/chart-tests.yaml)
-              echo "  Cleaning up dependency: ${DEP_NAME}"
-              helm uninstall "e2e-${DEP_NAME}" -n "${DEP_NS}" 2>/dev/null || true
-            done
-          fi
+          # Collect all transitive dependencies and uninstall them
+          # Simple BFS: queue starts with direct deps, expands transitively
+          QUEUE=$(yq -r ".charts.\"${chart_name}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
+          ALL_DEPS=""
+          while [ -n "$QUEUE" ]; do
+            CURRENT=$(echo "$QUEUE" | head -1)
+            QUEUE=$(echo "$QUEUE" | tail -n +2)
+            # Skip if already seen
+            echo "$ALL_DEPS" | grep -qx "$CURRENT" 2>/dev/null && continue
+            ALL_DEPS=$(printf "%s\n%s" "$CURRENT" "$ALL_DEPS")
+            # Add sub-dependencies to queue
+            SUB_DEPS=$(yq -r ".charts.\"${CURRENT}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
+            [ -n "$SUB_DEPS" ] && QUEUE=$(printf "%s\n%s" "$QUEUE" "$SUB_DEPS")
+          done
+          # Uninstall collected deps (leaves first since we prepended)
+          for DEP_NAME in $ALL_DEPS; do
+            [ -z "$DEP_NAME" ] && continue
+            DEP_NS=$(yq ".charts.\"${DEP_NAME}\".namespace // \"${CHART_NS}\"" ci/chart-tests.yaml)
+            echo "  Cleaning up dependency: ${DEP_NAME}"
+            helm uninstall "e2e-${DEP_NAME}" -n "${DEP_NS}" 2>/dev/null || true
+          done
 
           kubectl delete pods --field-selector=status.phase!=Running -A 2>/dev/null || true
           echo ""

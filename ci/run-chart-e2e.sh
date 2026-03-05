@@ -112,12 +112,44 @@ if [[ "$PRE_INSTALL_COUNT" -gt 0 ]]; then
 fi
 
 # ── Phase 0b: Deploy dependency charts (depends_on) ──────────
-DEP_COUNT=$(yq ".charts.\"${CHART_NAME}\".depends_on | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+# Resolves transitive dependencies: if A depends_on B and B depends_on C,
+# we deploy C first, then B, then proceed to test A.
+# Uses a simple iterative approach to flatten the dependency tree.
 
-if [[ "$DEP_COUNT" -gt 0 ]]; then
+resolve_deps() {
+    # Flatten the dependency tree for a given chart into deployment order.
+    # Output: newline-separated list of chart names, leaves first.
+    local chart="$1"
+    local resolved=""
+    local queue="$chart"
+
+    # BFS to collect all deps
+    while [[ -n "$queue" ]]; do
+        local current="${queue%% *}"
+        queue="${queue#* }"
+        [[ "$queue" == "$current" ]] && queue=""
+
+        local count
+        count=$(yq ".charts.\"${current}\".depends_on | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+        for j in $(seq 0 $((count - 1))); do
+            local dep
+            dep=$(yq -r ".charts.\"${current}\".depends_on[$j]" "$REGISTRY")
+            # Add to resolved (will dedupe later) and queue for further resolution
+            resolved="${resolved} ${dep}"
+            queue="${queue} ${dep}"
+        done
+    done
+
+    # Reverse + dedupe: dependencies of dependencies come first
+    echo "$resolved" | tr ' ' '\n' | tac | awk '!seen[$0]++ && NF' 
+}
+
+DEP_LIST=$(resolve_deps "$CHART_NAME")
+
+if [[ -n "$DEP_LIST" ]]; then
     section "Phase 0b: Deploy Dependencies"
-    for d in $(seq 0 $((DEP_COUNT - 1))); do
-        DEP_NAME=$(yq -r ".charts.\"${CHART_NAME}\".depends_on[$d]" "$REGISTRY")
+    while IFS= read -r DEP_NAME; do
+        [[ -z "$DEP_NAME" ]] && continue
         DEP_RELEASE="e2e-${DEP_NAME}"
         DEP_NS=$(yq ".charts.\"${DEP_NAME}\".namespace // \"${NAMESPACE}\"" "$REGISTRY")
         DEP_TIMEOUT=$(yq ".charts.\"${DEP_NAME}\".timeout // 120" "$REGISTRY")
@@ -170,7 +202,7 @@ if [[ "$DEP_COUNT" -gt 0 ]]; then
             fail "Dependency ${DEP_NAME} failed to deploy — aborting"
             exit 1
         fi
-    done
+    done <<< "$DEP_LIST"
 fi
 
 # ── Phase 1: Deploy chart ─────────────────────────────────────
