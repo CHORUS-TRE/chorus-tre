@@ -636,6 +636,68 @@ else
     info "No egress tests defined — skipping"
 fi
 
+# ── Phase 5: Application health check ─────────────────────────
+# Verifies the real application is working end-to-end, not just
+# that network policies allow traffic.  E.g. wildfly returns 200
+# only when all postgres datasources are connected.
+section "Phase 5: Health Check"
+
+HEALTH_PATH=$(yq ".charts.\"${CHART_NAME}\".health_check.path // \"\"" "$REGISTRY" 2>/dev/null)
+HEALTH_PORT=$(yq ".charts.\"${CHART_NAME}\".health_check.port // \"\"" "$REGISTRY" 2>/dev/null)
+
+if [[ -n "$HEALTH_PATH" && "$HEALTH_PATH" != "null" && -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
+    TESTS_RUN=$((TESTS_RUN + 1))
+    HEALTH_STATUS=$(yq ".charts.\"${CHART_NAME}\".health_check.expect_status // 200" "$REGISTRY" 2>/dev/null)
+    HEALTH_URL="http://${RELEASE_NAME}.${NAMESPACE}.svc.cluster.local:${HEALTH_PORT}${HEALTH_PATH}"
+
+    info "Health check: ${HEALTH_URL} (expect HTTP ${HEALTH_STATUS})"
+
+    # Use wget from a test pod labeled as an allowed ingress source.
+    # Without proper labels, the network policy would block the request.
+    # Pick the first allowed ingress label set, or use no labels if no
+    # ingress rules are defined.
+    HC_LABELS=""
+    HC_FIRST_LABEL=$(yq -r ".charts.\"${CHART_NAME}\".ingress.allowed[0].labels | to_entries[] | .key + \"=\" + .value" "$REGISTRY" 2>/dev/null | head -1 || true)
+    if [[ -n "$HC_FIRST_LABEL" ]]; then
+        HC_LABELS=$(yq -r ".charts.\"${CHART_NAME}\".ingress.allowed[0].labels | to_entries[] | .key + \"=\" + .value" "$REGISTRY" 2>/dev/null | paste -sd',' -)
+    fi
+    HC_SRC_NS=$(yq ".charts.\"${CHART_NAME}\".ingress.allowed[0].source_namespace // \"${NAMESPACE}\"" "$REGISTRY" 2>/dev/null)
+    [[ "$HC_SRC_NS" == "null" ]] && HC_SRC_NS="$NAMESPACE"
+
+    # Create source namespace if different
+    if [[ "$HC_SRC_NS" != "$NAMESPACE" ]]; then
+        kubectl create namespace "$HC_SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
+    fi
+
+    info "Health check pod labels: ${HC_LABELS:-<none>}, namespace: ${HC_SRC_NS}"
+
+    HEALTH_OUTPUT=$(
+        kubectl run health-check \
+            --image="$TEST_IMAGE" \
+            --restart=Never \
+            --rm -i \
+            --namespace "$HC_SRC_NS" \
+            ${HC_LABELS:+--labels="$HC_LABELS"} \
+            --timeout="$((CONNECT_TIMEOUT + 10))s" \
+            -- sh -c "wget -S -O /dev/null --timeout=$CONNECT_TIMEOUT '${HEALTH_URL}' 2>&1" 2>&1 || true
+    )
+
+    if echo "$HEALTH_OUTPUT" | grep -q "HTTP/.*${HEALTH_STATUS}"; then
+        pass "Health check: ${RELEASE_NAME}:${HEALTH_PORT}${HEALTH_PATH} returned HTTP ${HEALTH_STATUS}"
+    else
+        # Show what we got for debugging
+        HTTP_LINE=$(echo "$HEALTH_OUTPUT" | grep -i 'HTTP/' | head -1 || true)
+        if [[ -n "$HTTP_LINE" ]]; then
+            fail "Health check: expected HTTP ${HEALTH_STATUS}, got: ${HTTP_LINE}"
+        else
+            fail "Health check: no HTTP response from ${RELEASE_NAME}:${HEALTH_PORT}${HEALTH_PATH}"
+            info "  output: $(echo "$HEALTH_OUTPUT" | tail -5)"
+        fi
+    fi
+else
+    info "No health check defined — skipping"
+fi
+
 # ── Summary ───────────────────────────────────────────────────
 section "Summary: ${CHART_NAME}"
 echo ""
