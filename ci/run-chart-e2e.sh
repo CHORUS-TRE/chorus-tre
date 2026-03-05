@@ -453,17 +453,45 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
 
             info "Egress ALLOWED test: ${CHART_POD} → ${TARGET}:${PORT}"
 
+            EGRESS_PASSED=false
+
+            # Method 1: exec into the chart pod with nc
             if kubectl exec -n "$NAMESPACE" "$CHART_POD" -- \
                 sh -c "nc -z -w $CONNECT_TIMEOUT $TARGET $PORT 2>/dev/null && echo EGRESS_OK" 2>/dev/null | grep -q "EGRESS_OK"; then
-                pass "Egress ALLOWED: → ${TARGET}:${PORT}"
-            else
-                # Try bash /dev/tcp fallback
+                EGRESS_PASSED=true
+            fi
+
+            # Method 2: exec into the chart pod with bash /dev/tcp
+            if [[ "$EGRESS_PASSED" != "true" ]]; then
                 if kubectl exec -n "$NAMESPACE" "$CHART_POD" -- \
                     bash -c "echo > /dev/tcp/$TARGET/$PORT && echo EGRESS_OK" 2>/dev/null | grep -q "EGRESS_OK"; then
-                    pass "Egress ALLOWED: → ${TARGET}:${PORT}"
-                else
-                    fail "Egress ALLOWED: → ${TARGET}:${PORT} — connection failed (expected success)"
+                    EGRESS_PASSED=true
                 fi
+            fi
+
+            # Method 3: spawn a test pod with the chart's selector labels.
+            # The netpol applies by label, so this pod is subject to the same
+            # egress rules. Useful when the real image lacks nc/bash.
+            if [[ "$EGRESS_PASSED" != "true" ]]; then
+                info "  exec failed (image may lack nc/bash) — falling back to labeled test pod"
+                POD_LABELS="app.kubernetes.io/name=${CHART_NAME},app.kubernetes.io/instance=${RELEASE_NAME}"
+                EGRESS_OUTPUT=$(kubectl run "egress-allow-${i}" \
+                    --image="$TEST_IMAGE" \
+                    --restart=Never \
+                    --rm -i \
+                    --namespace "$NAMESPACE" \
+                    --labels="$POD_LABELS" \
+                    --timeout="$((CONNECT_TIMEOUT + 10))s" \
+                    -- sh -c "nc -z -w $CONNECT_TIMEOUT $TARGET $PORT 2>/dev/null && echo EGRESS_OK" 2>&1 || true)
+                if echo "$EGRESS_OUTPUT" | grep -q "EGRESS_OK"; then
+                    EGRESS_PASSED=true
+                fi
+            fi
+
+            if [[ "$EGRESS_PASSED" == "true" ]]; then
+                pass "Egress ALLOWED: → ${TARGET}:${PORT}"
+            else
+                fail "Egress ALLOWED: → ${TARGET}:${PORT} — connection failed (expected success)"
             fi
         done
 
