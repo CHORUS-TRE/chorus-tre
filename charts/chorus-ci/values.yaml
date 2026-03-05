@@ -87,7 +87,26 @@ eventBus:
     version: "2.10.10"
   debug: false
 
-# Creates the webhook and matching events on the GibHub EventSource.
+# GitHub App configuration for EventSource authentication
+# When enabled and webhookEvents[].webhookSecretName is set, EventSource will use GitHub App for webhook management
+githubApp:
+  enabled: false
+  appID: ""
+  installationID: ""
+  privateKeySecret:
+    name: "" # e.g. chorus-build-argo-workflows-github-app
+    key: "privateKey"
+
+# Git credentials for workflow git operations (single shared PAT for all repositories)
+gitCredentials:
+  secretName: "" # e.g. chorus-build-argo-workflows-github-pat
+  usernameKey: "username"
+  passwordKey: "password"
+
+# Creates the webhook and matching events on the GitHub EventSource.
+# For each webhook event:
+# - If githubApp.enabled=true AND webhookSecretName is set: Use GitHub App authentication
+# - Otherwise: Use legacy PAT authentication via secretName
 webhookEvents:
   - name: ci
     repositories:
@@ -95,9 +114,14 @@ webhookEvents:
         names:
           - images
 
-    # That secret must contain the following keys:
-    # - token (a GitHub pat), and secret (the webhook secret).
+    # Legacy PAT-based authentication (used when githubApp.enabled=false or webhookSecretName is empty)
+    # Secret must contain: token (GitHub PAT) and secret (webhook secret)
     secretName: chorus-ci-github-images
+
+    # GitHub App authentication (used when githubApp.enabled=true AND this is set)
+    # References a secret containing only the webhook signature validation secret
+    webhookSecretName: "" # e.g. images-webhook
+    webhookSecretKey: webhookSecret
 
   - name: chorus-web-ui
     repositories:
@@ -105,6 +129,8 @@ webhookEvents:
         names:
           - chorus-web-ui
     secretName: chorus-ci-github-chorus-web-ui
+    webhookSecretName: "" # e.g. chorus-web-ui-webhook
+    webhookSecretKey: webhookSecret
 
   - name: chorus-backend
     repositories:
@@ -112,6 +138,8 @@ webhookEvents:
         names:
           - chorus-backend
     secretName: chorus-ci-github-chorus-backend
+    webhookSecretName: "" # e.g. chorus-backend-webhook
+    webhookSecretKey: webhookSecret
 
   - name: workbench-operator
     repositories:
@@ -119,7 +147,11 @@ webhookEvents:
         names:
           - workbench-operator
     secretName: chorus-ci-github-workbench-operator
+    webhookSecretName: "" # e.g. workbench-operator-webhook
+    webhookSecretKey: webhookSecret
 
+# DEPRECATED: Use gitCredentials instead. This map is kept for backward compatibility.
+# References to secrets containing git credentials (username/password) for workflow git operations.
 githubSecrets:
   chorus-backend: argo-workflows-github-chorus-backend
   chorus-web-ui: argo-workflows-github-chorus-web-ui
