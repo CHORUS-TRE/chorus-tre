@@ -1,6 +1,8 @@
 {{- $fullName := include "chorus-ci.fullname" . -}}
 {{- $serviceAccountName := include "chorus-ci.serviceAccountName" . -}}
-{{- $githubSecretName := index .Values.githubSecrets "chorus-backend" }}
+{{- $githubSecretName := .Values.gitCredentials.secretName | default (index .Values.githubSecrets "chorus-backend") }}
+{{- $githubSecretUsernameKey := .Values.gitCredentials.usernameKey | default "username" }}
+{{- $githubSecretPasswordKey := .Values.gitCredentials.passwordKey | default "password" }}
 {{- $backendAcceptanceTestsReleaseName := "acceptance" -}}
 ---
 apiVersion: argoproj.io/v1alpha1
@@ -63,10 +65,10 @@ spec:
               revision: "{{`{{workflow.parameters.sha}}`}}"
               usernameSecret:
                 name: {{ $githubSecretName }}
-                key: username
+                key: {{ $githubSecretUsernameKey }}
               passwordSecret:
                 name: {{ $githubSecretName }}
-                key: password
+                key: {{ $githubSecretPasswordKey }}
               ref: "{{`{{workflow.parameters.ref}}`}}"
       volumes:
         - name: github-secret
@@ -78,12 +80,12 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: {{ $githubSecretName }}
-                key: username
+                key: {{ $githubSecretUsernameKey }}
           - name: GIT_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: {{ $githubSecretName }}
-                key: password
+                key: {{ $githubSecretPasswordKey }}
         image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default "latest" }}
         command: [sh, -e, -c]
         args:
@@ -118,6 +120,10 @@ spec:
                   value: {{ .Values.sensor.dockerConfig.secretName | quote }}
                 - name: gitSecretName
                   value: {{ $githubSecretName | quote }}
+                - name: githubSecretUsernameKey
+                  value: {{ $githubSecretUsernameKey }}
+                - name: githubSecretPasswordKey
+                  value: {{ $githubSecretPasswordKey }}
                 - name: addLatestTag
                   value: "{{`{{workflow.parameters.addLatestTag}}`}}"
               artifacts:
@@ -127,10 +133,10 @@ spec:
                     revision: "{{`{{workflow.parameters.sha}}`}}"
                     usernameSecret:
                       name: {{ $githubSecretName }}
-                      key: username
+                      key: {{ $githubSecretUsernameKey }}
                     passwordSecret:
                       name: {{ $githubSecretName }}
-                      key: password
+                      key: {{ $githubSecretPasswordKey }}
                     depth: 1
                     ref: "{{`{{workflow.parameters.ref}}`}}"
         - - name: backend-acceptance-tests
@@ -152,6 +158,10 @@ spec:
               parameters:
                 - name: githubSecretName
                   value: {{ $githubSecretName }}
+                - name: githubSecretUsernameKey
+                  value: {{ $githubSecretUsernameKey }}
+                - name: githubSecretPasswordKey
+                  value: {{ $githubSecretPasswordKey }}
                 - name: releaseName
                   value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
                 - name: chorusBackendAcceptanceNamespace
@@ -165,9 +175,9 @@ spec:
                     revision: "{{`{{workflow.parameters.sha}}`}}"
                     usernameSecret:
                       name: {{ $githubSecretName }}
-                      key: username
+                      key: {{ $githubSecretUsernameKey }}
                     passwordSecret:
                       name: {{ $githubSecretName }}
-                      key: password
+                      key: {{ $githubSecretPasswordKey }}
                     depth: 1
                     ref: "{{`{{workflow.parameters.ref}}`}}"
