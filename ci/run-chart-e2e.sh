@@ -670,6 +670,9 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
         # Uses postgres:16-alpine for pg_isready + psql.
         # Two-step: (1) pg_isready verifies PG protocol readiness,
         #           (2) psql runs an actual SQL query.
+        # Includes a retry loop because the i2b2-pg image can take
+        # 120+ seconds to finish initialisation (the CI uses a fast
+        # tcpSocket readiness probe to avoid blocking deployment).
         PG_IMAGE="postgres:16-alpine"
         PG_USER=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_user // \"postgres\"" "$REGISTRY" 2>/dev/null)
         PG_DB=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_db // \"postgres\"" "$REGISTRY" 2>/dev/null)
@@ -677,17 +680,50 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
         PG_QUERY=$(yq ".charts.\"${CHART_NAME}\".health_check.query // \"SELECT 1\"" "$REGISTRY" 2>/dev/null)
         [[ "$PG_PASS" == "null" ]] && PG_PASS=""
 
+        PG_WAIT=180  # max seconds to wait for pg_isready
+
         info "Health check (PG): ${HC_TARGET}:${HEALTH_PORT}"
         info "  user=${PG_USER}, db=${PG_DB}, query=${PG_QUERY}"
         info "  pod labels: ${HC_LABELS:-<none>}, namespace: ${HC_SRC_NS}"
+        info "  pg_isready timeout: ${PG_WAIT}s"
 
-        # Build the command: pg_isready first, then psql
-        PG_CMD="set -e; "
-        PG_CMD+="echo '--- Step 1: pg_isready ---'; "
-        PG_CMD+="pg_isready -h ${HC_TARGET} -p ${HEALTH_PORT} -U ${PG_USER} -d ${PG_DB} -t ${CONNECT_TIMEOUT}; "
-        PG_CMD+="echo '--- Step 2: psql query ---'; "
-        PG_CMD+="psql -h ${HC_TARGET} -p ${HEALTH_PORT} -U ${PG_USER} -d ${PG_DB} -c \"${PG_QUERY}\"; "
-        PG_CMD+="echo 'PG_HEALTH_OK'"
+        # Build the in-pod script (no set -e so we capture all output)
+        read -r -d '' PG_CMD <<'PGEOF' || true
+echo "--- Step 1: pg_isready (waiting up to __PG_WAIT__s) ---"
+ELAPSED=0
+while [ $ELAPSED -lt __PG_WAIT__ ]; do
+    OUTPUT=$(pg_isready -h __HC_TARGET__ -p __HEALTH_PORT__ -U __PG_USER__ -d __PG_DB__ 2>&1)
+    RC=$?
+    echo "  [$ELAPSED s] $OUTPUT (exit $RC)"
+    if [ $RC -eq 0 ]; then
+        echo "pg_isready: accepting connections"
+        break
+    fi
+    sleep 5
+    ELAPSED=$((ELAPSED + 5))
+done
+if [ $RC -ne 0 ]; then
+    echo "pg_isready: gave up after ${ELAPSED}s"
+    exit 1
+fi
+echo "--- Step 2: psql query ---"
+RESULT=$(psql -h __HC_TARGET__ -p __HEALTH_PORT__ -U __PG_USER__ -d __PG_DB__ -c "__PG_QUERY__" 2>&1)
+QRC=$?
+echo "$RESULT"
+if [ $QRC -ne 0 ]; then
+    echo "psql: query failed (exit $QRC)"
+    exit 1
+fi
+echo "PG_HEALTH_OK"
+PGEOF
+
+        # Substitute placeholders
+        PG_CMD="${PG_CMD//__HC_TARGET__/${HC_TARGET}}"
+        PG_CMD="${PG_CMD//__HEALTH_PORT__/${HEALTH_PORT}}"
+        PG_CMD="${PG_CMD//__PG_USER__/${PG_USER}}"
+        PG_CMD="${PG_CMD//__PG_DB__/${PG_DB}}"
+        PG_CMD="${PG_CMD//__PG_QUERY__/${PG_QUERY}}"
+        PG_CMD="${PG_CMD//__PG_WAIT__/${PG_WAIT}}"
 
         # Build env args for password
         PG_ENV_ARGS=""
@@ -703,7 +739,7 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
                 --namespace "$HC_SRC_NS" \
                 ${HC_LABELS:+--labels="$HC_LABELS"} \
                 ${PG_ENV_ARGS} \
-                --timeout="60s" \
+                --timeout="$((PG_WAIT + 30))s" \
                 -- sh -c "$PG_CMD" 2>&1 || true
         )
 
