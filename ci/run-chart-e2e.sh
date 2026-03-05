@@ -544,8 +544,13 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
                 EGRESS_MAX_WAIT=15  # total extra seconds to poll
                 EGRESS_OUTPUT=""
                 for attempt in $(seq 1 "$EGRESS_MAX_WAIT"); do
+                    # Use nc -z (zero-I/O mode): opens a TCP connection
+                    # and immediately closes it without sending any data.
+                    # Piping data (echo | nc) fails for services like postgres
+                    # that reject the garbage bytes and close the connection,
+                    # making nc exit non-zero despite a successful TCP handshake.
                     EGRESS_OUTPUT=$(kubectl exec -n "$NAMESPACE" "$EGRESS_POD" -- \
-                        sh -c "echo | nc -w $CONNECT_TIMEOUT ${TARGET}.${NAMESPACE}.svc.cluster.local ${PORT} 2>&1 && echo TCP_OK" 2>&1 || true)
+                        sh -c "nc -z -w $CONNECT_TIMEOUT ${TARGET}.${NAMESPACE}.svc.cluster.local ${PORT} 2>&1 && echo TCP_OK" 2>&1 || true)
 
                     if echo "$EGRESS_OUTPUT" | grep -q "TCP_OK"; then
                         EGRESS_PASSED=true
