@@ -1,15 +1,16 @@
 # ci/test-values/i2b2-wildfly.yaml
 # CI-specific values for testing i2b2-wildfly in Kind
 #
-# Default values.yaml uses enabled_l7_waf: false with K8s-format NetworkPolicy rules.
-# This file overrides settings that don't work in Kind (priorityClass, image, probes).
+# The depends_on mechanism in chart-tests.yaml deploys postgres first.
+# The pre_install hook creates the i2b2-wildfly-secret with default passwords.
+#
+# What's overridden vs the default values.yaml:
+#   - priorityClassName: "" (Kind doesn't have "low-priority")
+#   - ingress.enabled: false (no ingress controller in Kind)
+#   - DS_*_IP env vars: pointed at "e2e-i2b2-postgres" (the CI postgres service name)
+#   - Probes: kept with generous initialDelaySeconds (wildfly is slow to boot with DB init)
 
-# Use nginx listening on 8080 to match the service/netpol port expectations
-# The containerPort is set via service.http, and nginx default is 80,
-# so we use the nginxinc/nginx-unprivileged image which can be configured via env
-image:
-  repository: nginxinc/nginx-unprivileged
-  tag: "alpine"
+# Use the default image (docker.io/i2b2/i2b2-wildfly:release-v1.8.1a.0001)
 
 # PriorityClass "low-priority" doesn't exist in Kind
 priorityClassName: ""
@@ -50,41 +51,65 @@ networkPolicy:
 ingress:
   enabled: false
 
-# Keep service.http at 8080 (matching netpol rules).
-# nginxinc/nginx-unprivileged listens on 8080 by default — perfect match.
+# Keep service ports at defaults
 service:
   type: ClusterIP
   http: 8080
   api: 9990
 
-# Null out probes — nginx doesn't have the wildfly health endpoint
-livenessProbe: null
-readinessProbe: null
+# The real wildfly takes a long time to boot (JBoss startup + DB schema validation).
+# Increase initialDelaySeconds to give it time. The default probes use httpGet
+# on / port http which is correct — just need more patience.
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 10
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 20
 
-# Override env vars to use plain strings instead of secret references.
-# The default values.yaml uses existingSecret refs to "i2b2-wildfly-secret"
-# which won't exist in the CI cluster. Since we use nginx-unprivileged
-# as the image, these env vars are irrelevant — just need valid K8s spec.
+# Override env vars: point all datasource IPs to the CI postgres service name.
+# Secret-backed values (PG_PASS, DS_PASSWORD, DS_*_PASS) keep their
+# existingSecret references — the pre_install hook creates i2b2-wildfly-secret.
 env:
-  PG_PASS: "ci-dummy"
+  PG_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: pg_pass
   DS_TYPE: "postgres"
-  DS_PASSWORD: "ci-dummy"
+  DS_PASSWORD:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_password
   DS_WD_USER: "i2b2workdata"
-  DS_WD_PASS: "ci-dummy"
-  DS_WD_IP: "i2b2-pg"
+  DS_WD_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_wd_pass
+  DS_WD_IP: "e2e-i2b2-postgres"
   DS_WD_PORT: "5432"
   DS_WD_DB: "i2b2"
   DS_WD_SCHEMA: "i2b2workdata"
-  DS_CRC_IP: "i2b2-pg"
+  DS_CRC_IP: "e2e-i2b2-postgres"
   DS_CRC_USER: "i2b2"
-  DS_CRC_PASS: "ci-dummy"
+  DS_CRC_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_crc_pass
   DS_CRC_PORT: "5432"
   DS_CRC_DB: "i2b2"
   DS_CRC_SCHEMA: "i2b2demodata"
   DS_CRC_DB_TYPE: "pg"
-  DS_ONT_IP: "i2b2-pg"
+  DS_ONT_IP: "e2e-i2b2-postgres"
   DS_ONT_USER: "i2b2"
-  DS_ONT_PASS: "ci-dummy"
+  DS_ONT_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_ont_pass
   DS_ONT_PORT: "5432"
   DS_ONT_DB: "i2b2"
   DS_ONT_SCHEMA: "i2b2metadata"
@@ -92,13 +117,17 @@ env:
   DS_PM_DB: "i2b2"
   DS_PM_SCHEMA: "i2b2pm"
   DS_PM_PORT: "5432"
-  DS_PM_IP: "i2b2-pg"
+  DS_PM_IP: "e2e-i2b2-postgres"
   DS_PM_USER: "i2b2"
-  DS_PM_PASS: "ci-dummy"
+  DS_PM_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_pm_pass
   DS_PM_DB_TYPE: "pg"
-  DS_HIVE_IP: "i2b2-pg"
+  DS_HIVE_IP: "e2e-i2b2-postgres"
   DS_HIVE_USER: "i2b2"
-  DS_HIVE_PASS: "ci-dummy"
+  DS_HIVE_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_hive_pass
   DS_HIVE_PORT: "5432"
   DS_HIVE_DB: "i2b2"
   DS_HIVE_SCHEMA: "i2b2hive"

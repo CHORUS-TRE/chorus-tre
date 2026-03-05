@@ -111,6 +111,68 @@ if [[ "$PRE_INSTALL_COUNT" -gt 0 ]]; then
     done
 fi
 
+# ── Phase 0b: Deploy dependency charts (depends_on) ──────────
+DEP_COUNT=$(yq ".charts.\"${CHART_NAME}\".depends_on | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+
+if [[ "$DEP_COUNT" -gt 0 ]]; then
+    section "Phase 0b: Deploy Dependencies"
+    for d in $(seq 0 $((DEP_COUNT - 1))); do
+        DEP_NAME=$(yq -r ".charts.\"${CHART_NAME}\".depends_on[$d]" "$REGISTRY")
+        DEP_RELEASE="e2e-${DEP_NAME}"
+        DEP_NS=$(yq ".charts.\"${DEP_NAME}\".namespace // \"${NAMESPACE}\"" "$REGISTRY")
+        DEP_TIMEOUT=$(yq ".charts.\"${DEP_NAME}\".timeout // 120" "$REGISTRY")
+        DEP_VALUES_FILE=$(yq ".charts.\"${DEP_NAME}\".values_file // \"\"" "$REGISTRY")
+
+        info "Dependency: ${DEP_NAME} (release ${DEP_RELEASE}, ns ${DEP_NS})"
+
+        # Check if already deployed (from a previous chart's depends_on)
+        if helm status "$DEP_RELEASE" -n "$DEP_NS" &>/dev/null; then
+            info "  Already deployed — skipping"
+            continue
+        fi
+
+        # Create namespace if different from main chart
+        if [[ "$DEP_NS" != "$NAMESPACE" ]]; then
+            kubectl create namespace "$DEP_NS" --dry-run=client -o yaml | kubectl apply -f -
+        fi
+
+        # Run dependency's pre_install commands
+        DEP_PRE_COUNT=$(yq ".charts.\"${DEP_NAME}\".pre_install | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+        if [[ "$DEP_PRE_COUNT" -gt 0 ]]; then
+            info "  Running ${DEP_PRE_COUNT} pre-install command(s) for ${DEP_NAME}..."
+            for pi in $(seq 0 $((DEP_PRE_COUNT - 1))); do
+                DEP_CMD=$(yq -r ".charts.\"${DEP_NAME}\".pre_install[$pi]" "$REGISTRY")
+                info "    → $DEP_CMD"
+                eval "$DEP_CMD"
+            done
+        fi
+
+        # Build helm install command for dependency
+        DEP_CHART_PATH="charts/${DEP_NAME}"
+        DEP_HELM_CMD=(helm install "$DEP_RELEASE" "${REPO_ROOT}/${DEP_CHART_PATH}"
+            --namespace "$DEP_NS"
+            --values "${REPO_ROOT}/${DEP_CHART_PATH}/values.yaml"
+            --set "fullnameOverride=${DEP_RELEASE}"
+            --wait --timeout "${DEP_TIMEOUT}s"
+        )
+        if [[ -n "$DEP_VALUES_FILE" && "$DEP_VALUES_FILE" != "null" ]]; then
+            DEP_HELM_CMD+=(--values "${REPO_ROOT}/${DEP_VALUES_FILE}")
+        fi
+
+        # Build dependencies (sub-charts)
+        helm dependency build "${REPO_ROOT}/${DEP_CHART_PATH}" 2>/dev/null || true
+
+        info "  Installing dependency chart..."
+        echo "    ${DEP_HELM_CMD[*]}"
+        if "${DEP_HELM_CMD[@]}" 2>&1; then
+            pass "Dependency ${DEP_NAME} deployed"
+        else
+            fail "Dependency ${DEP_NAME} failed to deploy — aborting"
+            exit 1
+        fi
+    done
+fi
+
 # ── Phase 1: Deploy chart ─────────────────────────────────────
 section "Phase 1: Deploy"
 

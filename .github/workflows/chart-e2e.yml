@@ -131,8 +131,21 @@ jobs:
             OVERALL_EXIT=1
           fi
 
-          # Clean up between charts: uninstall release and delete test pods
-          helm uninstall "e2e-${chart_name}" -n "$(yq ".charts.\"${chart_name}\".namespace // .defaults.namespace // \"test\"" ci/chart-tests.yaml)" 2>/dev/null || true
+          # Clean up between charts: uninstall release, its dependencies, and delete test pods
+          CHART_NS=$(yq ".charts.\"${chart_name}\".namespace // .defaults.namespace // \"test\"" ci/chart-tests.yaml)
+          helm uninstall "e2e-${chart_name}" -n "${CHART_NS}" 2>/dev/null || true
+
+          # Uninstall dependency releases (reverse order)
+          DEP_COUNT=$(yq ".charts.\"${chart_name}\".depends_on | length // 0" ci/chart-tests.yaml 2>/dev/null || echo 0)
+          if [ "$DEP_COUNT" -gt 0 ]; then
+            for dep_i in $(seq $((DEP_COUNT - 1)) -1 0); do
+              DEP_NAME=$(yq -r ".charts.\"${chart_name}\".depends_on[$dep_i]" ci/chart-tests.yaml)
+              DEP_NS=$(yq ".charts.\"${DEP_NAME}\".namespace // \"${CHART_NS}\"" ci/chart-tests.yaml)
+              echo "  Cleaning up dependency: ${DEP_NAME}"
+              helm uninstall "e2e-${DEP_NAME}" -n "${DEP_NS}" 2>/dev/null || true
+            done
+          fi
+
           kubectl delete pods --field-selector=status.phase!=Running -A 2>/dev/null || true
           echo ""
         done

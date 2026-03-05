@@ -11,6 +11,9 @@
 #     values:              Inline --set overrides (key: value)
 #     values_file:         Path to a CI-specific values file (relative to repo root)
 #     skip_deploy:         If true, skip helm install (e.g., CRD-only charts)
+#     depends_on:          List of chart names that must be deployed first
+#                          Dependencies are deployed (not tested) before this chart.
+#                          They remain running so the chart under test can connect.
 #     services:            List of services to smoke-test after deployment
 #       - port:            Port to check
 #     ingress:             Ingress connectivity tests
@@ -27,12 +30,19 @@ defaults:
 charts:
   # ──────────────────────────────────────────────────────────────
   # i2b2-wildfly: Backend with K8s NetworkPolicy
-  # Uses K8s-format rules (enabled_l7_waf: false).
-  # CI values file swaps image to nginx-unprivileged:8080, nulls probes.
+  # Uses real i2b2-wildfly image backed by a real i2b2-postgres dependency.
+  # depends_on deploys i2b2-postgres first so the DB is available.
   # ──────────────────────────────────────────────────────────────
   i2b2-wildfly:
     namespace: i2b2
+    timeout: 360
     values_file: ci/test-values/i2b2-wildfly.yaml
+    depends_on:
+      - i2b2-postgres
+    pre_install:
+      # Create the secret that wildfly expects for DB passwords.
+      # The i2b2-pg image uses "demouser" as the default password for the i2b2 user.
+      - kubectl create secret generic i2b2-wildfly-secret --from-literal=pg_pass=demouser --from-literal=ds_password=demouser --from-literal=ds_wd_pass=demouser --from-literal=ds_crc_pass=demouser --from-literal=ds_ont_pass=demouser --from-literal=ds_pm_pass=demouser --from-literal=ds_hive_pass=demouser -n i2b2 --dry-run=client -o yaml | kubectl apply -f -
     services:
       - port: 8080
     ingress:
@@ -50,6 +60,9 @@ charts:
             app.kubernetes.io/name: unauthorized-app
           port: 8080
     egress:
+      allowed:
+        - target: e2e-i2b2-postgres
+          port: 5432
       denied:
         - target: external
           port: 443
@@ -82,8 +95,8 @@ charts:
 
   # ──────────────────────────────────────────────────────────────
   # i2b2-postgres: Database with K8s NetworkPolicy
-  # Default netpol allows ingress from same namespace on 5432, denies all egress.
-  # CI values file uses vanilla postgres image, nulls probes/sidecar probes.
+  # Uses real i2b2-pg image which auto-initializes all schemas.
+  # CI values file nulls out sidecar probes; uses tcpSocket readiness probe.
   # ──────────────────────────────────────────────────────────────
   i2b2-postgres:
     namespace: i2b2
