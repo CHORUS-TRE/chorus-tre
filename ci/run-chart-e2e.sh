@@ -535,38 +535,46 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
 
             # Method 3: exec into the persistent labeled test pod.
             # The pod has the chart's selector labels so the same netpol applies.
-            # Use nc for a raw TCP check (not HTTP — works for any port).
-            # Poll in a tight loop to handle Cilium identity propagation
-            # delay. The pod already waited 15s at creation; here we add
-            # up to 30 more seconds of polling.
+            # Poll in a loop to handle Cilium identity propagation delay.
+            # The pod already waited 15s at creation; here we add more time.
             if [[ "$EGRESS_PASSED" != "true" ]]; then
                 info "  exec into chart pod failed — using labeled test pod"
-                EGRESS_MAX_WAIT=15  # total extra seconds to poll
+
+                # Debug: verify DNS resolution first
+                info "  Verifying DNS for ${TARGET}.${NAMESPACE}.svc.cluster.local..."
+                kubectl exec -n "$NAMESPACE" "$EGRESS_POD" -- \
+                    nslookup "${TARGET}.${NAMESPACE}.svc.cluster.local" 2>&1 || true
+
+                EGRESS_MAX_WAIT=10
                 EGRESS_OUTPUT=""
                 for attempt in $(seq 1 "$EGRESS_MAX_WAIT"); do
-                    # Use nc -z (zero-I/O mode): opens a TCP connection
-                    # and immediately closes it without sending any data.
-                    # Piping data (echo | nc) fails for services like postgres
-                    # that reject the garbage bytes and close the connection,
-                    # making nc exit non-zero despite a successful TCP handshake.
+                    # Use nc with /dev/null stdin: opens a TCP connection,
+                    # gets EOF immediately, and closes cleanly. Unlike nc -z
+                    # (which may behave inconsistently across BusyBox builds)
+                    # or echo|nc (which sends garbage that servers like
+                    # postgres reject), this always does a clean connect+close.
                     EGRESS_OUTPUT=$(kubectl exec -n "$NAMESPACE" "$EGRESS_POD" -- \
-                        sh -c "nc -z -w $CONNECT_TIMEOUT ${TARGET}.${NAMESPACE}.svc.cluster.local ${PORT} 2>&1 && echo TCP_OK" 2>&1 || true)
+                        sh -c "nc -w $CONNECT_TIMEOUT ${TARGET}.${NAMESPACE}.svc.cluster.local ${PORT} </dev/null 2>&1; echo NC_EXIT=\$?" 2>&1 || true)
 
-                    if echo "$EGRESS_OUTPUT" | grep -q "TCP_OK"; then
+                    if echo "$EGRESS_OUTPUT" | grep -q "NC_EXIT=0"; then
                         EGRESS_PASSED=true
                         info "  connected on attempt ${attempt}"
                         break
                     fi
 
-                    # Only retry on Cilium identity issues ("Operation not permitted")
-                    if echo "$EGRESS_OUTPUT" | grep -qi 'Operation not permitted'; then
-                        [[ "$((attempt % 5))" -eq 0 ]] && warn "  Attempt ${attempt}/${EGRESS_MAX_WAIT} — Cilium identity not ready, retrying..."
-                        sleep 2
+                    # Log every attempt for debugging
+                    info "  Attempt ${attempt}/${EGRESS_MAX_WAIT} output: ${EGRESS_OUTPUT}"
+
+                    # Retry on Cilium-specific or transient errors
+                    if echo "$EGRESS_OUTPUT" | grep -qi 'Operation not permitted\|Connection refused\|timed out\|bad address'; then
+                        sleep 3
                     else
-                        # Other errors (Connection refused, timed out, etc.)
-                        # are real failures — don't retry forever
-                        warn "  Non-identity error: ${EGRESS_OUTPUT}"
-                        break
+                        # Unknown error — still retry a few times
+                        if [[ "$attempt" -ge 3 ]]; then
+                            warn "  Giving up after ${attempt} attempts"
+                            break
+                        fi
+                        sleep 3
                     fi
                 done
             fi
