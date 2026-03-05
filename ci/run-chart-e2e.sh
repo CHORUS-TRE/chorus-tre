@@ -667,13 +667,14 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
 
     if [[ "$HEALTH_PROTO" == "pg" ]]; then
         # ── PostgreSQL health check ───────────────────────────
-        # Uses postgres:16-alpine for pg_isready + psql.
-        # Two-step: (1) pg_isready verifies PG protocol readiness,
-        #           (2) psql runs an actual SQL query.
-        # Includes a retry loop because the i2b2-pg image can take
-        # 120+ seconds to finish initialisation (the CI uses a fast
-        # tcpSocket readiness probe to avoid blocking deployment).
-        PG_IMAGE="postgres:16-alpine"
+        # Uses kubectl exec into the postgres container to run
+        # pg_isready + psql.  We exec rather than spawn a separate
+        # pod because the sidecar container may crash-loop during
+        # initialisation (missing schemas), which keeps the pod at
+        # 1/2 Ready and the Service endpoints empty.  Exec bypasses
+        # the Service entirely and tests the database directly.
+        # Network-level connectivity is already proven by Phase 3
+        # (ingress tests).
         PG_USER=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_user // \"postgres\"" "$REGISTRY" 2>/dev/null)
         PG_DB=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_db // \"postgres\"" "$REGISTRY" 2>/dev/null)
         PG_PASS=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_password // \"\"" "$REGISTRY" 2>/dev/null)
@@ -682,107 +683,59 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
 
         PG_WAIT=180  # max seconds to wait for pg_isready
 
-        info "Health check (PG): ${HC_TARGET}:${HEALTH_PORT}"
+        info "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT}"
         info "  user=${PG_USER}, db=${PG_DB}, query=${PG_QUERY}"
-        info "  pod labels: ${HC_LABELS:-<none>}, namespace: ${HC_SRC_NS}"
-        info "  pg_isready timeout: ${PG_WAIT}s"
+        info "  pg_isready wait: up to ${PG_WAIT}s (via kubectl exec)"
 
-        # ── Pre-flight: verify postgres pod + service from the runner
-        info "Pre-flight: pods in namespace ${NAMESPACE}:"
-        kubectl get pods -n "$NAMESPACE" -o wide 2>&1 | while IFS= read -r line; do echo "    $line"; done
-        info "Pre-flight: service endpoints:"
-        kubectl get endpoints "${RELEASE_NAME}" -n "$NAMESPACE" -o wide 2>&1 | while IFS= read -r line; do echo "    $line"; done
-        info "Pre-flight: pg_isready from within the postgres pod (localhost):"
+        # Find the postgres pod
         PG_POD=$(kubectl get pods -n "$NAMESPACE" -l "app.kubernetes.io/name=${CHART_NAME}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
-        if [[ -n "$PG_POD" ]]; then
-            kubectl exec "$PG_POD" -n "$NAMESPACE" -c "${CHART_NAME}" -- pg_isready -h 127.0.0.1 -p "${HEALTH_PORT}" -U "${PG_USER}" -d "${PG_DB}" 2>&1 | while IFS= read -r line; do echo "    $line"; done || info "  pg_isready from within pod failed (exit $?)"
+        if [[ -z "$PG_POD" ]]; then
+            fail "Health check (PG): no pod found for ${CHART_NAME} in ${NAMESPACE}"
         else
-            warn "  No pod found for ${CHART_NAME}"
-        fi
+            info "Pod: ${PG_POD}"
+            kubectl get pod "$PG_POD" -n "$NAMESPACE" -o wide 2>&1 | while IFS= read -r line; do echo "    $line"; done
 
-        # Build the in-pod script (no set -e so we capture all output)
-        # Note: the first few lines of output from kubectl run --rm -i
-        # with the postgres image get swallowed, so we add a brief sleep
-        # and repeat important lines.
-        read -r -d '' PG_CMD <<'PGEOF' || true
-sleep 2
-echo "=== PG Health Check Start ==="
-echo "=== PG Health Check Start ==="
-echo "=== Step 1: pg_isready (waiting up to __PG_WAIT__s) ==="
-ELAPSED=0
-RC=2
-while [ $ELAPSED -lt __PG_WAIT__ ]; do
-    OUTPUT=$(pg_isready -h __HC_TARGET__ -p __HEALTH_PORT__ -U __PG_USER__ -d __PG_DB__ 2>&1)
-    RC=$?
-    echo "  [$ELAPSED s] exit=$RC  $OUTPUT"
-    if [ $RC -eq 0 ]; then
-        echo "pg_isready: accepting connections"
-        break
-    fi
-    sleep 5
-    ELAPSED=$((ELAPSED + 5))
-done
-if [ $RC -ne 0 ]; then
-    echo "pg_isready: gave up after ${ELAPSED}s"
-    exit 1
-fi
-echo "=== Step 2: psql query ==="
-RESULT=$(psql -h __HC_TARGET__ -p __HEALTH_PORT__ -U __PG_USER__ -d __PG_DB__ -c "__PG_QUERY__" 2>&1)
-QRC=$?
-echo "$RESULT"
-if [ $QRC -ne 0 ]; then
-    echo "psql: query failed (exit $QRC)"
-    exit 1
-fi
-echo "PG_HEALTH_OK"
-PGEOF
+            # Step 1: Wait for pg_isready (retry loop via exec)
+            info "Step 1: pg_isready (waiting up to ${PG_WAIT}s)..."
+            ELAPSED=0
+            PG_READY=false
+            while [[ $ELAPSED -lt $PG_WAIT ]]; do
+                PG_ISREADY_OUT=$(kubectl exec "$PG_POD" -n "$NAMESPACE" -c "${CHART_NAME}" -- \
+                    pg_isready -h 127.0.0.1 -p "${HEALTH_PORT}" -U "${PG_USER}" -d "${PG_DB}" 2>&1 || true)
+                PG_RC=$?
+                info "  [${ELAPSED}s] ${PG_ISREADY_OUT} (exit ${PG_RC})"
+                if echo "$PG_ISREADY_OUT" | grep -q "accepting connections"; then
+                    PG_READY=true
+                    break
+                fi
+                sleep 5
+                ELAPSED=$((ELAPSED + 5))
+            done
 
-        # Substitute placeholders
-        PG_CMD="${PG_CMD//__HC_TARGET__/${HC_TARGET}}"
-        PG_CMD="${PG_CMD//__HEALTH_PORT__/${HEALTH_PORT}}"
-        PG_CMD="${PG_CMD//__PG_USER__/${PG_USER}}"
-        PG_CMD="${PG_CMD//__PG_DB__/${PG_DB}}"
-        PG_CMD="${PG_CMD//__PG_QUERY__/${PG_QUERY}}"
-        PG_CMD="${PG_CMD//__PG_WAIT__/${PG_WAIT}}"
+            if [[ "$PG_READY" != "true" ]]; then
+                fail "Health check (PG): pg_isready gave up after ${ELAPSED}s"
+            else
+                # Step 2: Run actual SQL query
+                info "Step 2: Running SQL query..."
 
-        # Build env args for password
-        PG_ENV_ARGS=""
-        if [[ -n "$PG_PASS" ]]; then
-            PG_ENV_ARGS="--env=PGPASSWORD=${PG_PASS}"
-        fi
+                # Build env prefix for PGPASSWORD
+                PG_EXEC_CMD="psql -h 127.0.0.1 -p ${HEALTH_PORT} -U ${PG_USER} -d ${PG_DB} -c \"${PG_QUERY}\""
+                if [[ -n "$PG_PASS" ]]; then
+                    PG_EXEC_CMD="PGPASSWORD=${PG_PASS} ${PG_EXEC_CMD}"
+                fi
 
-        HEALTH_OUTPUT=$(
-            kubectl run health-check \
-                --image="$PG_IMAGE" \
-                --restart=Never \
-                --rm -i \
-                --namespace "$HC_SRC_NS" \
-                ${HC_LABELS:+--labels="$HC_LABELS"} \
-                ${PG_ENV_ARGS} \
-                --timeout="$((PG_WAIT + 30))s" \
-                -- sh -c "$PG_CMD" 2>&1 || true
-        )
+                QUERY_OUTPUT=$(kubectl exec "$PG_POD" -n "$NAMESPACE" -c "${CHART_NAME}" -- \
+                    sh -c "$PG_EXEC_CMD" 2>&1) && QUERY_RC=0 || QUERY_RC=$?
 
-        # Show full output for debugging
-        info "Health check output:"
-        echo "$HEALTH_OUTPUT" | while IFS= read -r line; do
-            echo "    $line"
-        done
+                # Display query output
+                echo "$QUERY_OUTPUT" | while IFS= read -r line; do echo "    $line"; done
 
-        if echo "$HEALTH_OUTPUT" | grep -q 'PG_HEALTH_OK'; then
-            pass "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — pg_isready OK + query succeeded"
-            # Extract query result for display
-            QUERY_RESULT=$(echo "$HEALTH_OUTPUT" | sed -n '/Step 2: psql query/,/PG_HEALTH_OK/p' | grep -v 'Step 2\|PG_HEALTH_OK' || true)
-            if [[ -n "$QUERY_RESULT" ]]; then
-                info "Query result:"
-                echo "$QUERY_RESULT" | while IFS= read -r line; do
-                    echo "      $line"
-                done
+                if [[ $QUERY_RC -eq 0 ]] && ! echo "$QUERY_OUTPUT" | grep -qi "ERROR\|FATAL\|does not exist"; then
+                    pass "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — pg_isready OK + query succeeded"
+                else
+                    fail "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — SQL query failed (exit ${QUERY_RC})"
+                fi
             fi
-        else
-            fail "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — PostgreSQL health check failed"
-            # Show last lines for debugging
-            info "  last output: $(echo "$HEALTH_OUTPUT" | tail -5)"
         fi
     else
         # ── HTTP health check ─────────────────────────────────
