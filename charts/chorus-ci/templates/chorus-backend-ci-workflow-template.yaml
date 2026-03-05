@@ -120,6 +120,10 @@ spec:
                   value: {{ .Values.sensor.dockerConfig.secretName | quote }}
                 - name: gitSecretName
                   value: {{ $githubSecretName | quote }}
+                - name: githubSecretUsernameKey
+                  value: {{ $githubSecretUsernameKey }}
+                - name: githubSecretPasswordKey
+                  value: {{ $githubSecretPasswordKey }}
                 - name: addLatestTag
                   value: "{{`{{workflow.parameters.addLatestTag}}`}}"
               artifacts:
@@ -154,6 +158,10 @@ spec:
               parameters:
                 - name: githubSecretName
                   value: {{ $githubSecretName }}
+                - name: githubSecretUsernameKey
+                  value: {{ $githubSecretUsernameKey }}
+                - name: githubSecretPasswordKey
+                  value: {{ $githubSecretPasswordKey }}
                 - name: releaseName
                   value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
                 - name: chorusBackendAcceptanceNamespace
