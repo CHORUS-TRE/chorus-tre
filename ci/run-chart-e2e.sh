@@ -687,18 +687,27 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
         info "  pod labels: ${HC_LABELS:-<none>}, namespace: ${HC_SRC_NS}"
         info "  pg_isready timeout: ${PG_WAIT}s"
 
+        # ── Pre-flight: verify postgres pod + service from the runner
+        info "Pre-flight: pods in namespace ${NAMESPACE}:"
+        kubectl get pods -n "$NAMESPACE" -o wide 2>&1 | while IFS= read -r line; do echo "    $line"; done
+        info "Pre-flight: service endpoints:"
+        kubectl get endpoints "${RELEASE_NAME}" -n "$NAMESPACE" -o wide 2>&1 | while IFS= read -r line; do echo "    $line"; done
+        info "Pre-flight: pg_isready from within the postgres pod (localhost):"
+        PG_POD=$(kubectl get pods -n "$NAMESPACE" -l "app.kubernetes.io/name=${CHART_NAME}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        if [[ -n "$PG_POD" ]]; then
+            kubectl exec "$PG_POD" -n "$NAMESPACE" -c "${CHART_NAME}" -- pg_isready -h 127.0.0.1 -p "${HEALTH_PORT}" -U "${PG_USER}" -d "${PG_DB}" 2>&1 | while IFS= read -r line; do echo "    $line"; done || info "  pg_isready from within pod failed (exit $?)"
+        else
+            warn "  No pod found for ${CHART_NAME}"
+        fi
+
         # Build the in-pod script (no set -e so we capture all output)
+        # Note: the first few lines of output from kubectl run --rm -i
+        # with the postgres image get swallowed, so we add a brief sleep
+        # and repeat important lines.
         read -r -d '' PG_CMD <<'PGEOF' || true
-echo "=== Diagnostics ==="
-echo "whoami: $(whoami 2>&1 || echo unknown)"
-echo "resolv.conf:"; cat /etc/resolv.conf
-echo "---"
-echo "nslookup __HC_TARGET__:"
-nslookup __HC_TARGET__ 2>&1 || echo "(nslookup not available)"
-echo "---"
-echo "getent hosts __HC_TARGET__:"
-getent hosts __HC_TARGET__ 2>&1 || echo "(getent failed or not available)"
-echo "---"
+sleep 2
+echo "=== PG Health Check Start ==="
+echo "=== PG Health Check Start ==="
 echo "=== Step 1: pg_isready (waiting up to __PG_WAIT__s) ==="
 ELAPSED=0
 RC=2
