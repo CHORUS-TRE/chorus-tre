@@ -28,11 +28,8 @@ ingress:
 # Null out liveness probe — we don't need it for CI
 livenessProbe: null
 
-# Use tcpSocket readiness probe.
-# The i2b2-pg image takes a long time to initialize; pg_isready reports
-# "rejecting connections" for 120+ seconds during first startup.
-# A tcpSocket check passes as soon as postgres opens the port (before it
-# finishes recovery), which is sufficient for NetworkPolicy testing.
+# tcpSocket readiness probe — pg_isready rejects for 120+ seconds
+# during first startup, but the port opens much earlier.
 #
 # IMPORTANT: Must null out `exec` explicitly — Helm deep-merges the base
 # values.yaml (which has exec.command) with this file. Without exec: null,

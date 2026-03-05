@@ -42,7 +42,6 @@ ingress:
   enabled: false
 
 # Point configmap URLs at the CI wildfly service.
-# The configmap is created by templates/configmap.yaml using these values.
 cm:
   urlCellPM: "http://e2e-i2b2-wildfly:8080/i2b2/services/PMService/"
   pmURL: "http://e2e-i2b2-wildfly:8080/i2b2/rest/PMService/getServices"

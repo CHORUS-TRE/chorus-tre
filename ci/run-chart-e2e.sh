@@ -112,9 +112,7 @@ if [[ "$PRE_INSTALL_COUNT" -gt 0 ]]; then
 fi
 
 # ── Phase 0b: Deploy dependency charts (depends_on) ──────────
-# Resolves transitive dependencies: if A depends_on B and B depends_on C,
-# we deploy C first, then B, then proceed to test A.
-# Uses a simple iterative approach to flatten the dependency tree.
+# Resolves transitive dependencies via BFS, deploys leaves first.
 
 resolve_deps() {
     # Flatten the dependency tree for a given chart into deployment order.
@@ -363,9 +361,7 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
             kubectl create namespace "$SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
         fi
 
-        # Retry loop: slow-starting apps (e.g., databases) may not be
-        # accepting connections immediately after deploy. Retry up to
-        # ALLOWED_RETRIES times with a delay between attempts.
+        # Retry loop for slow-starting apps
         ALLOWED_RETRIES=5
         RETRY_DELAY=15  # seconds between retries
         INGRESS_PASSED=false
@@ -373,15 +369,8 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
         for attempt in $(seq 1 "$ALLOWED_RETRIES"); do
             POD_NAME="ingress-allow-${i}-a${attempt}"
 
-            # Use wget to test connectivity. We capture ALL output (stdout +
-            # stderr) and check for signs of network-level blocking.
-            #
-            # A successful TCP connection can look different depending on the
-            # service:  HTTP services return HTML, non-HTTP services (postgres)
-            # cause "error getting response".  Both mean the netpol ALLOWED it.
-            #
-            # A blocked connection shows "Operation not permitted" (Cilium DROP)
-            # or "Connection refused" / "can't connect" (port not open yet).
+            # Check for blocking indicators in wget output.
+            # No blocking = TCP succeeded = netpol allowed.
             WGET_OUTPUT=$(kubectl run "$POD_NAME" \
                 --image="$TEST_IMAGE" \
                 --restart=Never \
@@ -439,10 +428,7 @@ if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
             kubectl create namespace "$SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
         fi
 
-        # For denied tests, we expect the connection to FAIL (timeout/drop).
-        # Use a TCP check (sh -c with /dev/tcp or nc) so non-HTTP services
-        # like databases are tested correctly. wget-to-non-HTTP would give
-        # a false positive (exits non-zero even when TCP succeeds).
+        # Expect connection to fail. Use nc (not wget) for protocol-agnostic check.
         if kubectl run "$POD_NAME" \
             --image="$TEST_IMAGE" \
             --restart=Never \
@@ -476,11 +462,8 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
         info "Using pod: ${CHART_POD}"
         POD_LABELS="app.kubernetes.io/name=${CHART_NAME},app.kubernetes.io/instance=${RELEASE_NAME}"
 
-        # Create a persistent test pod with the chart's selector labels.
-        # This pod stays alive (sleep 300) so Cilium has time to assign
-        # its security identity before we test. Short-lived --rm pods
-        # get "Operation not permitted" because the identity isn't
-        # propagated before they start sending traffic.
+        # Persistent test pod with chart's labels — Cilium needs time
+        # to assign identity before traffic is allowed.
         EGRESS_POD="egress-test-${CHART_NAME}"
         info "Creating persistent test pod: ${EGRESS_POD}"
         kubectl run "$EGRESS_POD" \
@@ -494,10 +477,7 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
         kubectl wait --for=condition=Ready "pod/${EGRESS_POD}" \
             -n "$NAMESPACE" --timeout=30s 2>/dev/null || true
 
-        # Give Cilium time to propagate the security identity.
-        # Cilium needs to: see the pod, assign an identity based on its
-        # labels, generate BPF policy, and attach it to the pod's veth.
-        # 15s is typically sufficient but we also poll the endpoint status.
+        # Wait for Cilium identity propagation (~15s)
         info "Waiting for Cilium identity propagation..."
         sleep 15
 
@@ -548,11 +528,8 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
                 EGRESS_MAX_WAIT=10
                 EGRESS_OUTPUT=""
                 for attempt in $(seq 1 "$EGRESS_MAX_WAIT"); do
-                    # Connect to the target and capture stderr for diagnostics.
-                    # We check for BLOCKED indicators rather than success codes,
-                    # because services like postgres close the connection after
-                    # receiving unexpected data, making nc exit non-zero even
-                    # though the TCP handshake succeeded (= netpol allowed it).
+                    # Check for BLOCKED indicators rather than exit codes —
+                    # non-HTTP services close connections even when netpol allows.
                     EGRESS_OUTPUT=$(kubectl exec -n "$NAMESPACE" "$EGRESS_POD" -- \
                         sh -c "nc -w $CONNECT_TIMEOUT ${TARGET}.${NAMESPACE}.svc.cluster.local ${PORT} </dev/null 2>&1; echo NC_EXIT=\$?" 2>&1 || true)
 
@@ -587,10 +564,7 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
                         continue
                     fi
 
-                    # nc exited non-zero but NO blocking indicators.
-                    # This means the TCP connection was established (netpol
-                    # allowed it) but the service closed the connection
-                    # after the protocol mismatch. That's a PASS.
+                    # Non-zero exit but no blocking → connection was allowed.
                     EGRESS_PASSED=true
                     info "  connected (server closed) on attempt ${attempt} — NC_EXIT=${NC_CODE}"
                     break
@@ -637,9 +611,8 @@ else
 fi
 
 # ── Phase 5: Application health check ─────────────────────────
-# Verifies the real application is working end-to-end, not just
-# that network policies allow traffic.  E.g. wildfly returns 200
-# only when all postgres datasources are connected.
+# Verifies the application is healthy (e.g. wildfly returns 200
+# only when all DB datasources are connected).
 section "Phase 5: Health Check"
 
 HEALTH_PORT=$(yq ".charts.\"${CHART_NAME}\".health_check.port // \"\"" "$REGISTRY" 2>/dev/null)
@@ -667,14 +640,9 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
 
     if [[ "$HEALTH_PROTO" == "pg" ]]; then
         # ── PostgreSQL health check ───────────────────────────
-        # Uses kubectl exec into the postgres container to run
-        # pg_isready + psql.  We exec rather than spawn a separate
-        # pod because the sidecar container may crash-loop during
-        # initialisation (missing schemas), which keeps the pod at
-        # 1/2 Ready and the Service endpoints empty.  Exec bypasses
-        # the Service entirely and tests the database directly.
-        # Network-level connectivity is already proven by Phase 3
-        # (ingress tests).
+        # kubectl exec into the postgres container (pg_isready + psql).
+        # We exec rather than spawn a separate pod because the sidecar
+        # may crash-loop, leaving the Service with no endpoints.
         PG_USER=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_user // \"postgres\"" "$REGISTRY" 2>/dev/null)
         PG_DB=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_db // \"postgres\"" "$REGISTRY" 2>/dev/null)
         PG_PASS=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_password // \"\"" "$REGISTRY" 2>/dev/null)
@@ -734,6 +702,71 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
                     pass "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — pg_isready OK + query succeeded"
                 else
                     fail "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — SQL query failed (exit ${QUERY_RC})"
+                fi
+            fi
+        fi
+    elif [[ "$HEALTH_PROTO" == "mariadb" ]]; then
+        # ── MariaDB health check ──────────────────────────────
+        # kubectl exec into the mariadb container (mysqladmin ping + mysql).
+        # Same exec approach as PG to avoid Service endpoint issues.
+        MDB_USER=$(yq ".charts.\"${CHART_NAME}\".health_check.mariadb_user // \"root\"" "$REGISTRY" 2>/dev/null)
+        MDB_DB=$(yq ".charts.\"${CHART_NAME}\".health_check.mariadb_db // \"mysql\"" "$REGISTRY" 2>/dev/null)
+        MDB_PASS=$(yq ".charts.\"${CHART_NAME}\".health_check.mariadb_password // \"\"" "$REGISTRY" 2>/dev/null)
+        MDB_QUERY=$(yq ".charts.\"${CHART_NAME}\".health_check.query // \"SELECT 1\"" "$REGISTRY" 2>/dev/null)
+        [[ "$MDB_PASS" == "null" ]] && MDB_PASS=""
+
+        MDB_WAIT=180  # max seconds to wait for mysqladmin ping
+
+        info "Health check (MariaDB): ${RELEASE_NAME}:${HEALTH_PORT}"
+        info "  user=${MDB_USER}, db=${MDB_DB}, query=${MDB_QUERY}"
+        info "  mysqladmin ping wait: up to ${MDB_WAIT}s (via kubectl exec)"
+
+        # Find the mariadb pod — bitnami subchart labels use app.kubernetes.io/name=mariadb
+        MDB_POD=$(kubectl get pods -n "$NAMESPACE" -l "app.kubernetes.io/name=mariadb" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        if [[ -z "$MDB_POD" ]]; then
+            fail "Health check (MariaDB): no pod found for mariadb in ${NAMESPACE}"
+        else
+            info "Pod: ${MDB_POD}"
+            kubectl get pod "$MDB_POD" -n "$NAMESPACE" -o wide 2>&1 | while IFS= read -r line; do echo "    $line"; done
+
+            # Step 1: Wait for mysqladmin ping (retry loop via exec)
+            info "Step 1: mysqladmin ping (waiting up to ${MDB_WAIT}s)..."
+            ELAPSED=0
+            MDB_READY=false
+            MDB_PASS_FLAG=""
+            if [[ -n "$MDB_PASS" ]]; then
+                MDB_PASS_FLAG="-p${MDB_PASS}"
+            fi
+            while [[ $ELAPSED -lt $MDB_WAIT ]]; do
+                PING_OUT=$(kubectl exec "$MDB_POD" -n "$NAMESPACE" -c mariadb -- \
+                    mysqladmin ping -h 127.0.0.1 -P "${HEALTH_PORT}" -u "${MDB_USER}" ${MDB_PASS_FLAG} 2>&1 || true)
+                info "  [${ELAPSED}s] ${PING_OUT}"
+                if echo "$PING_OUT" | grep -qi "alive"; then
+                    MDB_READY=true
+                    break
+                fi
+                sleep 5
+                ELAPSED=$((ELAPSED + 5))
+            done
+
+            if [[ "$MDB_READY" != "true" ]]; then
+                fail "Health check (MariaDB): mysqladmin ping gave up after ${ELAPSED}s"
+            else
+                # Step 2: Run actual SQL query
+                info "Step 2: Running SQL query..."
+
+                MDB_EXEC_CMD="mysql -h 127.0.0.1 -P ${HEALTH_PORT} -u ${MDB_USER} ${MDB_PASS_FLAG} -D ${MDB_DB} -e \"${MDB_QUERY}\""
+
+                QUERY_OUTPUT=$(kubectl exec "$MDB_POD" -n "$NAMESPACE" -c mariadb -- \
+                    sh -c "$MDB_EXEC_CMD" 2>&1) && QUERY_RC=0 || QUERY_RC=$?
+
+                # Display query output
+                echo "$QUERY_OUTPUT" | while IFS= read -r line; do echo "    $line"; done
+
+                if [[ $QUERY_RC -eq 0 ]] && ! echo "$QUERY_OUTPUT" | grep -qi "ERROR"; then
+                    pass "Health check (MariaDB): ${RELEASE_NAME}:${HEALTH_PORT} — mysqladmin ping OK + query succeeded"
+                else
+                    fail "Health check (MariaDB): ${RELEASE_NAME}:${HEALTH_PORT} — SQL query failed (exit ${QUERY_RC})"
                 fi
             fi
         fi

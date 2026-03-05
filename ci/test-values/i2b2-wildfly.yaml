@@ -10,8 +10,6 @@
 #   - DS_*_IP env vars: pointed at "e2e-i2b2-postgres" (the CI postgres service name)
 #   - Probes: kept with generous initialDelaySeconds (wildfly is slow to boot with DB init)
 
-# Use the default image (docker.io/i2b2/i2b2-wildfly:release-v1.8.1a.0001)
-
 # PriorityClass "low-priority" doesn't exist in Kind
 priorityClassName: ""
 
@@ -57,9 +55,7 @@ service:
   http: 8080
   api: 9990
 
-# The real wildfly takes a long time to boot (JBoss startup + DB schema validation).
-# Increase initialDelaySeconds to give it time. The default probes use httpGet
-# on / port http which is correct — just need more patience.
+# Wildfly is slow to boot; increase initialDelaySeconds.
 livenessProbe:
   httpGet:
     path: /
@@ -77,9 +73,7 @@ readinessProbe:
   timeoutSeconds: 5
   failureThreshold: 20
 
-# Override env vars: point all datasource IPs to the CI postgres service name.
-# Secret-backed values (PG_PASS, DS_PASSWORD, DS_*_PASS) keep their
-# existingSecret references — the pre_install hook creates i2b2-wildfly-secret.
+# Point datasource IPs to CI postgres. Secrets use i2b2-wildfly-secret.
 env:
   PG_PASS:
     existingSecret: i2b2-wildfly-secret
