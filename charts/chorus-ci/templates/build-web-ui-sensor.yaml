@@ -112,10 +112,10 @@ spec:
                             revision: "{{`{{workflow.parameters.sha}}`}}"
                             usernameSecret:
                               name: {{ $githubSecretName }}
-                              key: username
+                              key: {{ $githubSecretUsernameKey }}
                             passwordSecret:
                               name: {{ $githubSecretName }}
-                              key: password
+                              key: {{ $githubSecretPasswordKey }}
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     container:
                       image: {{ .Values.chorusWebui.node.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusWebui.node.imageNamespace | default .Values.global.imageNamespace }}/node:{{ .Values.chorusWebui.node.tag | default "latest" }}
@@ -262,10 +262,10 @@ spec:
                                   revision: "{{`{{workflow.parameters.revision}}`}}"
                                   usernameSecret:
                                     name: {{ $githubSecretName }}
-                                    key: username
+                                    key: {{ $githubSecretUsernameKey }}
                                   passwordSecret:
                                     name: {{ $githubSecretName }}
-                                    key: password
+                                    key: {{ $githubSecretPasswordKey }}
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
@@ -290,10 +290,10 @@ spec:
                                   revision: "{{`{{workflow.parameters.revision}}`}}"
                                   usernameSecret:
                                     name: {{ $githubSecretName }}
-                                    key: username
+                                    key: {{ $githubSecretUsernameKey }}
                                   passwordSecret:
                                     name: {{ $githubSecretName }}
-                                    key: password
+                                    key: {{ $githubSecretPasswordKey }}
                                   depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
