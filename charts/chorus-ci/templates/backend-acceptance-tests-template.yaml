@@ -15,6 +15,8 @@ spec:
     - name: releaseName
     - name: chorusBackendAcceptanceNamespace
     - name: githubSecretName
+    - name: githubSecretUsernameKey
+    - name: githubSecretPasswordKey
     - name: chorusBackendImageTag
 
   serviceAccountName: {{ include "chorus-ci.serviceAccountName" . }}
@@ -25,6 +27,8 @@ spec:
       - name: releaseName
       - name: chorusBackendAcceptanceNamespace
       - name: githubSecretName
+      - name: githubSecretUsernameKey
+      - name: githubSecretPasswordKey
       - name: chorusBackendImageTag
       artifacts:
         - name: source
@@ -62,6 +66,10 @@ spec:
           parameters:
           - name: githubSecretName
             value: "{{`{{inputs.parameters.githubSecretName}}`}}"
+          - name: githubSecretUsernameKey
+            value: "{{`{{inputs.parameters.githubSecretUsernameKey}}`}}"
+          - name: githubSecretPasswordKey
+            value: "{{`{{inputs.parameters.githubSecretPasswordKey}}`}}"
           - name: configContent
             value: "{{`{{steps.fetch-config.outputs.parameters.configContent}}`}}"
             # Workaround to pass file content between steps
@@ -193,6 +201,8 @@ spec:
       parameters:
       - name: configContent
       - name: githubSecretName
+      - name: githubSecretUsernameKey
+      - name: githubSecretPasswordKey
       - name: chorusBackendAcceptanceNamespace
       - name: releaseName
       artifacts:
@@ -247,12 +257,12 @@ spec:
         valueFrom:
           secretKeyRef:
             name: "{{`{{inputs.parameters.githubSecretName}}`}}"
-            key: username
+            key: "{{`{{inputs.parameters.githubSecretUsernameKey}}`}}"
       - name: GIT_PASSWORD
         valueFrom:
           secretKeyRef:
             name: "{{`{{inputs.parameters.githubSecretName}}`}}"
-            key: password
+            key: "{{`{{inputs.parameters.githubSecretPasswordKey}}`}}"
       - name: CONFIG_CONTENT
         value: "{{`{{inputs.parameters.configContent}}`}}"
       - name: TEST_CONFIG_FILE
