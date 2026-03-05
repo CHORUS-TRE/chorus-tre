@@ -23,9 +23,14 @@
 #       allowed:           List of {target, port} — should succeed
 #       denied:            List of {target, port} — should timeout/fail
 #     health_check:        Application-level health verification
-#       path:              HTTP path to check (e.g., /)
 #       port:              Port to check
-#       expect_status:     Expected HTTP status code (default: 200)
+#       protocol:          "http" (default) or "pg"
+#       path:              HTTP path to check (e.g., /) — http mode only
+#       expect_status:     Expected HTTP status code (default: 200) — http mode only
+#       pg_user:           PostgreSQL user — pg mode only
+#       pg_db:             PostgreSQL database — pg mode only
+#       pg_password:       PostgreSQL password (plaintext, CI-only) — pg mode only
+#       query:             SQL query to execute — pg mode only (default: SELECT 1)
 
 defaults:
   namespace: test
@@ -141,6 +146,15 @@ charts:
       denied:
         - target: external
           port: 443
+    # Application health: real psql connection + schema verification.
+    # Uses postgres:16-alpine image for pg_isready + psql.
+    health_check:
+      protocol: pg
+      port: 5432
+      pg_user: i2b2
+      pg_db: i2b2
+      pg_password: demouser
+      query: "SELECT count(*) AS i2b2_tables FROM information_schema.tables WHERE table_schema LIKE 'i2b2%'"
 
   # ──────────────────────────────────────────────────────────────
   # didata: Has both NetworkPolicy and CiliumNetworkPolicy

@@ -642,20 +642,14 @@ fi
 # only when all postgres datasources are connected.
 section "Phase 5: Health Check"
 
-HEALTH_PATH=$(yq ".charts.\"${CHART_NAME}\".health_check.path // \"\"" "$REGISTRY" 2>/dev/null)
 HEALTH_PORT=$(yq ".charts.\"${CHART_NAME}\".health_check.port // \"\"" "$REGISTRY" 2>/dev/null)
+HEALTH_PROTO=$(yq ".charts.\"${CHART_NAME}\".health_check.protocol // \"http\"" "$REGISTRY" 2>/dev/null)
 
-if [[ -n "$HEALTH_PATH" && "$HEALTH_PATH" != "null" && -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
+if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
     TESTS_RUN=$((TESTS_RUN + 1))
-    HEALTH_STATUS=$(yq ".charts.\"${CHART_NAME}\".health_check.expect_status // 200" "$REGISTRY" 2>/dev/null)
-    HEALTH_URL="http://${RELEASE_NAME}.${NAMESPACE}.svc.cluster.local:${HEALTH_PORT}${HEALTH_PATH}"
 
-    info "Health check: ${HEALTH_URL} (expect HTTP ${HEALTH_STATUS})"
-
-    # Use wget from a test pod labeled as an allowed ingress source.
-    # Without proper labels, the network policy would block the request.
-    # Pick the first allowed ingress label set, or use no labels if no
-    # ingress rules are defined.
+    # Resolve labels and namespace for the health check pod so that
+    # network policies allow the connection.
     HC_LABELS=""
     HC_FIRST_LABEL=$(yq -r ".charts.\"${CHART_NAME}\".ingress.allowed[0].labels | to_entries[] | .key + \"=\" + .value" "$REGISTRY" 2>/dev/null | head -1 || true)
     if [[ -n "$HC_FIRST_LABEL" ]]; then
@@ -669,29 +663,101 @@ if [[ -n "$HEALTH_PATH" && "$HEALTH_PATH" != "null" && -n "$HEALTH_PORT" && "$HE
         kubectl create namespace "$HC_SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
     fi
 
-    info "Health check pod labels: ${HC_LABELS:-<none>}, namespace: ${HC_SRC_NS}"
+    HC_TARGET="${RELEASE_NAME}.${NAMESPACE}.svc.cluster.local"
 
-    HEALTH_OUTPUT=$(
-        kubectl run health-check \
-            --image="$TEST_IMAGE" \
-            --restart=Never \
-            --rm -i \
-            --namespace "$HC_SRC_NS" \
-            ${HC_LABELS:+--labels="$HC_LABELS"} \
-            --timeout="$((CONNECT_TIMEOUT + 10))s" \
-            -- sh -c "wget -S -O /dev/null --timeout=$CONNECT_TIMEOUT '${HEALTH_URL}' 2>&1" 2>&1 || true
-    )
+    if [[ "$HEALTH_PROTO" == "pg" ]]; then
+        # ── PostgreSQL health check ───────────────────────────
+        # Uses postgres:16-alpine for pg_isready + psql.
+        # Two-step: (1) pg_isready verifies PG protocol readiness,
+        #           (2) psql runs an actual SQL query.
+        PG_IMAGE="postgres:16-alpine"
+        PG_USER=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_user // \"postgres\"" "$REGISTRY" 2>/dev/null)
+        PG_DB=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_db // \"postgres\"" "$REGISTRY" 2>/dev/null)
+        PG_PASS=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_password // \"\"" "$REGISTRY" 2>/dev/null)
+        PG_QUERY=$(yq ".charts.\"${CHART_NAME}\".health_check.query // \"SELECT 1\"" "$REGISTRY" 2>/dev/null)
+        [[ "$PG_PASS" == "null" ]] && PG_PASS=""
 
-    if echo "$HEALTH_OUTPUT" | grep -q "HTTP/.*${HEALTH_STATUS}"; then
-        pass "Health check: ${RELEASE_NAME}:${HEALTH_PORT}${HEALTH_PATH} returned HTTP ${HEALTH_STATUS}"
-    else
-        # Show what we got for debugging
-        HTTP_LINE=$(echo "$HEALTH_OUTPUT" | grep -i 'HTTP/' | head -1 || true)
-        if [[ -n "$HTTP_LINE" ]]; then
-            fail "Health check: expected HTTP ${HEALTH_STATUS}, got: ${HTTP_LINE}"
+        info "Health check (PG): ${HC_TARGET}:${HEALTH_PORT}"
+        info "  user=${PG_USER}, db=${PG_DB}, query=${PG_QUERY}"
+        info "  pod labels: ${HC_LABELS:-<none>}, namespace: ${HC_SRC_NS}"
+
+        # Build the command: pg_isready first, then psql
+        PG_CMD="set -e; "
+        PG_CMD+="echo '--- Step 1: pg_isready ---'; "
+        PG_CMD+="pg_isready -h ${HC_TARGET} -p ${HEALTH_PORT} -U ${PG_USER} -d ${PG_DB} -t ${CONNECT_TIMEOUT}; "
+        PG_CMD+="echo '--- Step 2: psql query ---'; "
+        PG_CMD+="psql -h ${HC_TARGET} -p ${HEALTH_PORT} -U ${PG_USER} -d ${PG_DB} -c \"${PG_QUERY}\"; "
+        PG_CMD+="echo 'PG_HEALTH_OK'"
+
+        # Build env args for password
+        PG_ENV_ARGS=""
+        if [[ -n "$PG_PASS" ]]; then
+            PG_ENV_ARGS="--env=PGPASSWORD=${PG_PASS}"
+        fi
+
+        HEALTH_OUTPUT=$(
+            kubectl run health-check \
+                --image="$PG_IMAGE" \
+                --restart=Never \
+                --rm -i \
+                --namespace "$HC_SRC_NS" \
+                ${HC_LABELS:+--labels="$HC_LABELS"} \
+                ${PG_ENV_ARGS} \
+                --timeout="60s" \
+                -- sh -c "$PG_CMD" 2>&1 || true
+        )
+
+        # Show full output for debugging
+        info "Health check output:"
+        echo "$HEALTH_OUTPUT" | while IFS= read -r line; do
+            echo "    $line"
+        done
+
+        if echo "$HEALTH_OUTPUT" | grep -q 'PG_HEALTH_OK'; then
+            pass "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — pg_isready OK + query succeeded"
+            # Extract query result for display
+            QUERY_RESULT=$(echo "$HEALTH_OUTPUT" | sed -n '/Step 2: psql query/,/PG_HEALTH_OK/p' | grep -v 'Step 2\|PG_HEALTH_OK' || true)
+            if [[ -n "$QUERY_RESULT" ]]; then
+                info "Query result:"
+                echo "$QUERY_RESULT" | while IFS= read -r line; do
+                    echo "      $line"
+                done
+            fi
         else
-            fail "Health check: no HTTP response from ${RELEASE_NAME}:${HEALTH_PORT}${HEALTH_PATH}"
-            info "  output: $(echo "$HEALTH_OUTPUT" | tail -5)"
+            fail "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — PostgreSQL health check failed"
+            # Show last lines for debugging
+            info "  last output: $(echo "$HEALTH_OUTPUT" | tail -5)"
+        fi
+    else
+        # ── HTTP health check ─────────────────────────────────
+        HEALTH_PATH=$(yq ".charts.\"${CHART_NAME}\".health_check.path // \"/\"" "$REGISTRY" 2>/dev/null)
+        HEALTH_STATUS=$(yq ".charts.\"${CHART_NAME}\".health_check.expect_status // 200" "$REGISTRY" 2>/dev/null)
+        HEALTH_URL="http://${HC_TARGET}:${HEALTH_PORT}${HEALTH_PATH}"
+
+        info "Health check (HTTP): ${HEALTH_URL} (expect ${HEALTH_STATUS})"
+        info "  pod labels: ${HC_LABELS:-<none>}, namespace: ${HC_SRC_NS}"
+
+        HEALTH_OUTPUT=$(
+            kubectl run health-check \
+                --image="$TEST_IMAGE" \
+                --restart=Never \
+                --rm -i \
+                --namespace "$HC_SRC_NS" \
+                ${HC_LABELS:+--labels="$HC_LABELS"} \
+                --timeout="$((CONNECT_TIMEOUT + 10))s" \
+                -- sh -c "wget -S -O /dev/null --timeout=$CONNECT_TIMEOUT '${HEALTH_URL}' 2>&1" 2>&1 || true
+        )
+
+        if echo "$HEALTH_OUTPUT" | grep -q "HTTP/.*${HEALTH_STATUS}"; then
+            pass "Health check (HTTP): ${RELEASE_NAME}:${HEALTH_PORT}${HEALTH_PATH} returned HTTP ${HEALTH_STATUS}"
+        else
+            HTTP_LINE=$(echo "$HEALTH_OUTPUT" | grep -i 'HTTP/' | head -1 || true)
+            if [[ -n "$HTTP_LINE" ]]; then
+                fail "Health check (HTTP): expected HTTP ${HEALTH_STATUS}, got: ${HTTP_LINE}"
+            else
+                fail "Health check (HTTP): no HTTP response from ${RELEASE_NAME}:${HEALTH_PORT}${HEALTH_PATH}"
+                info "  output: $(echo "$HEALTH_OUTPUT" | tail -5)"
+            fi
         fi
     fi
 else
