@@ -689,12 +689,23 @@ if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
 
         # Build the in-pod script (no set -e so we capture all output)
         read -r -d '' PG_CMD <<'PGEOF' || true
-echo "--- Step 1: pg_isready (waiting up to __PG_WAIT__s) ---"
+echo "=== Diagnostics ==="
+echo "whoami: $(whoami 2>&1 || echo unknown)"
+echo "resolv.conf:"; cat /etc/resolv.conf
+echo "---"
+echo "nslookup __HC_TARGET__:"
+nslookup __HC_TARGET__ 2>&1 || echo "(nslookup not available)"
+echo "---"
+echo "getent hosts __HC_TARGET__:"
+getent hosts __HC_TARGET__ 2>&1 || echo "(getent failed or not available)"
+echo "---"
+echo "=== Step 1: pg_isready (waiting up to __PG_WAIT__s) ==="
 ELAPSED=0
+RC=2
 while [ $ELAPSED -lt __PG_WAIT__ ]; do
     OUTPUT=$(pg_isready -h __HC_TARGET__ -p __HEALTH_PORT__ -U __PG_USER__ -d __PG_DB__ 2>&1)
     RC=$?
-    echo "  [$ELAPSED s] $OUTPUT (exit $RC)"
+    echo "  [$ELAPSED s] exit=$RC  $OUTPUT"
     if [ $RC -eq 0 ]; then
         echo "pg_isready: accepting connections"
         break
@@ -706,7 +717,7 @@ if [ $RC -ne 0 ]; then
     echo "pg_isready: gave up after ${ELAPSED}s"
     exit 1
 fi
-echo "--- Step 2: psql query ---"
+echo "=== Step 2: psql query ==="
 RESULT=$(psql -h __HC_TARGET__ -p __HEALTH_PORT__ -U __PG_USER__ -d __PG_DB__ -c "__PG_QUERY__" 2>&1)
 QRC=$?
 echo "$RESULT"
