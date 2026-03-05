@@ -494,9 +494,18 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
         kubectl wait --for=condition=Ready "pod/${EGRESS_POD}" \
             -n "$NAMESPACE" --timeout=30s 2>/dev/null || true
 
-        # Give Cilium time to propagate the security identity
+        # Give Cilium time to propagate the security identity.
+        # Cilium needs to: see the pod, assign an identity based on its
+        # labels, generate BPF policy, and attach it to the pod's veth.
+        # 15s is typically sufficient but we also poll the endpoint status.
         info "Waiting for Cilium identity propagation..."
-        sleep 10
+        sleep 15
+
+        # Debug: show Cilium endpoint status for this pod
+        EGRESS_POD_IP=$(kubectl get pod "$EGRESS_POD" -n "$NAMESPACE" -o jsonpath='{.status.podIP}' 2>/dev/null || true)
+        info "Test pod IP: ${EGRESS_POD_IP}"
+        kubectl exec -n kube-system "$(kubectl get pods -n kube-system -l k8s-app=cilium -o jsonpath='{.items[0].metadata.name}')" -- \
+            cilium endpoint list 2>/dev/null | grep -E "ENDPOINT|${EGRESS_POD_IP}" || true
 
         # ── Allowed egress ────────────────────────────────────
         ALLOWED_COUNT=$(yq ".charts.\"${CHART_NAME}\".egress.allowed | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
@@ -526,24 +535,32 @@ if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
 
             # Method 3: exec into the persistent labeled test pod.
             # The pod has the chart's selector labels so the same netpol applies.
-            # By now Cilium has had 10+ seconds to assign the identity.
+            # Use nc for a raw TCP check (not HTTP — works for any port).
+            # Poll in a tight loop to handle Cilium identity propagation
+            # delay. The pod already waited 15s at creation; here we add
+            # up to 30 more seconds of polling.
             if [[ "$EGRESS_PASSED" != "true" ]]; then
                 info "  exec into chart pod failed — using labeled test pod"
-                EGRESS_RETRIES=3
-                EGRESS_RETRY_DELAY=10
-                for attempt in $(seq 1 "$EGRESS_RETRIES"); do
+                EGRESS_MAX_WAIT=15  # total extra seconds to poll
+                EGRESS_OUTPUT=""
+                for attempt in $(seq 1 "$EGRESS_MAX_WAIT"); do
                     EGRESS_OUTPUT=$(kubectl exec -n "$NAMESPACE" "$EGRESS_POD" -- \
-                        wget -qO- --timeout="$CONNECT_TIMEOUT" \
-                           "http://${TARGET}.${NAMESPACE}.svc.cluster.local:${PORT}/" 2>&1 || true)
+                        sh -c "echo | nc -w $CONNECT_TIMEOUT ${TARGET}.${NAMESPACE}.svc.cluster.local ${PORT} 2>&1 && echo TCP_OK" 2>&1 || true)
 
-                    if echo "$EGRESS_OUTPUT" | grep -qi 'Operation not permitted\|Connection refused\|can'\''t connect\|Network is unreachable\|timed out'; then
-                        if [[ "$attempt" -lt "$EGRESS_RETRIES" ]]; then
-                            warn "  Attempt ${attempt}/${EGRESS_RETRIES} blocked — retrying in ${EGRESS_RETRY_DELAY}s..."
-                            info "    output: ${EGRESS_OUTPUT}"
-                            sleep "$EGRESS_RETRY_DELAY"
-                        fi
-                    else
+                    if echo "$EGRESS_OUTPUT" | grep -q "TCP_OK"; then
                         EGRESS_PASSED=true
+                        info "  connected on attempt ${attempt}"
+                        break
+                    fi
+
+                    # Only retry on Cilium identity issues ("Operation not permitted")
+                    if echo "$EGRESS_OUTPUT" | grep -qi 'Operation not permitted'; then
+                        [[ "$((attempt % 5))" -eq 0 ]] && warn "  Attempt ${attempt}/${EGRESS_MAX_WAIT} — Cilium identity not ready, retrying..."
+                        sleep 2
+                    else
+                        # Other errors (Connection refused, timed out, etc.)
+                        # are real failures — don't retry forever
+                        warn "  Non-identity error: ${EGRESS_OUTPUT}"
                         break
                     fi
                 done
