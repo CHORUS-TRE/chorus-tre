@@ -1,7 +1,7 @@
 apiVersion: v2
 description: Backup and disaster recovery solution for Kubernetes clusters
 name: velero
-version: 0.0.1
+version: 0.0.2
 dependencies:
   - name: velero
     version: 11.4.0
