@@ -47,6 +47,11 @@ velero:
         - mountPath: /target
           name: plugins
 
+  # Kubectl image for cleanup jobs and hooks
+  kubectl:
+    image:
+      tag: 1.33.4
+
   # Deploy node agent for file-level backups (enabled by default for portability)
   # Can be disabled per environment if using volume snapshots exclusively
   deployNodeAgent: true
