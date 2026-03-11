@@ -1,10 +1,9 @@
 velero:
   # Velero server configuration
   configuration:
-    # Disable file-level backup by default (use volume snapshots instead for better performance)
-    # Should be enabled for environments (e.g. build, qa and prod)
-    # where portability/cross-region DR is required, as volume snapshots are region-specific
-    defaultVolumesToFsBackup: false
+    # Enable file-level backup by default (portable, cross-region DR capable)
+    # Can be disabled per environment if using volume snapshots only
+    defaultVolumesToFsBackup: true
 
     # Default backup retention (30 days)
     defaultBackupTTL: 720h
@@ -12,7 +11,8 @@ velero:
     # Backup locations configured per environment
     backupStorageLocation: []
 
-    # Volume snapshots configured per environment
+    # Volume snapshots can optionally be enabled per environment for faster backups
+    # Requires VolumeSnapshotClass and CSI driver support
     volumeSnapshotLocation: []
 
     # Log configuration (defaults can be overridden per environment)
@@ -47,9 +47,9 @@ velero:
         - mountPath: /target
           name: plugins
 
-  # Deploy node agent for file-level backups (disabled by default, use volume snapshots)
-  # Set to true per environment if portability/cross-region DR is required
-  deployNodeAgent: false
+  # Deploy node agent for file-level backups (enabled by default for portability)
+  # Can be disabled per environment if using volume snapshots exclusively
+  deployNodeAgent: true
   # Node agent configuration (only relevant if deployNodeAgent is true)
   nodeAgent:
     priorityClassName: high-priority
