@@ -86,6 +86,7 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: ci
+                activeDeadlineSeconds: 600
 
                 arguments:
                   parameters:
@@ -123,6 +124,20 @@ spec:
 
                 templates:
                   - name: ci
+                    steps:
+                      - - name: stop-previous-workflows
+                          templateRef:
+                            name: {{ $fullName }}-stop-previous-workflows-template
+                            template: stop-previous-workflows
+                          arguments:
+                            parameters:
+                              - name: repo
+                                value: "{{`{{workflow.labels.repo}}`}}"
+                              - name: ref
+                                value: "{{`{{workflow.labels.ref}}`}}"
+                      - - name: run-tests
+                          template: run-tests
+                  - name: run-tests
                     inputs:
                       artifacts:
                         - name: git
@@ -176,6 +191,15 @@ spec:
                 dependencyName: ci-workbench-operator
                 dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/description
+            # Set labels for use by stop-previous-workflows
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: ci-workbench-operator
+                dataTemplate: '{{`{{ .Input.body.pull_request.head.ref | replace "/" "-" }}`}}'
+              dest: metadata.labels.ref
 
     # e2e tests — only runs on non-draft PRs.
     # Shows a separate "chorus-ci-e2e" status check on GitHub.
@@ -245,6 +269,20 @@ spec:
 
                 templates:
                   - name: e2e
+                    steps:
+                      - - name: stop-previous-workflows
+                          templateRef:
+                            name: {{ $fullName }}-stop-previous-workflows-template
+                            template: stop-previous-workflows
+                          arguments:
+                            parameters:
+                              - name: repo
+                                value: "{{`{{workflow.labels.repo}}`}}"
+                              - name: ref
+                                value: "{{`{{workflow.labels.ref}}`}}"
+                      - - name: run-e2e-tests
+                          template: run-e2e-tests
+                  - name: run-e2e-tests
                     inputs:
                       artifacts:
                         - name: git
@@ -329,6 +367,15 @@ spec:
                 dependencyName: e2e-workbench-operator
                 dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/description
+            # Set labels for use by stop-previous-workflows
+            - src:
+                dependencyName: e2e-workbench-operator
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: e2e-workbench-operator
+                dataTemplate: '{{`{{ .Input.body.pull_request.head.ref | replace "/" "-" }}`}}'
+              dest: metadata.labels.ref
 
     - template:
         conditions: build-workbench-operator
