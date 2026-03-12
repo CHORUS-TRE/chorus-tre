@@ -48,7 +48,7 @@ chorusWorkbenchOperator:
   kubernetesVersion: "1.32"
   dockerDataStorage:
     storageClassName: ""
-    storageRequest: ""
+    storageRequest: "20Gi"
   golang:
     tag: "1.25-bookworm"
 
