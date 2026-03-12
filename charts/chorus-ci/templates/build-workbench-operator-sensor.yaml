@@ -193,6 +193,17 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: e2e
+                activeDeadlineSeconds: 1200
+
+                volumeClaimTemplates:
+                  - metadata:
+                      name: docker-data
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageRequest | default "20Gi" | quote }}
+                      storageClassName: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
 
                 arguments:
                   parameters:
@@ -248,9 +259,6 @@ spec:
                               name: {{ $githubSecretName }}
                               key: {{ $githubSecretPasswordKey }}
                             ref: "{{`{{workflow.parameters.ref}}`}}"
-                    volumes:
-                      - name: docker-data
-                        emptyDir: {}
                     sidecars:
                       - name: dind
                         image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
