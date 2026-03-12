@@ -47,14 +47,6 @@ velero:
         - mountPath: /target
           name: plugins
 
-  # Volume mounts for writable directories (required with readOnlyRootFilesystem)
-  extraVolumes:
-    - name: tmp
-      emptyDir: {}
-  extraVolumeMounts:
-    - name: tmp
-      mountPath: /tmp
-
   # Kubectl image for cleanup jobs and hooks
   kubectl:
     image:
@@ -79,18 +71,6 @@ velero:
     tolerations:
       - operator: Exists
 
-    # Volume mounts for writable directories (required with readOnlyRootFilesystem)
-    extraVolumes:
-      - name: tmp
-        emptyDir: {}
-      - name: udmrepo
-        emptyDir: {}
-    extraVolumeMounts:
-      - name: tmp
-        mountPath: /tmp
-      - name: udmrepo
-        mountPath: /udmrepo
-
   # Monitoring configuration
   metrics:
     serviceMonitor:
@@ -100,16 +80,16 @@ velero:
   schedules: {}
 
   # Security context
-  podSecurityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    fsGroup: 1000
-    seccompProfile:
-      type: RuntimeDefault
+  podSecurityContext: {}
+    # runAsNonRoot: true
+    # runAsUser: 1000
+    # fsGroup: 1000
+    # seccompProfile:
+    #   type: RuntimeDefault
 
-  containerSecurityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
-    readOnlyRootFilesystem: true
+  containerSecurityContext: {}
+    # allowPrivilegeEscalation: false
+    # capabilities:
+    #   drop:
+    #     - ALL
+    # readOnlyRootFilesystem: true
