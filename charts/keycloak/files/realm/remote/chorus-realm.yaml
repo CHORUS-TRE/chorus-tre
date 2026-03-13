@@ -4,6 +4,7 @@ displayName: ""
 displayNameHtml: ""
 revokeRefreshToken: true
 enabled: true
+registrationAllowed: false
 passwordPolicy: "length(8) and specialChars(1) and upperCase(1) and lowerCase(1) and\
   \ digits(1) and notUsername and notEmail and notContainsUsername"
 webAuthnPolicySignatureAlgorithms:
