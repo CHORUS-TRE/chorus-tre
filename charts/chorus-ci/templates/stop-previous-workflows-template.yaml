@@ -12,6 +12,8 @@ spec:
     parameters:
       - name: repo
       - name: ref
+      - name: type
+        value: ""
   serviceAccountName: {{ include "chorus-ci.serviceAccountName" . }}
   templates:
   - name: stop-previous-workflows
@@ -19,6 +21,8 @@ spec:
       parameters:
         - name: repo
         - name: ref
+        - name: type
+          value: ""
     steps:
       - - name: identify-workflows
           template: identify-workflows
@@ -28,6 +32,8 @@ spec:
                 value: "{{`{{inputs.parameters.repo}}`}}"
               - name: ref
                 value: "{{`{{inputs.parameters.ref}}`}}"
+              - name: type
+                value: "{{`{{inputs.parameters.type}}`}}"
       - - name: stop-workflows
           template: stop-workflows
           arguments:
@@ -42,6 +48,8 @@ spec:
       parameters:
         - name: repo
         - name: ref
+        - name: type
+          value: ""
     container:
       image: {{ .Values.template.kubectl.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.kubectl.imageNamespace | default .Values.global.imageNamespace }}/kubectl:{{ .Values.template.kubectl.tag | default "latest" }}
       env:
@@ -49,6 +57,8 @@ spec:
           value: "{{`{{inputs.parameters.repo}}`}}"
         - name: REF
           value: "{{`{{inputs.parameters.ref}}`}}"
+        - name: TYPE
+          value: "{{`{{inputs.parameters.type}}`}}"
         - name: NAMESPACE
           value: "{{`{{workflow.namespace}}`}}"
         - name: WORKFLOW_NAME
@@ -56,13 +66,18 @@ spec:
       command: [sh, -e, -c]
       args:
         - |
-          echo "Identifying workflows to stop for repo=$REPO ref=$REF"
+          LABELS="repo=$REPO,ref=$REF,workflows.argoproj.io/phase=Running"
+          if [ -n "$TYPE" ]; then
+            LABELS="$LABELS,type=$TYPE"
+          fi
+
+          echo "Identifying workflows to stop for repo=$REPO ref=$REF type=$TYPE"
 
           # Get running workflows with same labels, excluding current one
           workflows=$(kubectl get workflow \
             -o jsonpath='{.items[*].metadata.name}' \
             -n $NAMESPACE \
-            -l repo=$REPO,ref=$REF,workflows.argoproj.io/phase=Running \
+            -l $LABELS \
             --field-selector metadata.name!=$WORKFLOW_NAME \
             --ignore-not-found=true)
 
@@ -102,11 +117,15 @@ spec:
         - name: workflow
     container:
       image: argoproj/argocli:latest
-      command: [argo]
+      command: [sh, -c]
       args:
-      - stop
-      - "{{`{{inputs.parameters.workflow}}`}}"
-      - -n
-      - "{{`{{workflow.namespace}}`}}"
-      - --message
-      - "Stopped by {{`{{workflow.name}}`}} to avoid overlapping runs"
+      - |
+        output=$(argo stop "{{`{{inputs.parameters.workflow}}`}}" \
+          -n "{{`{{workflow.namespace}}`}}" \
+          --message "Stopped by {{`{{workflow.name}}`}} to avoid overlapping runs" 2>&1) && exit 0
+        echo "$output"
+        if echo "$output" | grep -q "cannot shutdown a completed workflow"; then
+          echo "Workflow already completed, skipping"
+          exit 0
+        fi
+        exit 1
