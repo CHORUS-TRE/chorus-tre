@@ -117,15 +117,11 @@ spec:
         - name: workflow
     container:
       image: argoproj/argocli:latest
-      command: [sh, -c]
+      command: [argo]
       args:
-      - |
-        output=$(argo stop "{{`{{inputs.parameters.workflow}}`}}" \
-          -n "{{`{{workflow.namespace}}`}}" \
-          --message "Stopped by {{`{{workflow.name}}`}} to avoid overlapping runs" 2>&1) && exit 0
-        echo "$output"
-        if echo "$output" | grep -q "cannot shutdown a completed workflow"; then
-          echo "Workflow already completed, skipping"
-          exit 0
-        fi
-        exit 1
+        - stop
+        - "{{`{{inputs.parameters.workflow}}`}}"
+        - -n
+        - "{{`{{workflow.namespace}}`}}"
+        - --message
+        - "Stopped by {{`{{workflow.name}}`}} to avoid overlapping runs"
