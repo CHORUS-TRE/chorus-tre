@@ -4,7 +4,7 @@ displayName: ""
 displayNameHtml: ""
 revokeRefreshToken: true
 enabled: true
-registrationAllowed: true
+registrationAllowed: false
 roles:
   client:
     grafana:
