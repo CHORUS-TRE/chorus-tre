@@ -80,6 +80,7 @@ spec:
           | helm registry login -u "${username}" --password-stdin "${REGISTRY}";
 
           yq -r '.dependencies[]?.repository' "${CHARTS_DIR}/${CHART_NAME}/Chart.yaml"
+          | grep -v '^oci://'
           | sort -u
           | while read -r repo; do
               helm repo add "$(echo "${repo}" | md5sum | cut -c1-8)" "${repo}" 2>/dev/null || true;
