@@ -75,7 +75,7 @@ spec:
                               - name: dockerConfigSecret
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
                               - name: chartsProject
-                                value: "helm"
+                                value: "services"
                             artifacts:
                               - name: source
                                 path: /src
