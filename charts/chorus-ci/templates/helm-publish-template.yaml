@@ -79,6 +79,13 @@ spec:
           | awk -F: '{ print $2 }'
           | helm registry login -u "${username}" --password-stdin "${REGISTRY}";
 
+          yq -r '.dependencies[]?.repository' "${CHARTS_DIR}/${CHART_NAME}/Chart.yaml"
+          | sort -u
+          | while read -r repo; do
+              helm repo add "$(echo "${repo}" | md5sum | cut -c1-8)" "${repo}" 2>/dev/null || true;
+            done;
+          helm repo update || true;
+
           helm dependency build "${CHARTS_DIR}/${CHART_NAME}";
           if [ "${CHART_VERSION}" = "n/a" ]; then
             helm package "${CHARTS_DIR}/${CHART_NAME}";
