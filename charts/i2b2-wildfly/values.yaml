@@ -1,6 +1,7 @@
 # Default values for i2b2-wildfly.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+# CI: e2e test coverage enabled
 
 replicaCount: 1
 

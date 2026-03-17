@@ -1,0 +1,130 @@
+# ci/test-values/i2b2-wildfly.yaml
+# CI-specific values for testing i2b2-wildfly in Kind
+#
+# The depends_on mechanism in chart-tests.yaml deploys postgres first.
+# The pre_install hook creates the i2b2-wildfly-secret with default passwords.
+#
+# What's overridden vs the default values.yaml:
+#   - priorityClassName: "" (Kind doesn't have "low-priority")
+#   - ingress.enabled: false (no ingress controller in Kind)
+#   - DS_*_IP env vars: pointed at "e2e-i2b2-postgres" (the CI postgres service name)
+#   - Probes: kept with generous initialDelaySeconds (wildfly is slow to boot with DB init)
+
+# PriorityClass "low-priority" doesn't exist in Kind
+priorityClassName: ""
+
+# Network policy — keep K8s format (enabled_l7_waf: false is the default)
+networkPolicy:
+  enabled: true
+  enabled_l7_waf: false
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: i2b2-frontend
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: i2b2-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+
+# Disable K8s ingress (no ingress controller in Kind)
+ingress:
+  enabled: false
+
+# Keep service ports at defaults
+service:
+  type: ClusterIP
+  http: 8080
+  api: 9990
+
+# Wildfly is slow to boot; increase initialDelaySeconds.
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 10
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 20
+
+# Point datasource IPs to CI postgres. Secrets use i2b2-wildfly-secret.
+env:
+  PG_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: pg_pass
+  DS_TYPE: "postgres"
+  DS_PASSWORD:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_password
+  DS_WD_USER: "i2b2workdata"
+  DS_WD_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_wd_pass
+  DS_WD_IP: "e2e-i2b2-postgres"
+  DS_WD_PORT: "5432"
+  DS_WD_DB: "i2b2"
+  DS_WD_SCHEMA: "i2b2workdata"
+  DS_CRC_IP: "e2e-i2b2-postgres"
+  DS_CRC_USER: "i2b2"
+  DS_CRC_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_crc_pass
+  DS_CRC_PORT: "5432"
+  DS_CRC_DB: "i2b2"
+  DS_CRC_SCHEMA: "i2b2demodata"
+  DS_CRC_DB_TYPE: "pg"
+  DS_ONT_IP: "e2e-i2b2-postgres"
+  DS_ONT_USER: "i2b2"
+  DS_ONT_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_ont_pass
+  DS_ONT_PORT: "5432"
+  DS_ONT_DB: "i2b2"
+  DS_ONT_SCHEMA: "i2b2metadata"
+  DS_ONT_DB_TYPE: "pg"
+  DS_PM_DB: "i2b2"
+  DS_PM_SCHEMA: "i2b2pm"
+  DS_PM_PORT: "5432"
+  DS_PM_IP: "e2e-i2b2-postgres"
+  DS_PM_USER: "i2b2"
+  DS_PM_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_pm_pass
+  DS_PM_DB_TYPE: "pg"
+  DS_HIVE_IP: "e2e-i2b2-postgres"
+  DS_HIVE_USER: "i2b2"
+  DS_HIVE_PASS:
+    existingSecret: i2b2-wildfly-secret
+    key: ds_hive_pass
+  DS_HIVE_PORT: "5432"
+  DS_HIVE_DB: "i2b2"
+  DS_HIVE_SCHEMA: "i2b2hive"
+  DS_HIVE_DB_TYPE: "pg"
+  DS_CSV_DELIMITER: ","
+  DS_BCP_DELIMITER: "^"

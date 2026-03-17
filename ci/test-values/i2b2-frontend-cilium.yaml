@@ -1,0 +1,50 @@
+# ci/test-values/i2b2-frontend-cilium.yaml
+# CI-specific values for testing i2b2-frontend with CiliumNetworkPolicy (L7 WAF mode)
+#
+# The configmap is created by the chart itself — no external dependencies.
+# The cm.* URLs point at the CI wildfly service (deployed via depends_on).
+#
+# What's overridden vs the default values.yaml:
+#   - priorityClassName: "" (Kind doesn't have "low-priority")
+#   - ingress.enabled: false (no ingress controller in Kind)
+#   - cm.*: pointed at e2e-i2b2-wildfly (CI wildfly service name)
+
+
+# PriorityClass "low-priority" doesn't exist in Kind
+priorityClassName: ""
+
+# Keep the default command (/run-httpd.sh localhost)
+# Apache starts regardless of whether the backend is reachable.
+
+networkPolicy:
+  enabled: true
+  enabled_l7_waf: true
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: ingress-nginx
+            app.kubernetes.io/name: ingress-nginx
+            app.kubernetes.io/component: controller
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: i2b2-wildfly
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+
+ingress:
+  enabled: false
+
+# Point configmap URLs at the CI wildfly service.
+cm:
+  urlCellPM: "http://e2e-i2b2-wildfly:8080/i2b2/services/PMService/"
+  pmURL: "http://e2e-i2b2-wildfly:8080/i2b2/rest/PMService/getServices"
+  whiteListURL: "http://e2e-i2b2-wildfly:8080"
+  ProxyPass: "http://e2e-i2b2-wildfly:8080/i2b2/"
+

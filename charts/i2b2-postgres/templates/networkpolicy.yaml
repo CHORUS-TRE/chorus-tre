@@ -19,9 +19,7 @@ spec:
   ingress:
   # Default: Allow ingress from same namespace only on PostgreSQL port
   - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: {{ .Release.Namespace | quote }}
+    - podSelector: {}
     ports:
     - protocol: TCP
       port: 5432

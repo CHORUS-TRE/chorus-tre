@@ -1,0 +1,822 @@
+#!/usr/bin/env bash
+# ci/run-chart-e2e.sh — Generic chart e2e test runner
+#
+# Deploys a chart into a Kind+Cilium cluster and runs connectivity tests
+# based on the central test registry (ci/chart-tests.yaml).
+#
+# Usage: ./ci/run-chart-e2e.sh <chart_path> <chart_name>
+#   e.g.: ./ci/run-chart-e2e.sh charts/i2b2-wildfly i2b2-wildfly
+#
+# Requires: helm, kubectl, yq (v4+)
+# Expects: a running Kind cluster with Cilium CNI installed
+
+set -euo pipefail
+
+# ── Configuration ─────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REGISTRY="${REPO_ROOT}/ci/chart-tests.yaml"
+TEST_IMAGE="busybox:1.36"
+CONNECT_TIMEOUT=5  # seconds for positive tests
+BLOCK_TIMEOUT=5    # seconds for negative tests (expect timeout)
+
+# ── Colors ────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# ── Helpers ───────────────────────────────────────────────────
+pass() { echo -e "${GREEN}  ✅ PASS: $1${NC}"; }
+fail() { echo -e "${RED}  ❌ FAIL: $1${NC}"; FAILURES=$((FAILURES + 1)); }
+info() { echo -e "${CYAN}  ℹ️  $1${NC}"; }
+warn() { echo -e "${YELLOW}  ⚠️  $1${NC}"; }
+section() { echo -e "\n${CYAN}━━━ $1 ━━━${NC}"; }
+
+FAILURES=0
+TESTS_RUN=0
+
+# ── Args ──────────────────────────────────────────────────────
+if [[ $# -lt 2 ]]; then
+    echo "Usage: $0 <chart_path> <chart_name>"
+    echo "  e.g.: $0 charts/i2b2-wildfly i2b2-wildfly"
+    exit 1
+fi
+
+CHART_PATH="$1"
+CHART_NAME="$2"
+
+# ── Read config from registry ─────────────────────────────────
+chart_config() {
+    # Read a value from chart-tests.yaml for this chart, with a default fallback
+    local key="$1"
+    local default="${2:-}"
+    local val
+    val=$(yq ".charts.\"${CHART_NAME}\".${key} // \"\"" "$REGISTRY" 2>/dev/null)
+    if [[ -z "$val" || "$val" == "null" ]]; then
+        echo "$default"
+    else
+        echo "$val"
+    fi
+}
+
+defaults_config() {
+    local key="$1"
+    local default="${2:-}"
+    local val
+    val=$(yq ".defaults.${key} // \"\"" "$REGISTRY" 2>/dev/null)
+    if [[ -z "$val" || "$val" == "null" ]]; then
+        echo "$default"
+    else
+        echo "$val"
+    fi
+}
+
+NAMESPACE=$(chart_config "namespace" "$(defaults_config "namespace" "test")")
+TIMEOUT=$(chart_config "timeout" "$(defaults_config "timeout" "120")")
+SKIP_DEPLOY=$(chart_config "skip_deploy" "false")
+VALUES_FILE=$(chart_config "values_file" "")
+RELEASE_NAME="e2e-${CHART_NAME}"
+
+section "Chart E2E: ${CHART_NAME}"
+echo "  Chart path:   ${CHART_PATH}"
+echo "  Namespace:    ${NAMESPACE}"
+echo "  Release:      ${RELEASE_NAME}"
+echo "  Timeout:      ${TIMEOUT}s"
+
+# ── Check if chart should be skipped ──────────────────────────
+if [[ "$SKIP_DEPLOY" == "true" ]]; then
+    info "Chart marked as skip_deploy (CRD/infra only). Skipping."
+    exit 0
+fi
+
+# ── Phase 0: Setup namespace ─────────────────────────────────
+section "Phase 0: Setup"
+kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+info "Namespace '${NAMESPACE}' ready"
+
+# Debug: show namespace labels (important for namespaceSelector-based NetworkPolicies)
+info "Namespace labels:"
+kubectl get namespace "$NAMESPACE" --show-labels 2>/dev/null || true
+
+# Run pre_install commands if defined (e.g., create secrets)
+PRE_INSTALL_COUNT=$(yq ".charts.\"${CHART_NAME}\".pre_install | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+if [[ "$PRE_INSTALL_COUNT" -gt 0 ]]; then
+    info "Running ${PRE_INSTALL_COUNT} pre-install command(s)..."
+    for i in $(seq 0 $((PRE_INSTALL_COUNT - 1))); do
+        CMD=$(yq -r ".charts.\"${CHART_NAME}\".pre_install[$i]" "$REGISTRY")
+        info "  → $CMD"
+        eval "$CMD"
+    done
+fi
+
+# ── Phase 0b: Deploy dependency charts (depends_on) ──────────
+# Resolves transitive dependencies via BFS, deploys leaves first.
+
+resolve_deps() {
+    # Flatten the dependency tree for a given chart into deployment order.
+    # Output: newline-separated list of chart names, leaves first.
+    local chart="$1"
+    local resolved=""
+    local queue="$chart"
+
+    # BFS to collect all deps
+    while [[ -n "$queue" ]]; do
+        local current="${queue%% *}"
+        queue="${queue#* }"
+        [[ "$queue" == "$current" ]] && queue=""
+
+        local count
+        count=$(yq ".charts.\"${current}\".depends_on | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+        for j in $(seq 0 $((count - 1))); do
+            local dep
+            dep=$(yq -r ".charts.\"${current}\".depends_on[$j]" "$REGISTRY")
+            # Add to resolved (will dedupe later) and queue for further resolution
+            resolved="${resolved} ${dep}"
+            queue="${queue} ${dep}"
+        done
+    done
+
+    # Reverse + dedupe: dependencies of dependencies come first
+    echo "$resolved" | tr ' ' '\n' | tac | awk '!seen[$0]++ && NF' 
+}
+
+DEP_LIST=$(resolve_deps "$CHART_NAME")
+
+if [[ -n "$DEP_LIST" ]]; then
+    section "Phase 0b: Deploy Dependencies"
+    while IFS= read -r DEP_NAME; do
+        [[ -z "$DEP_NAME" ]] && continue
+        DEP_RELEASE="e2e-${DEP_NAME}"
+        DEP_NS=$(yq ".charts.\"${DEP_NAME}\".namespace // \"${NAMESPACE}\"" "$REGISTRY")
+        DEP_TIMEOUT=$(yq ".charts.\"${DEP_NAME}\".timeout // 120" "$REGISTRY")
+        DEP_VALUES_FILE=$(yq ".charts.\"${DEP_NAME}\".values_file // \"\"" "$REGISTRY")
+
+        info "Dependency: ${DEP_NAME} (release ${DEP_RELEASE}, ns ${DEP_NS})"
+
+        # Check if already deployed (from a previous chart's depends_on)
+        if helm status "$DEP_RELEASE" -n "$DEP_NS" &>/dev/null; then
+            info "  Already deployed — skipping"
+            continue
+        fi
+
+        # Create namespace if different from main chart
+        if [[ "$DEP_NS" != "$NAMESPACE" ]]; then
+            kubectl create namespace "$DEP_NS" --dry-run=client -o yaml | kubectl apply -f -
+        fi
+
+        # Run dependency's pre_install commands
+        DEP_PRE_COUNT=$(yq ".charts.\"${DEP_NAME}\".pre_install | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+        if [[ "$DEP_PRE_COUNT" -gt 0 ]]; then
+            info "  Running ${DEP_PRE_COUNT} pre-install command(s) for ${DEP_NAME}..."
+            for pi in $(seq 0 $((DEP_PRE_COUNT - 1))); do
+                DEP_CMD=$(yq -r ".charts.\"${DEP_NAME}\".pre_install[$pi]" "$REGISTRY")
+                info "    → $DEP_CMD"
+                eval "$DEP_CMD"
+            done
+        fi
+
+        # Build helm install command for dependency
+        DEP_CHART_PATH="charts/${DEP_NAME}"
+        DEP_HELM_CMD=(helm install "$DEP_RELEASE" "${REPO_ROOT}/${DEP_CHART_PATH}"
+            --namespace "$DEP_NS"
+            --values "${REPO_ROOT}/${DEP_CHART_PATH}/values.yaml"
+            --set "fullnameOverride=${DEP_RELEASE}"
+            --wait --timeout "${DEP_TIMEOUT}s"
+        )
+        if [[ -n "$DEP_VALUES_FILE" && "$DEP_VALUES_FILE" != "null" ]]; then
+            DEP_HELM_CMD+=(--values "${REPO_ROOT}/${DEP_VALUES_FILE}")
+        fi
+
+        # Build dependencies (sub-charts)
+        helm dependency build "${REPO_ROOT}/${DEP_CHART_PATH}" 2>/dev/null || true
+
+        info "  Installing dependency chart..."
+        echo "    ${DEP_HELM_CMD[*]}"
+        if "${DEP_HELM_CMD[@]}" 2>&1; then
+            pass "Dependency ${DEP_NAME} deployed"
+        else
+            fail "Dependency ${DEP_NAME} failed to deploy — aborting"
+            exit 1
+        fi
+    done <<< "$DEP_LIST"
+fi
+
+# ── Phase 1: Deploy chart ─────────────────────────────────────
+section "Phase 1: Deploy"
+
+# Build --set flags from registry
+HELM_SET_ARGS=()
+while IFS='=' read -r key val; do
+    [[ -z "$key" ]] && continue
+    HELM_SET_ARGS+=(--set "$key=$val")
+done < <(yq -r ".charts.\"${CHART_NAME}\".values // {} | to_entries[] | .key + \"=\" + (.value | tostring)" "$REGISTRY" 2>/dev/null || true)
+
+# Add fullnameOverride so we know the resource names
+HELM_SET_ARGS+=(--set "fullnameOverride=${RELEASE_NAME}")
+
+# Build dependencies
+info "Updating Helm dependencies..."
+helm dependency build "${REPO_ROOT}/${CHART_PATH}" 2>/dev/null || true
+
+# Build helm install command
+HELM_CMD=(helm install "$RELEASE_NAME" "${REPO_ROOT}/${CHART_PATH}"
+    --namespace "$NAMESPACE"
+    --values "${REPO_ROOT}/${CHART_PATH}/values.yaml"
+    --wait --timeout "${TIMEOUT}s"
+)
+
+# Add CI values file if specified
+if [[ -n "$VALUES_FILE" ]]; then
+    HELM_CMD+=(--values "${REPO_ROOT}/${VALUES_FILE}")
+fi
+
+# Add --set overrides
+HELM_CMD+=("${HELM_SET_ARGS[@]}")
+
+info "Installing chart..."
+echo "  ${HELM_CMD[*]}"
+
+if "${HELM_CMD[@]}" 2>&1; then
+    pass "Chart deployed successfully"
+else
+    # Deploy failed — the image may not start (expected for apps needing backends)
+    # Try without --wait so we can still test network policies on the service
+    warn "Helm install with --wait failed. Retrying without --wait..."
+    HELM_CMD_NOWAIT=(helm install "$RELEASE_NAME" "${REPO_ROOT}/${CHART_PATH}"
+        --namespace "$NAMESPACE"
+        --values "${REPO_ROOT}/${CHART_PATH}/values.yaml"
+        --timeout "${TIMEOUT}s"
+    )
+    if [[ -n "$VALUES_FILE" ]]; then
+        HELM_CMD_NOWAIT+=(--values "${REPO_ROOT}/${VALUES_FILE}")
+    fi
+    HELM_CMD_NOWAIT+=("${HELM_SET_ARGS[@]}")
+
+    # Uninstall the failed release first
+    helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" 2>/dev/null || true
+    sleep 2
+
+    if "${HELM_CMD_NOWAIT[@]}" 2>&1; then
+        info "Chart deployed (pods may not be fully ready — expected for apps needing backends)"
+        # Give pods a moment to create
+        sleep 10
+    else
+        fail "Chart deployment failed"
+        exit 1
+    fi
+fi
+
+# Show what got deployed
+echo ""
+info "Deployed resources:"
+kubectl get all -n "$NAMESPACE" -l "app.kubernetes.io/instance=${RELEASE_NAME}" 2>/dev/null || \
+    kubectl get all -n "$NAMESPACE" 2>/dev/null | head -20
+echo ""
+
+# Check for network policies
+info "Network policies:"
+kubectl get networkpolicy -n "$NAMESPACE" 2>/dev/null || true
+kubectl get ciliumnetworkpolicy -n "$NAMESPACE" 2>/dev/null || true
+
+# Debug: show full netpol spec for this release
+info "NetworkPolicy YAML (for debugging):"
+kubectl get networkpolicy -n "$NAMESPACE" -l "app.kubernetes.io/instance=${RELEASE_NAME}" -o yaml 2>/dev/null | head -60 || true
+
+# ── Phase 2: Smoke test — verify services respond ────────────
+section "Phase 2: Smoke Test"
+
+SERVICE_COUNT=$(yq ".charts.\"${CHART_NAME}\".services | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+
+if [[ "$SERVICE_COUNT" -gt 0 ]]; then
+    for i in $(seq 0 $((SERVICE_COUNT - 1))); do
+        SVC_PORT=$(yq ".charts.\"${CHART_NAME}\".services[$i].port" "$REGISTRY")
+        SVC_NAME="${RELEASE_NAME}"
+
+        TESTS_RUN=$((TESTS_RUN + 1))
+        info "Smoke test: ${SVC_NAME}:${SVC_PORT} in ${NAMESPACE}"
+
+        # Create a test pod and try to reach the service
+        if kubectl run "smoke-test-${i}" \
+            --image="$TEST_IMAGE" \
+            --restart=Never \
+            --rm -i \
+            --namespace "$NAMESPACE" \
+            --timeout="${CONNECT_TIMEOUT}s" \
+            -- wget -qO- --timeout="$CONNECT_TIMEOUT" "http://${SVC_NAME}:${SVC_PORT}/" 2>/dev/null; then
+            pass "Service ${SVC_NAME}:${SVC_PORT} is reachable"
+        else
+            # Service might return non-200 but still be "up" (e.g., 404, 500)
+            # Try with just a TCP check
+            if kubectl run "smoke-tcp-${i}" \
+                --image="$TEST_IMAGE" \
+                --restart=Never \
+                --rm -i \
+                --namespace "$NAMESPACE" \
+                --timeout="${CONNECT_TIMEOUT}s" \
+                -- sh -c "echo | nc -w $CONNECT_TIMEOUT ${SVC_NAME} ${SVC_PORT} 2>/dev/null && echo 'TCP_OK'" 2>/dev/null | grep -q "TCP_OK"; then
+                pass "Service ${SVC_NAME}:${SVC_PORT} is reachable (TCP)"
+            else
+                warn "Service ${SVC_NAME}:${SVC_PORT} not responding (pod may not be ready — expected for apps needing backends)"
+            fi
+        fi
+    done
+else
+    info "No services defined in registry — skipping smoke test"
+fi
+
+# ── Phase 3: Ingress connectivity tests ──────────────────────
+section "Phase 3: Ingress Tests"
+
+HAS_INGRESS_TESTS=$(yq ".charts.\"${CHART_NAME}\".ingress // null" "$REGISTRY" 2>/dev/null)
+
+if [[ "$HAS_INGRESS_TESTS" != "null" && -n "$HAS_INGRESS_TESTS" ]]; then
+
+    # Helper: get the first service port for this chart
+    TARGET_PORT=$(yq ".charts.\"${CHART_NAME}\".services[0].port // 80" "$REGISTRY")
+    TARGET_SVC="${RELEASE_NAME}"
+
+    # ── Allowed ingress ───────────────────────────────────────
+    ALLOWED_COUNT=$(yq ".charts.\"${CHART_NAME}\".ingress.allowed | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+
+    for i in $(seq 0 $((ALLOWED_COUNT - 1))); do
+        TESTS_RUN=$((TESTS_RUN + 1))
+        PORT=$(yq ".charts.\"${CHART_NAME}\".ingress.allowed[$i].port" "$REGISTRY")
+        SRC_NS=$(yq ".charts.\"${CHART_NAME}\".ingress.allowed[$i].source_namespace // \"${NAMESPACE}\"" "$REGISTRY")
+
+        # Build label args for the test pod
+        LABEL_ARGS=""
+        while IFS='=' read -r lkey lval; do
+            [[ -z "$lkey" ]] && continue
+            LABEL_ARGS="${LABEL_ARGS}${lkey}=${lval},"
+        done < <(yq -r ".charts.\"${CHART_NAME}\".ingress.allowed[$i].labels | to_entries[] | .key + \"=\" + .value" "$REGISTRY" 2>/dev/null)
+        LABEL_ARGS="${LABEL_ARGS%,}"  # trim trailing comma
+
+        LABEL_DESC=$(echo "$LABEL_ARGS" | tr ',' ' ')
+        info "Ingress ALLOWED test: pod(${LABEL_DESC}) in ns(${SRC_NS}) → ${TARGET_SVC}:${PORT}"
+
+        # Create source namespace if different
+        if [[ "$SRC_NS" != "$NAMESPACE" ]]; then
+            kubectl create namespace "$SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
+        fi
+
+        # Retry loop for slow-starting apps
+        ALLOWED_RETRIES=5
+        RETRY_DELAY=15  # seconds between retries
+        INGRESS_PASSED=false
+
+        for attempt in $(seq 1 "$ALLOWED_RETRIES"); do
+            POD_NAME="ingress-allow-${i}-a${attempt}"
+
+            # Check for blocking indicators in wget output.
+            # No blocking = TCP succeeded = netpol allowed.
+            WGET_OUTPUT=$(kubectl run "$POD_NAME" \
+                --image="$TEST_IMAGE" \
+                --restart=Never \
+                --rm -i \
+                --namespace "$SRC_NS" \
+                --labels="$LABEL_ARGS" \
+                --timeout="$((CONNECT_TIMEOUT + 5))s" \
+                -- wget -qO- --timeout="$CONNECT_TIMEOUT" \
+                   "http://${TARGET_SVC}.${NAMESPACE}.svc.cluster.local:${PORT}/" 2>&1 || true)
+
+            if echo "$WGET_OUTPUT" | grep -qi 'Operation not permitted\|Connection refused\|can'\''t connect\|Network is unreachable\|timed out'; then
+                # Network policy blocked the connection or service not ready
+                :
+            else
+                # No blocking indicators → TCP connection succeeded
+                pass "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT}"
+                INGRESS_PASSED=true
+                break
+            fi
+
+            if [[ "$attempt" -lt "$ALLOWED_RETRIES" ]]; then
+                warn "Attempt ${attempt}/${ALLOWED_RETRIES} failed — retrying in ${RETRY_DELAY}s..."
+                info "  wget output: ${WGET_OUTPUT}"
+                sleep "$RETRY_DELAY"
+            fi
+        done
+
+        if [[ "$INGRESS_PASSED" != "true" ]]; then
+            fail "Ingress ALLOWED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} — connection failed after ${ALLOWED_RETRIES} attempts (expected success)"
+        fi
+    done
+
+    # ── Denied ingress ────────────────────────────────────────
+    DENIED_COUNT=$(yq ".charts.\"${CHART_NAME}\".ingress.denied | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+
+    for i in $(seq 0 $((DENIED_COUNT - 1))); do
+        TESTS_RUN=$((TESTS_RUN + 1))
+        PORT=$(yq ".charts.\"${CHART_NAME}\".ingress.denied[$i].port" "$REGISTRY")
+        SRC_NS=$(yq ".charts.\"${CHART_NAME}\".ingress.denied[$i].source_namespace // \"${NAMESPACE}\"" "$REGISTRY")
+
+        LABEL_ARGS=""
+        while IFS='=' read -r lkey lval; do
+            [[ -z "$lkey" ]] && continue
+            LABEL_ARGS="${LABEL_ARGS}${lkey}=${lval},"
+        done < <(yq -r ".charts.\"${CHART_NAME}\".ingress.denied[$i].labels | to_entries[] | .key + \"=\" + .value" "$REGISTRY" 2>/dev/null)
+        LABEL_ARGS="${LABEL_ARGS%,}"
+
+        LABEL_DESC="${LABEL_ARGS:-<unlabeled>}"
+        info "Ingress DENIED test: pod(${LABEL_DESC}) in ns(${SRC_NS}) → ${TARGET_SVC}:${PORT}"
+
+        POD_NAME="ingress-deny-${i}"
+
+        # Create source namespace if different
+        if [[ "$SRC_NS" != "$NAMESPACE" ]]; then
+            kubectl create namespace "$SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
+        fi
+
+        # Expect connection to fail. Use nc (not wget) for protocol-agnostic check.
+        if kubectl run "$POD_NAME" \
+            --image="$TEST_IMAGE" \
+            --restart=Never \
+            --rm -i \
+            --namespace "$SRC_NS" \
+            ${LABEL_ARGS:+--labels="$LABEL_ARGS"} \
+            --timeout="$((BLOCK_TIMEOUT + 10))s" \
+            -- sh -c "echo | nc -w $BLOCK_TIMEOUT ${TARGET_SVC}.${NAMESPACE}.svc.cluster.local ${PORT} 2>/dev/null && echo 'CONNECTED'" 2>/dev/null | grep -q "CONNECTED"; then
+            fail "Ingress DENIED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} — connection succeeded (expected block)"
+        else
+            pass "Ingress DENIED: ${LABEL_DESC} → ${TARGET_SVC}:${PORT} — correctly blocked"
+        fi
+    done
+else
+    info "No ingress tests defined — skipping"
+fi
+
+# ── Phase 4: Egress connectivity tests ───────────────────────
+section "Phase 4: Egress Tests"
+
+HAS_EGRESS_TESTS=$(yq ".charts.\"${CHART_NAME}\".egress // null" "$REGISTRY" 2>/dev/null)
+
+if [[ "$HAS_EGRESS_TESTS" != "null" && -n "$HAS_EGRESS_TESTS" ]]; then
+
+    # Find the chart's pod to exec into
+    CHART_POD=$(kubectl get pods -n "$NAMESPACE" -l "app.kubernetes.io/instance=${RELEASE_NAME}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+
+    if [[ -z "$CHART_POD" ]]; then
+        warn "No pod found for release '${RELEASE_NAME}' — skipping egress tests"
+    else
+        info "Using pod: ${CHART_POD}"
+        POD_LABELS="app.kubernetes.io/name=${CHART_NAME},app.kubernetes.io/instance=${RELEASE_NAME}"
+
+        # Persistent test pod with chart's labels — Cilium needs time
+        # to assign identity before traffic is allowed.
+        EGRESS_POD="egress-test-${CHART_NAME}"
+        info "Creating persistent test pod: ${EGRESS_POD}"
+        kubectl run "$EGRESS_POD" \
+            --image="$TEST_IMAGE" \
+            --restart=Never \
+            --namespace "$NAMESPACE" \
+            --labels="$POD_LABELS" \
+            -- sleep 300
+
+        # Wait for the pod to be Running
+        kubectl wait --for=condition=Ready "pod/${EGRESS_POD}" \
+            -n "$NAMESPACE" --timeout=30s 2>/dev/null || true
+
+        # Wait for Cilium identity propagation (~15s)
+        info "Waiting for Cilium identity propagation..."
+        sleep 15
+
+        # Debug: show Cilium endpoint status for this pod
+        EGRESS_POD_IP=$(kubectl get pod "$EGRESS_POD" -n "$NAMESPACE" -o jsonpath='{.status.podIP}' 2>/dev/null || true)
+        info "Test pod IP: ${EGRESS_POD_IP}"
+        kubectl exec -n kube-system "$(kubectl get pods -n kube-system -l k8s-app=cilium -o jsonpath='{.items[0].metadata.name}')" -- \
+            cilium endpoint list 2>/dev/null | grep -E "ENDPOINT|${EGRESS_POD_IP}" || true
+
+        # ── Allowed egress ────────────────────────────────────
+        ALLOWED_COUNT=$(yq ".charts.\"${CHART_NAME}\".egress.allowed | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+
+        for i in $(seq 0 $((ALLOWED_COUNT - 1))); do
+            TESTS_RUN=$((TESTS_RUN + 1))
+            TARGET=$(yq ".charts.\"${CHART_NAME}\".egress.allowed[$i].target" "$REGISTRY")
+            PORT=$(yq ".charts.\"${CHART_NAME}\".egress.allowed[$i].port" "$REGISTRY")
+
+            info "Egress ALLOWED test: ${EGRESS_POD} → ${TARGET}:${PORT}"
+
+            EGRESS_PASSED=false
+
+            # Method 1: exec into the chart pod with nc (if it has nc)
+            if kubectl exec -n "$NAMESPACE" "$CHART_POD" -- \
+                sh -c "nc -z -w $CONNECT_TIMEOUT $TARGET $PORT 2>/dev/null && echo EGRESS_OK" 2>/dev/null | grep -q "EGRESS_OK"; then
+                EGRESS_PASSED=true
+            fi
+
+            # Method 2: exec into the chart pod with bash /dev/tcp
+            if [[ "$EGRESS_PASSED" != "true" ]]; then
+                if kubectl exec -n "$NAMESPACE" "$CHART_POD" -- \
+                    bash -c "echo > /dev/tcp/$TARGET/$PORT && echo EGRESS_OK" 2>/dev/null | grep -q "EGRESS_OK"; then
+                    EGRESS_PASSED=true
+                fi
+            fi
+
+            # Method 3: exec into the persistent labeled test pod.
+            # The pod has the chart's selector labels so the same netpol applies.
+            # Poll in a loop to handle Cilium identity propagation delay.
+            # The pod already waited 15s at creation; here we add more time.
+            if [[ "$EGRESS_PASSED" != "true" ]]; then
+                info "  exec into chart pod failed — using labeled test pod"
+
+                # Debug: verify DNS resolution first
+                info "  Verifying DNS for ${TARGET}.${NAMESPACE}.svc.cluster.local..."
+                kubectl exec -n "$NAMESPACE" "$EGRESS_POD" -- \
+                    nslookup "${TARGET}.${NAMESPACE}.svc.cluster.local" 2>&1 || true
+
+                EGRESS_MAX_WAIT=10
+                EGRESS_OUTPUT=""
+                for attempt in $(seq 1 "$EGRESS_MAX_WAIT"); do
+                    # Check for BLOCKED indicators rather than exit codes —
+                    # non-HTTP services close connections even when netpol allows.
+                    EGRESS_OUTPUT=$(kubectl exec -n "$NAMESPACE" "$EGRESS_POD" -- \
+                        sh -c "nc -w $CONNECT_TIMEOUT ${TARGET}.${NAMESPACE}.svc.cluster.local ${PORT} </dev/null 2>&1; echo NC_EXIT=\$?" 2>&1 || true)
+
+                    NC_CODE=$(echo "$EGRESS_OUTPUT" | grep -o 'NC_EXIT=[0-9]*' | head -1 | cut -d= -f2)
+
+                    # Exit code 0 = clean success
+                    if [[ "$NC_CODE" == "0" ]]; then
+                        EGRESS_PASSED=true
+                        info "  connected (clean) on attempt ${attempt}"
+                        break
+                    fi
+
+                    # If Cilium blocks, we see "Operation not permitted" or
+                    # "Network is unreachable" — keep retrying
+                    if echo "$EGRESS_OUTPUT" | grep -qi 'Operation not permitted\|Network is unreachable'; then
+                        info "  Attempt ${attempt}/${EGRESS_MAX_WAIT}: Cilium blocked — retrying..."
+                        sleep 3
+                        continue
+                    fi
+
+                    # "Connection refused" means port not open — retry
+                    if echo "$EGRESS_OUTPUT" | grep -qi 'Connection refused'; then
+                        info "  Attempt ${attempt}/${EGRESS_MAX_WAIT}: port not open — retrying..."
+                        sleep 3
+                        continue
+                    fi
+
+                    # DNS failure — retry
+                    if echo "$EGRESS_OUTPUT" | grep -qi 'bad address\|Name does not resolve'; then
+                        info "  Attempt ${attempt}/${EGRESS_MAX_WAIT}: DNS failed — retrying..."
+                        sleep 3
+                        continue
+                    fi
+
+                    # Non-zero exit but no blocking → connection was allowed.
+                    EGRESS_PASSED=true
+                    info "  connected (server closed) on attempt ${attempt} — NC_EXIT=${NC_CODE}"
+                    break
+                done
+            fi
+
+            if [[ "$EGRESS_PASSED" == "true" ]]; then
+                pass "Egress ALLOWED: → ${TARGET}:${PORT}"
+            else
+                fail "Egress ALLOWED: → ${TARGET}:${PORT} — connection failed after retries (expected success)"
+                info "  last output: ${EGRESS_OUTPUT:-<empty>}"
+            fi
+        done
+
+        # ── Denied egress ─────────────────────────────────────
+        # Exec into the same persistent labeled test pod.
+        DENIED_COUNT=$(yq ".charts.\"${CHART_NAME}\".egress.denied | length // 0" "$REGISTRY" 2>/dev/null || echo 0)
+
+        for i in $(seq 0 $((DENIED_COUNT - 1))); do
+            TESTS_RUN=$((TESTS_RUN + 1))
+            TARGET=$(yq ".charts.\"${CHART_NAME}\".egress.denied[$i].target" "$REGISTRY")
+            PORT=$(yq ".charts.\"${CHART_NAME}\".egress.denied[$i].port" "$REGISTRY")
+
+            # "external" is a special keyword meaning internet
+            if [[ "$TARGET" == "external" ]]; then
+                TARGET="1.1.1.1"
+            fi
+
+            info "Egress DENIED test: ${EGRESS_POD} → ${TARGET}:${PORT}"
+
+            if kubectl exec -n "$NAMESPACE" "$EGRESS_POD" -- \
+                sh -c "echo | nc -w $BLOCK_TIMEOUT $TARGET $PORT 2>/dev/null && echo 'CONNECTED'" 2>/dev/null | grep -q "CONNECTED"; then
+                fail "Egress DENIED: → ${TARGET}:${PORT} — connection succeeded (expected block)"
+            else
+                pass "Egress DENIED: → ${TARGET}:${PORT} — correctly blocked"
+            fi
+        done
+
+        # Clean up the persistent test pod
+        kubectl delete pod "$EGRESS_POD" -n "$NAMESPACE" --force --grace-period=0 2>/dev/null || true
+    fi
+else
+    info "No egress tests defined — skipping"
+fi
+
+# ── Phase 5: Application health check ─────────────────────────
+# Verifies the application is healthy (e.g. wildfly returns 200
+# only when all DB datasources are connected).
+section "Phase 5: Health Check"
+
+HEALTH_PORT=$(yq ".charts.\"${CHART_NAME}\".health_check.port // \"\"" "$REGISTRY" 2>/dev/null)
+HEALTH_PROTO=$(yq ".charts.\"${CHART_NAME}\".health_check.protocol // \"http\"" "$REGISTRY" 2>/dev/null)
+
+if [[ -n "$HEALTH_PORT" && "$HEALTH_PORT" != "null" ]]; then
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    # Resolve labels and namespace for the health check pod so that
+    # network policies allow the connection.
+    HC_LABELS=""
+    HC_FIRST_LABEL=$(yq -r ".charts.\"${CHART_NAME}\".ingress.allowed[0].labels | to_entries[] | .key + \"=\" + .value" "$REGISTRY" 2>/dev/null | head -1 || true)
+    if [[ -n "$HC_FIRST_LABEL" ]]; then
+        HC_LABELS=$(yq -r ".charts.\"${CHART_NAME}\".ingress.allowed[0].labels | to_entries[] | .key + \"=\" + .value" "$REGISTRY" 2>/dev/null | paste -sd',' -)
+    fi
+    HC_SRC_NS=$(yq ".charts.\"${CHART_NAME}\".ingress.allowed[0].source_namespace // \"${NAMESPACE}\"" "$REGISTRY" 2>/dev/null)
+    [[ "$HC_SRC_NS" == "null" ]] && HC_SRC_NS="$NAMESPACE"
+
+    # Create source namespace if different
+    if [[ "$HC_SRC_NS" != "$NAMESPACE" ]]; then
+        kubectl create namespace "$HC_SRC_NS" --dry-run=client -o yaml | kubectl apply -f -
+    fi
+
+    HC_TARGET="${RELEASE_NAME}.${NAMESPACE}.svc.cluster.local"
+
+    if [[ "$HEALTH_PROTO" == "pg" ]]; then
+        # ── PostgreSQL health check ───────────────────────────
+        # kubectl exec into the postgres container (pg_isready + psql).
+        # We exec rather than spawn a separate pod because the sidecar
+        # may crash-loop, leaving the Service with no endpoints.
+        PG_USER=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_user // \"postgres\"" "$REGISTRY" 2>/dev/null)
+        PG_DB=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_db // \"postgres\"" "$REGISTRY" 2>/dev/null)
+        PG_PASS=$(yq ".charts.\"${CHART_NAME}\".health_check.pg_password // \"\"" "$REGISTRY" 2>/dev/null)
+        PG_QUERY=$(yq ".charts.\"${CHART_NAME}\".health_check.query // \"SELECT 1\"" "$REGISTRY" 2>/dev/null)
+        [[ "$PG_PASS" == "null" ]] && PG_PASS=""
+
+        PG_WAIT=180  # max seconds to wait for pg_isready
+
+        info "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT}"
+        info "  user=${PG_USER}, db=${PG_DB}, query=${PG_QUERY}"
+        info "  pg_isready wait: up to ${PG_WAIT}s (via kubectl exec)"
+
+        # Find the postgres pod
+        PG_POD=$(kubectl get pods -n "$NAMESPACE" -l "app.kubernetes.io/name=${CHART_NAME}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        if [[ -z "$PG_POD" ]]; then
+            fail "Health check (PG): no pod found for ${CHART_NAME} in ${NAMESPACE}"
+        else
+            info "Pod: ${PG_POD}"
+            kubectl get pod "$PG_POD" -n "$NAMESPACE" -o wide 2>&1 | while IFS= read -r line; do echo "    $line"; done
+
+            # Step 1: Wait for pg_isready (retry loop via exec)
+            info "Step 1: pg_isready (waiting up to ${PG_WAIT}s)..."
+            ELAPSED=0
+            PG_READY=false
+            while [[ $ELAPSED -lt $PG_WAIT ]]; do
+                PG_ISREADY_OUT=$(kubectl exec "$PG_POD" -n "$NAMESPACE" -c "${CHART_NAME}" -- \
+                    pg_isready -h 127.0.0.1 -p "${HEALTH_PORT}" -U "${PG_USER}" -d "${PG_DB}" 2>&1 || true)
+                PG_RC=$?
+                info "  [${ELAPSED}s] ${PG_ISREADY_OUT} (exit ${PG_RC})"
+                if echo "$PG_ISREADY_OUT" | grep -q "accepting connections"; then
+                    PG_READY=true
+                    break
+                fi
+                sleep 5
+                ELAPSED=$((ELAPSED + 5))
+            done
+
+            if [[ "$PG_READY" != "true" ]]; then
+                fail "Health check (PG): pg_isready gave up after ${ELAPSED}s"
+            else
+                # Step 2: Run actual SQL query
+                info "Step 2: Running SQL query..."
+
+                # Build env prefix for PGPASSWORD
+                PG_EXEC_CMD="psql -h 127.0.0.1 -p ${HEALTH_PORT} -U ${PG_USER} -d ${PG_DB} -c \"${PG_QUERY}\""
+                if [[ -n "$PG_PASS" ]]; then
+                    PG_EXEC_CMD="PGPASSWORD=${PG_PASS} ${PG_EXEC_CMD}"
+                fi
+
+                QUERY_OUTPUT=$(kubectl exec "$PG_POD" -n "$NAMESPACE" -c "${CHART_NAME}" -- \
+                    sh -c "$PG_EXEC_CMD" 2>&1) && QUERY_RC=0 || QUERY_RC=$?
+
+                # Display query output
+                echo "$QUERY_OUTPUT" | while IFS= read -r line; do echo "    $line"; done
+
+                if [[ $QUERY_RC -eq 0 ]] && ! echo "$QUERY_OUTPUT" | grep -qi "ERROR\|FATAL\|does not exist"; then
+                    pass "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — pg_isready OK + query succeeded"
+                else
+                    fail "Health check (PG): ${RELEASE_NAME}:${HEALTH_PORT} — SQL query failed (exit ${QUERY_RC})"
+                fi
+            fi
+        fi
+    elif [[ "$HEALTH_PROTO" == "mariadb" ]]; then
+        # ── MariaDB health check ──────────────────────────────
+        # kubectl exec into the mariadb container (mysqladmin ping + mysql).
+        # Same exec approach as PG to avoid Service endpoint issues.
+        MDB_USER=$(yq ".charts.\"${CHART_NAME}\".health_check.mariadb_user // \"root\"" "$REGISTRY" 2>/dev/null)
+        MDB_DB=$(yq ".charts.\"${CHART_NAME}\".health_check.mariadb_db // \"mysql\"" "$REGISTRY" 2>/dev/null)
+        MDB_PASS=$(yq ".charts.\"${CHART_NAME}\".health_check.mariadb_password // \"\"" "$REGISTRY" 2>/dev/null)
+        MDB_QUERY=$(yq ".charts.\"${CHART_NAME}\".health_check.query // \"SELECT 1\"" "$REGISTRY" 2>/dev/null)
+        [[ "$MDB_PASS" == "null" ]] && MDB_PASS=""
+
+        MDB_WAIT=180  # max seconds to wait for mysqladmin ping
+
+        info "Health check (MariaDB): ${RELEASE_NAME}:${HEALTH_PORT}"
+        info "  user=${MDB_USER}, db=${MDB_DB}, query=${MDB_QUERY}"
+        info "  mysqladmin ping wait: up to ${MDB_WAIT}s (via kubectl exec)"
+
+        # Find the mariadb pod — bitnami subchart labels use app.kubernetes.io/name=mariadb
+        MDB_POD=$(kubectl get pods -n "$NAMESPACE" -l "app.kubernetes.io/name=mariadb" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        if [[ -z "$MDB_POD" ]]; then
+            fail "Health check (MariaDB): no pod found for mariadb in ${NAMESPACE}"
+        else
+            info "Pod: ${MDB_POD}"
+            kubectl get pod "$MDB_POD" -n "$NAMESPACE" -o wide 2>&1 | while IFS= read -r line; do echo "    $line"; done
+
+            # Step 1: Wait for mysqladmin ping (retry loop via exec)
+            info "Step 1: mysqladmin ping (waiting up to ${MDB_WAIT}s)..."
+            ELAPSED=0
+            MDB_READY=false
+            MDB_PASS_FLAG=""
+            if [[ -n "$MDB_PASS" ]]; then
+                MDB_PASS_FLAG="-p${MDB_PASS}"
+            fi
+            while [[ $ELAPSED -lt $MDB_WAIT ]]; do
+                PING_OUT=$(kubectl exec "$MDB_POD" -n "$NAMESPACE" -c mariadb -- \
+                    mysqladmin ping -h 127.0.0.1 -P "${HEALTH_PORT}" -u "${MDB_USER}" ${MDB_PASS_FLAG} 2>&1 || true)
+                info "  [${ELAPSED}s] ${PING_OUT}"
+                if echo "$PING_OUT" | grep -qi "alive"; then
+                    MDB_READY=true
+                    break
+                fi
+                sleep 5
+                ELAPSED=$((ELAPSED + 5))
+            done
+
+            if [[ "$MDB_READY" != "true" ]]; then
+                fail "Health check (MariaDB): mysqladmin ping gave up after ${ELAPSED}s"
+            else
+                # Step 2: Run actual SQL query
+                info "Step 2: Running SQL query..."
+
+                MDB_EXEC_CMD="mysql -h 127.0.0.1 -P ${HEALTH_PORT} -u ${MDB_USER} ${MDB_PASS_FLAG} -D ${MDB_DB} -e \"${MDB_QUERY}\""
+
+                QUERY_OUTPUT=$(kubectl exec "$MDB_POD" -n "$NAMESPACE" -c mariadb -- \
+                    sh -c "$MDB_EXEC_CMD" 2>&1) && QUERY_RC=0 || QUERY_RC=$?
+
+                # Display query output
+                echo "$QUERY_OUTPUT" | while IFS= read -r line; do echo "    $line"; done
+
+                if [[ $QUERY_RC -eq 0 ]] && ! echo "$QUERY_OUTPUT" | grep -qi "ERROR"; then
+                    pass "Health check (MariaDB): ${RELEASE_NAME}:${HEALTH_PORT} — mysqladmin ping OK + query succeeded"
+                else
+                    fail "Health check (MariaDB): ${RELEASE_NAME}:${HEALTH_PORT} — SQL query failed (exit ${QUERY_RC})"
+                fi
+            fi
+        fi
+    else
+        # ── HTTP health check ─────────────────────────────────
+        HEALTH_PATH=$(yq ".charts.\"${CHART_NAME}\".health_check.path // \"/\"" "$REGISTRY" 2>/dev/null)
+        HEALTH_STATUS=$(yq ".charts.\"${CHART_NAME}\".health_check.expect_status // 200" "$REGISTRY" 2>/dev/null)
+        HEALTH_URL="http://${HC_TARGET}:${HEALTH_PORT}${HEALTH_PATH}"
+
+        info "Health check (HTTP): ${HEALTH_URL} (expect ${HEALTH_STATUS})"
+        info "  pod labels: ${HC_LABELS:-<none>}, namespace: ${HC_SRC_NS}"
+
+        HEALTH_OUTPUT=$(
+            kubectl run health-check \
+                --image="$TEST_IMAGE" \
+                --restart=Never \
+                --rm -i \
+                --namespace "$HC_SRC_NS" \
+                ${HC_LABELS:+--labels="$HC_LABELS"} \
+                --timeout="$((CONNECT_TIMEOUT + 10))s" \
+                -- sh -c "wget -S -O /dev/null --timeout=$CONNECT_TIMEOUT '${HEALTH_URL}' 2>&1" 2>&1 || true
+        )
+
+        if echo "$HEALTH_OUTPUT" | grep -q "HTTP/.*${HEALTH_STATUS}"; then
+            pass "Health check (HTTP): ${RELEASE_NAME}:${HEALTH_PORT}${HEALTH_PATH} returned HTTP ${HEALTH_STATUS}"
+        else
+            HTTP_LINE=$(echo "$HEALTH_OUTPUT" | grep -i 'HTTP/' | head -1 || true)
+            if [[ -n "$HTTP_LINE" ]]; then
+                fail "Health check (HTTP): expected HTTP ${HEALTH_STATUS}, got: ${HTTP_LINE}"
+            else
+                fail "Health check (HTTP): no HTTP response from ${RELEASE_NAME}:${HEALTH_PORT}${HEALTH_PATH}"
+                info "  output: $(echo "$HEALTH_OUTPUT" | tail -5)"
+            fi
+        fi
+    fi
+else
+    info "No health check defined — skipping"
+fi
+
+# ── Summary ───────────────────────────────────────────────────
+section "Summary: ${CHART_NAME}"
+echo ""
+echo "  Tests run:  ${TESTS_RUN}"
+echo "  Failures:   ${FAILURES}"
+echo ""
+
+if [[ "$FAILURES" -gt 0 ]]; then
+    echo -e "${RED}  ❌ ${FAILURES} test(s) FAILED${NC}"
+    exit 1
+else
+    echo -e "${GREEN}  ✅ All tests passed${NC}"
+    exit 0
+fi

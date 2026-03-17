@@ -1,0 +1,44 @@
+# CI test values for i2b2-wildfly with Cilium L7 WAF enabled.
+# Used when testing CiliumNetworkPolicy enforcement specifically.
+# Usage: referenced from chart-tests.yaml via values_file when testing Cilium mode.
+#
+# Note: This file uses Cilium-format ingress/egress rules (fromEndpoints/toEndpoints/toPorts)
+# instead of the K8s-format (from/to/ports) used in the default values.yaml.
+
+networkPolicy:
+  enabled: true
+  enabled_l7_waf: true
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: ingress-nginx
+        app.kubernetes.io/name: ingress-nginx
+        app.kubernetes.io/component: controller
+    toPorts:
+    - ports:
+      - port: "8080"
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        app.kubernetes.io/name: i2b2-frontend
+    toPorts:
+    - ports:
+      - port: "8080"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app.kubernetes.io/name: i2b2-postgres
+    toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+
+# Disable features that won't work in Kind
+ingress:
+  enabled: false
+
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
