@@ -90,7 +90,7 @@ gitlab:
     gitaly:
       priorityClassName: high-priority
       persistence:
-        size: 200Gi
+        size: 50Gi
     gitlab-shell:
       priorityClassName: medium-priority
     migrations:
