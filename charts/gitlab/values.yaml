@@ -1,0 +1,113 @@
+gitlab:
+  global:
+    edition: ce
+
+    hosts:
+      domain: gitlab.chorus-tre.local
+
+    ingress:
+      configureCertmanager: false
+      class: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      tls:
+        enabled: true
+
+    psql:
+      host: chorus-local-gitlab-db-postgresql
+      port: 5432
+      database: gitlabhq_production
+      username: gitlab
+      password:
+        secret: gitlab-db-secret
+        key: password
+
+    redis:
+      host: chorus-local-gitlab-cache-valkey-primary
+      port: 6379
+      auth:
+        enabled: true
+        secret: gitlab-cache-secret
+        key: valkey-password
+
+    minio:
+      enabled: false
+
+    kas:
+      enabled: false
+
+    registry:
+      enabled: false
+
+    monitoring:
+      enabled: true
+
+    appConfig:
+      object_store:
+        enabled: false
+      lfs:
+        enabled: false
+      artifacts:
+        enabled: false
+      uploads:
+        enabled: false
+      packages:
+        enabled: false
+      omniauth:
+        enabled: false
+      smtp:
+        enabled: false
+
+    gitaly:
+      authToken:
+        secret: gitlab-gitaly-secret
+        key: token
+
+    initialRootPassword:
+      secret: gitlab-initial-root-password
+      key: password
+
+  # Disable bundled subcharts (we supply our own)
+  postgresql:
+    install: false
+  redis:
+    install: false
+  registry:
+    enabled: false
+  gitlab-runner:
+    install: false
+  kas:
+    enabled: false
+  prometheus:
+    install: false
+  nginx-ingress:
+    enabled: false
+  upgradeCheck:
+    enabled: false
+
+  # Component tuning
+  gitlab:
+    webservice:
+      priorityClassName: high-priority
+      minReplicas: 1
+      maxReplicas: 1
+    sidekiq:
+      priorityClassName: medium-priority
+    gitaly:
+      priorityClassName: high-priority
+      persistence:
+        size: 50Gi
+    gitlab-shell:
+      priorityClassName: medium-priority
+    migrations:
+      priorityClassName: high-priority
+    toolbox:
+      enabled: false
+    gitlab-exporter:
+      enabled: true
+      priorityClassName: low-priority
+
+  networkpolicy:
+    enabled: false
