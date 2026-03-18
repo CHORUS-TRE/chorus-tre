@@ -47,6 +47,14 @@ gitlab:
     appConfig:
       object_store:
         enabled: false
+      lfs:
+        enabled: false
+      artifacts:
+        enabled: false
+      uploads:
+        enabled: false
+      packages:
+        enabled: false
       omniauth:
         enabled: false
       smtp:
@@ -96,8 +104,7 @@ gitlab:
     migrations:
       priorityClassName: high-priority
     toolbox:
-      enabled: true
-      priorityClassName: batch-priority
+      enabled: false
     gitlab-exporter:
       enabled: true
       priorityClassName: low-priority
