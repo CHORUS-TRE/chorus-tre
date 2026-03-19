@@ -310,8 +310,8 @@ spec:
                     sidecars:
                       - name: dind
                         image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
-                        command: ["dockerd-entrypoint.sh"]
-                        args: ["--default-cgroupns-mode=host", "--storage-driver=vfs"]
+                        command: ["sh", "-c"]
+                        args: ["sysctl -w fs.inotify.max_user_watches=1048576; sysctl -w fs.inotify.max_user_instances=512; exec dockerd-entrypoint.sh --default-cgroupns-mode=host --storage-driver=vfs"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
                             value: ""
@@ -346,8 +346,6 @@ spec:
                           echo "=== Disk usage ===";
                           df -h /var/lib/docker;
                           echo "===================";
-                          sysctl -w fs.inotify.max_user_watches=1048576;
-                          sysctl -w fs.inotify.max_user_instances=512;
                           kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KIND_NODE_VERSION}" --wait 300s ||
                           { echo "=== Kind failed, dumping kubelet logs ===";
                             docker exec chart-testing-control-plane journalctl -u kubelet --no-pager -n 80 2>/dev/null || true;
