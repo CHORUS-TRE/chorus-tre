@@ -232,7 +232,7 @@ spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
                         requests:
-                          storage: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageRequest | default "20Gi" | quote }}
+                          storage: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageRequest | default "40Gi" | quote }}
                       storageClassName: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
 
                 arguments:
@@ -346,6 +346,8 @@ spec:
                           echo "=== Disk usage ===";
                           df -h /var/lib/docker;
                           echo "===================";
+                          kind delete cluster --name chart-testing 2>/dev/null || true;
+                          docker system prune -af 2>/dev/null || true;
                           kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KIND_NODE_VERSION}" --wait 300s ||
                           { echo "=== Kind failed, dumping kubelet logs ===";
                             docker exec chart-testing-control-plane journalctl -u kubelet --no-pager -n 80 2>/dev/null || true;
