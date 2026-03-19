@@ -311,7 +311,7 @@ spec:
                       - name: dind
                         image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
                         command: ["dockerd-entrypoint.sh"]
-                        args: ["--default-cgroupns-mode=host", "--storage-driver=fuse-overlayfs"]
+                        args: ["--default-cgroupns-mode=host", "--storage-driver=vfs"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
                             value: ""
