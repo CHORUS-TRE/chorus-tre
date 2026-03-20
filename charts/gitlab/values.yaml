@@ -105,6 +105,8 @@ gitlab:
       priorityClassName: high-priority
     toolbox:
       enabled: true
+      backups:
+        enabled: false
     gitlab-exporter:
       enabled: true
       priorityClassName: low-priority
