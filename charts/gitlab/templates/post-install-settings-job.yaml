@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-post-install-settings
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: settings
+          image: postgres:16
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-db-secret
+                  key: postgres-password
+          command:
+            - psql
+            - -h
+            - {{ .Values.gitlab.global.psql.host }}
+            - -U
+            - postgres
+            - -d
+            - gitlabhq_production
+            - -c
+            - "UPDATE application_settings SET ci_cd_settings = ci_cd_settings || '{\"ci_job_live_trace_enabled\": false}'::jsonb;"

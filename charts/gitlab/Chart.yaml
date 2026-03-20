@@ -1,7 +1,7 @@
 apiVersion: v2
 description: Web-based Git-repository manager with wiki and issue-tracking features.
 name: gitlab
-version: 0.0.1
+version: 0.0.2
 dependencies:
   - name: gitlab
     version: 9.9.3
