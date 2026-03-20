@@ -311,7 +311,7 @@ spec:
                       - name: dind
                         image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
                         command: ["sh", "-c"]
-                        args: ["sysctl -w fs.inotify.max_user_watches=1048576; sysctl -w fs.inotify.max_user_instances=512; exec dockerd-entrypoint.sh --default-cgroupns-mode=host --storage-driver=vfs"]
+                        args: ["apk add --no-cache fuse-overlayfs && sysctl -w fs.inotify.max_user_watches=1048576; sysctl -w fs.inotify.max_user_instances=512; exec dockerd-entrypoint.sh --default-cgroupns-mode=host --storage-driver=fuse-overlayfs"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
                             value: ""
