@@ -104,7 +104,7 @@ gitlab:
     migrations:
       priorityClassName: high-priority
     toolbox:
-      enabled: false
+      enabled: true
     gitlab-exporter:
       enabled: true
       priorityClassName: low-priority
