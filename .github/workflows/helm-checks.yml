@@ -51,6 +51,7 @@ jobs:
           REPOS=$(grep 'repository:' $chart/Chart.yaml | awk '{print $2}' | sort -u || true)
 
           # Add each repository if REPOS is not empty
+          REPOS_ADDED=false
           if [ -n "$REPOS" ]; then
             for repo in $REPOS; do
                 if [[ $repo == oci://* ]]; then
@@ -60,12 +61,13 @@ jobs:
               # Use everything after https:// as the repo name (replace / with -)
               repo_name=$(echo "$repo" | sed -E 's|^https?://||;s|/|-|g')
               helm repo add "$repo_name" "$repo"
+              REPOS_ADDED=true
             done
           fi
         done
 
         # Update Helm repositories if any were added
-        if [ -n "$REPOS" ]; then
+        if [ "$REPOS_ADDED" = "true" ]; then
           helm repo update
         else
           echo "No repositories to update."
