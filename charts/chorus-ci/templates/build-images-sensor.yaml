@@ -25,7 +25,6 @@ spec:
               - "server/*"
               - "app-init/*"
               - "apps/*/.*"
-              - "services/*/.*"
 
           - path: "body.ref"
             type: string

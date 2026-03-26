@@ -223,7 +223,7 @@ spec:
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
                 entrypoint: e2e
-                activeDeadlineSeconds: 1200
+                activeDeadlineSeconds: 1800
 
                 volumeClaimTemplates:
                   - metadata:
@@ -232,7 +232,7 @@ spec:
                       accessModes: ["ReadWriteOnce"]
                       resources:
                         requests:
-                          storage: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageRequest | default "20Gi" | quote }}
+                          storage: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageRequest | default "40Gi" | quote }}
                       storageClassName: {{ .Values.chorusWorkbenchOperator.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
 
                 arguments:
@@ -291,6 +291,8 @@ spec:
                       - - name: run-e2e-tests
                           template: run-e2e-tests
                   - name: run-e2e-tests
+                    retryStrategy:
+                      limit: 2
                     inputs:
                       artifacts:
                         - name: git
@@ -308,8 +310,8 @@ spec:
                     sidecars:
                       - name: dind
                         image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
-                        command: ["dockerd-entrypoint.sh"]
-                        args: ["--default-cgroupns-mode=host"]
+                        command: ["sh", "-c"]
+                        args: ["apk add --no-cache fuse-overlayfs && sysctl -w fs.inotify.max_user_watches=1048576; sysctl -w fs.inotify.max_user_instances=512; exec dockerd-entrypoint.sh --default-cgroupns-mode=host --storage-driver=fuse-overlayfs"]
                         env:
                           - name: DOCKER_TLS_CERTDIR
                             value: ""
@@ -338,8 +340,19 @@ spec:
                           curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz | tar xz -C /tmp && mv /tmp/docker/docker /usr/local/bin/;
                           curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.31.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind;
                           curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KIND_NODE_VERSION}/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl;
-                          until docker ps; do sleep 3; done;
-                          kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KIND_NODE_VERSION}" --wait 60s;
+                          until docker info >/dev/null 2>&1; do sleep 3; done;
+                          echo "=== Docker info ===";
+                          docker info;
+                          echo "=== Disk usage ===";
+                          df -h /var/lib/docker;
+                          echo "===================";
+                          kind delete cluster --name chart-testing 2>/dev/null || true;
+                          docker system prune -af 2>/dev/null || true;
+                          kind create cluster --config kind-config.yaml --name chart-testing --image "kindest/node:${KIND_NODE_VERSION}" --wait 300s ||
+                          { echo "=== Kind failed, dumping kubelet logs ===";
+                            docker exec chart-testing-control-plane journalctl -u kubelet --no-pager -n 80 2>/dev/null || true;
+                            docker exec chart-testing-control-plane journalctl -u containerd --no-pager -n 40 2>/dev/null || true;
+                            exit 1; };
                           make test-e2e
                       workingDir: "/src"
 
