@@ -11,9 +11,13 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      {{- with ((.Values.postInstallJob).imagePullSecrets) }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: settings
-          image: postgres:16
+          image: {{ ((.Values.postInstallJob).image) | default "postgres:16" }}
           env:
             - name: PGPASSWORD
               valueFrom:
