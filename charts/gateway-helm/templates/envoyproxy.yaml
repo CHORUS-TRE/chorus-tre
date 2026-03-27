@@ -1,6 +1,3 @@
-{{- if not .Values.podCIDR -}}
-  {{- fail "podCIDR is required: set it to the cluster pod CIDR." -}}
-{{- end -}}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
