@@ -4,6 +4,8 @@ cert-manager:
     keep: true
   global:
     priorityClassName: high-priority
+  config:
+    enableGatewayAPI: true
 
 # A ClusterIssuer
 # See: https://cert-manager.io/docs/concepts/issuer/
