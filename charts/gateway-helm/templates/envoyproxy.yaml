@@ -1,0 +1,29 @@
+{{- $clusterCIDR := .Values.podCIDR -}}
+{{- if not $clusterCIDR -}}
+  {{- range (lookup "v1" "Pod" "kube-system" "").items -}}
+    {{- if hasPrefix "kube-controller-manager" .metadata.name -}}
+      {{- range .spec.containers -}}
+        {{- range .command -}}
+          {{- if hasPrefix "--cluster-cidr=" . -}}
+            {{- $clusterCIDR = trimPrefix "--cluster-cidr=" . -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: chorus-proxy
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        externalTrafficPolicy: Local
+        {{- if $clusterCIDR }}
+        loadBalancerSourceRanges:
+          - {{ $clusterCIDR | quote }}
+        {{- end }}

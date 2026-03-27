@@ -1,0 +1,10 @@
+gateway-helm:
+  deployment:
+    priorityClassName: high-priority
+
+# Override auto-detected cluster pod CIDR for loadBalancerSourceRanges (optional)
+podCIDR: ""
+
+tls:
+  hostname: "*.chorus-tre.local"
+  secretName: gateway-helm-tls
