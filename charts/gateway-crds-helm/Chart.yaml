@@ -1,0 +1,12 @@
+apiVersion: v2
+description: A Helm chart for Envoy Gateway CRDs
+name: gateway-crds-helm
+version: 0.0.1
+dependencies:
+  - name: gateway-crds-helm
+    version: v1.4.1
+    repository: oci://docker.io/envoyproxy/gateway-crds-helm
+
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch

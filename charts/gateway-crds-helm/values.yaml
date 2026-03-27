@@ -1,0 +1,7 @@
+gateway-crds-helm:
+  crds:
+    gatewayAPI:
+      enabled: true
+      channel: experimental  # required for TCPRoute (GitLab SSH port 22)
+    envoyGateway:
+      enabled: true
