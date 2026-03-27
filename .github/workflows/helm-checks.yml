@@ -73,7 +73,7 @@ jobs:
           echo "No repositories to update."
         fi
 
-    - name: Run helm lint
+    - name: Run helm lint (pre-dependency)
       if: env.MODIFIED_CHARTS != ''
       run: |
         for chart in ${{ env.MODIFIED_CHARTS }}; do
@@ -90,6 +90,13 @@ jobs:
           else
             echo "No dependencies to fetch for $chart"
           fi
+        done
+
+    - name: Run helm lint (post-dependency)
+      if: env.MODIFIED_CHARTS != ''
+      run: |
+        for chart in ${{ env.MODIFIED_CHARTS }}; do
+          helm lint $chart
         done
 
     - name: Run helm template
