@@ -9,6 +9,21 @@ gateway-helm:
 podCIDR: "10.42.0.0/16"
 
 tls:
-  hostname: "*.chorus-tre.local"
-  secretName: gateway-helm-tls
+  # ClusterIssuer used by cert-manager to provision TLS certificates.
   clusterIssuer: letsencrypt-prod
+
+  # One entry per hostname — cert-manager provisions one Certificate per listener.
+  # Must be set in environment values.
+  #
+  # Option A — per-hostname certs (HTTP01, no DNS access required):
+  #   listeners:
+  #     - hostname: gitlab.chorus-tre.local
+  #       secretName: gitlab-tls
+  #     - hostname: keycloak.chorus-tre.local
+  #       secretName: keycloak-tls
+  #
+  # Option B — wildcard cert (DNS01 required, e.g. Cloudflare):
+  #   listeners:
+  #     - hostname: "*.chorus-tre.local"
+  #       secretName: wildcard-tls
+  listeners: []
