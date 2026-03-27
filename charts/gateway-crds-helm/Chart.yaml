@@ -5,7 +5,7 @@ version: 0.0.1
 dependencies:
   - name: gateway-crds-helm
     version: v1.4.1
-    repository: oci://docker.io/envoyproxy/gateway-crds-helm
+    repository: oci://docker.io/envoyproxy
 
 maintainers:
   - name: iDmple
