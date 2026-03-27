@@ -86,7 +86,7 @@ jobs:
         for chart in ${{ env.MODIFIED_CHARTS }}; do
           # Check if Chart.yaml has dependencies
           if grep -q 'dependencies:' $chart/Chart.yaml; then
-            helm dependency build $chart
+            helm dependency update $chart
           else
             echo "No dependencies to fetch for $chart"
           fi
