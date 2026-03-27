@@ -1,5 +1,5 @@
 ---
-{{- with .Values.clusterissuer }}
+{{- with .Values.clusterissuer.http01 }}
 {{- if .enabled }}
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -19,5 +19,26 @@ spec:
     - http01:
         ingress:
           ingressClassName: nginx
+{{- end }}
+{{- end }}
+---
+{{- with .Values.clusterissuer.dns01 }}
+{{- if .enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .name }}
+spec:
+  acme:
+    # The ACME server URL
+    server: {{ .server | default "https://acme-v02.api.letsencrypt.org/directory" | quote }}
+    # Email address used for ACME registration
+    email: {{ .email | quote }}
+    # Name of a secret used to store the account's private key
+    privateKeySecretRef:
+      name: {{ .secret | default .name | quote }}
+    solvers:
+    - dns01:
+        {{- .solver | toYaml | nindent 8 }}
 {{- end }}
 {{- end }}

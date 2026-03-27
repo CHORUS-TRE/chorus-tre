@@ -10,8 +10,24 @@ cert-manager:
 # A ClusterIssuer
 # See: https://cert-manager.io/docs/concepts/issuer/
 clusterissuer:
-  enabled: true
-  # By default the production environment is used.
-  # server: https://acme-staging-v02.api.letsencrypt.org/directory
-  name: letsencrypt-prod
-  email: no-reply@example.com
+  http01:
+    enabled: true
+    # By default the production environment is used.
+    # server: https://acme-staging-v02.api.letsencrypt.org/directory
+    name: letsencrypt-prod
+    email: no-reply@example.com
+
+  dns01:
+    enabled: false
+    name: letsencrypt-prod-dns01
+    email: no-reply@example.com
+    # The solver block is intentionally generic — override it for your DNS provider.
+    # The API token / credentials must be stored in a Secret referenced by the solver.
+    # Example for Cloudflare:
+    #   solver:
+    #     cloudflare:
+    #       apiTokenSecretRef:
+    #         name: cloudflare-api-token
+    #         key: api-token
+    # See: https://cert-manager.io/docs/configuration/acme/dns01/
+    solver: {}
