@@ -2,9 +2,13 @@ gateway-helm:
   deployment:
     priorityClassName: high-priority
 
-# Override auto-detected cluster pod CIDR for loadBalancerSourceRanges (optional)
+# Cluster pod CIDR for loadBalancerSourceRanges — required.
+# To find it: kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'
+# Each node shows its /24 subnet (e.g. 192.168.0.0/24, 192.168.1.0/24).
+# Derive the cluster supernet by keeping the first two octets and using /16 (e.g. 192.168.0.0/16).
 podCIDR: ""
 
 tls:
   hostname: "*.chorus-tre.local"
   secretName: gateway-helm-tls
+  clusterIssuer: letsencrypt-prod

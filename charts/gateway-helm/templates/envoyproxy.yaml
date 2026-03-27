@@ -1,16 +1,5 @@
-{{- $clusterCIDR := .Values.podCIDR -}}
-{{- if not $clusterCIDR -}}
-  {{- range (lookup "v1" "Pod" "kube-system" "").items -}}
-    {{- if hasPrefix "kube-controller-manager" .metadata.name -}}
-      {{- range .spec.containers -}}
-        {{- range .command -}}
-          {{- if hasPrefix "--cluster-cidr=" . -}}
-            {{- $clusterCIDR = trimPrefix "--cluster-cidr=" . -}}
-          {{- end -}}
-        {{- end -}}
-      {{- end -}}
-    {{- end -}}
-  {{- end -}}
+{{- if not .Values.podCIDR -}}
+  {{- fail "podCIDR is required: set it to the cluster pod CIDR." -}}
 {{- end -}}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
@@ -23,7 +12,5 @@ spec:
     kubernetes:
       envoyService:
         externalTrafficPolicy: Local
-        {{- if $clusterCIDR }}
         loadBalancerSourceRanges:
-          - {{ $clusterCIDR | quote }}
-        {{- end }}
+          - {{ .Values.podCIDR | quote }}
