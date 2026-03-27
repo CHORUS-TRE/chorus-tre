@@ -46,12 +46,12 @@ jobs:
     - name: Add Helm repositories
       if: env.MODIFIED_CHARTS != ''
       run: |
+        REPOS_ADDED=false
         for chart in ${{ env.MODIFIED_CHARTS }}; do
           # Extract the repositories from Chart.yaml files
           REPOS=$(grep 'repository:' $chart/Chart.yaml | awk '{print $2}' | sort -u || true)
 
           # Add each repository if REPOS is not empty
-          REPOS_ADDED=false
           if [ -n "$REPOS" ]; then
             for repo in $REPOS; do
                 if [[ $repo == oci://* ]]; then
