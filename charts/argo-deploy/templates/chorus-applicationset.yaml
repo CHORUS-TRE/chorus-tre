@@ -75,4 +75,5 @@ spec:
           - CreateNamespace=true
           - preserveResourcesOnDeletion=true
           - {{ printf "'ServerSideApply={{if hasKey . \"serverSideApply\" }}{{ .serverSideApply }}{{ else }}false{{ end }}'" }}
+          - {{ printf "'SkipCrds={{if hasKey . \"skipCrds\" }}{{ .skipCrds }}{{ else }}false{{ end }}'" }}
 {{- end }}
