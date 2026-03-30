@@ -10,6 +10,8 @@ kind: ReferenceGrant
 metadata:
   name: chorus-gateway
   namespace: {{ $ns }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
 spec:
   from:
     - group: gateway.networking.k8s.io

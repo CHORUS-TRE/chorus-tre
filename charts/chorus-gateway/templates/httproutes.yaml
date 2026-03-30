@@ -5,6 +5,8 @@ kind: HTTPRoute
 metadata:
   name: {{ required "route.name is required" .name }}
   namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
 spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}

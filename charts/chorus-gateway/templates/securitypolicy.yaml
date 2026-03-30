@@ -5,6 +5,8 @@ kind: SecurityPolicy
 metadata:
   name: workspace-only
   namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" . | nindent 4 }}
 spec:
   targetRefs:
     {{- range .Values.routes }}
