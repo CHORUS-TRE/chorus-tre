@@ -1,3 +1,6 @@
+{{- if .Values.clusterissuer.enabled }}
+  {{- fail "clusterissuer.enabled is removed in 0.0.18 — migrate to clusterissuer.http01 / clusterissuer.dns01" }}
+{{- end }}
 ---
 {{- with .Values.clusterissuer.http01 }}
 {{- if .enabled }}
@@ -10,7 +13,7 @@ spec:
     # The ACME server URL
     server: {{ .server | default "https://acme-v02.api.letsencrypt.org/directory" | quote }}
     # Email address used for ACME registration
-    email: {{ .email | quote }}
+    email: {{ .email | default $.Values.clusterissuer.email | quote }}
     # Name of a secret used to store the account's private key
     privateKeySecretRef:
       name: {{ .secret | default .name | quote }}
@@ -21,9 +24,12 @@ spec:
           ingressClassName: nginx
 {{- end }}
 {{- end }}
----
 {{- with .Values.clusterissuer.dns01 }}
 {{- if .enabled }}
+{{- if not .solver }}
+  {{- fail "clusterissuer.dns01.solver must be set when dns01 is enabled" }}
+{{- end }}
+---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -33,7 +39,7 @@ spec:
     # The ACME server URL
     server: {{ .server | default "https://acme-v02.api.letsencrypt.org/directory" | quote }}
     # Email address used for ACME registration
-    email: {{ .email | quote }}
+    email: {{ .email | default $.Values.clusterissuer.email | quote }}
     # Name of a secret used to store the account's private key
     privateKeySecretRef:
       name: {{ .secret | default .name | quote }}
