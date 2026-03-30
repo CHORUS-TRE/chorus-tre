@@ -1,0 +1,24 @@
+{{- if .Values.routes }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: workspace-only
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    {{- range .Values.routes }}
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ .name }}
+    {{- end }}
+  authorization:
+    defaultAction: Deny
+    rules:
+      - action: Allow
+        principal:
+          clientCIDRs:
+            - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
+{{- end }}
