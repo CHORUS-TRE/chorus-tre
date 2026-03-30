@@ -1,0 +1,30 @@
+# Cluster pod CIDR — used in SecurityPolicy to restrict access to workspace pods only.
+# Must match the value set in gateway-helm.
+# Must be set in environment values.
+# To find it: kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'
+# Each node shows its /24 subnet (e.g. 192.168.0.0/24, 192.168.1.0/24).
+# Derive the cluster supernet by keeping the first two octets and using /16 (e.g. 192.168.0.0/16).
+podCIDR: "10.42.0.0/16"
+
+# Gateway reference — all HTTPRoutes attach to this Gateway.
+gateway:
+  name: chorus-gateway
+  namespace: envoy-gateway-system
+
+# Internal service routes — each entry creates an HTTPRoute and ReferenceGrant.
+# All routes are restricted to pod CIDR only via SecurityPolicy.
+# Must be set in environment values.
+#
+# Example:
+#   routes:
+#     - name: gitlab
+#       hostname: gitlab.chorus.local
+#       namespace: gitlab
+#       serviceName: my-release-webservice-default
+#       servicePort: 8181
+#     - name: i2b2
+#       hostname: i2b2.chorus.local
+#       namespace: i2b2
+#       serviceName: my-release-i2b2-frontend
+#       servicePort: 80
+routes: []

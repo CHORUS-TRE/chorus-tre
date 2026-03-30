@@ -1,0 +1,22 @@
+{{- if .Values.routes }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: workspace-only
+  namespace: {{ .Values.gateway.namespace }}
+spec:
+  targetRefs:
+    {{- range .Values.routes }}
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ .name }}
+    {{- end }}
+  authorization:
+    defaultAction: Deny
+    rules:
+      - action: Allow
+        principal:
+          clientCIDRs:
+            - {{ .Values.podCIDR | quote }}
+{{- end }}
