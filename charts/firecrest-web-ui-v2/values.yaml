@@ -13,7 +13,11 @@ ingress:
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+  # MUST be overridden per environment
   host: "firecrest.chorus-tre.local"
   tls:
     enabled: true
     secretName: firecrest-ui-tls
+  backend:
+    serviceName: firecrest-web-ui-srv
+    servicePort: 3000

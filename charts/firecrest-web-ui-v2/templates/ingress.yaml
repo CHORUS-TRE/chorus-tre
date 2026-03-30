@@ -4,7 +4,8 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}-firecrest-web-ui
   labels:
-    app: firecrest-web-ui
+    app.kubernetes.io/name: firecrest-web-ui
+    app.kubernetes.io/instance: {{ .Release.Name }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -25,7 +26,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: firecrest-web-ui-srv
+                name: {{ .Values.ingress.backend.serviceName | quote }}
                 port:
-                  number: 3000
+                  number: {{ .Values.ingress.backend.servicePort }}
 {{- end }}
