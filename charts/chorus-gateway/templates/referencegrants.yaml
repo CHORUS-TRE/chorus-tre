@@ -5,7 +5,7 @@
 {{- end }}
 {{- range $ns, $_ := $namespaces }}
 ---
-apiVersion: gateway.networking.k8s.io/v1beta1
+apiVersion: gateway.networking.k8s.io/v1
 kind: ReferenceGrant
 metadata:
   name: chorus-gateway
@@ -18,4 +18,6 @@ spec:
   to:
     - group: ""
       kind: Service
+      # Allows reference to any Service in this namespace.
+      # Tighter per-service grants would require one ReferenceGrant per route.
 {{- end }}

@@ -3,16 +3,16 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ .name }}
+  name: {{ required "route.name is required" .name }}
   namespace: {{ $.Values.gateway.namespace }}
 spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}
   hostnames:
-    - {{ .hostname | quote }}
+    - {{ required "route.hostname is required" .hostname | quote }}
   rules:
     - backendRefs:
-        - name: {{ .serviceName }}
-          namespace: {{ .namespace }}
-          port: {{ .servicePort }}
+        - name: {{ required "route.serviceName is required" .serviceName }}
+          namespace: {{ required "route.namespace is required" .namespace }}
+          port: {{ required "route.servicePort is required" .servicePort }}
 {{- end }}

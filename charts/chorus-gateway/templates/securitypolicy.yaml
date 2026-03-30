@@ -18,5 +18,5 @@ spec:
       - action: Allow
         principal:
           clientCIDRs:
-            - {{ .Values.podCIDR | quote }}
+            - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
 {{- end }}
