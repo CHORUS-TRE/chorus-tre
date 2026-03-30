@@ -1,13 +1,16 @@
 {{- if .Values.clusterissuer.enabled }}
   {{- fail "clusterissuer.enabled is removed in 0.0.18 — migrate to clusterissuer.http01 / clusterissuer.dns01" }}
 {{- end }}
----
+{{- if .Values.clusterissuer.name }}
+  {{- fail "clusterissuer.name is removed in 0.0.18 — use clusterissuer.http01.name / clusterissuer.dns01.name" }}
+{{- end }}
 {{- with .Values.clusterissuer.http01 }}
 {{- if .enabled }}
+---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: {{ .name }}
+  name: {{ required "clusterissuer.http01.name is required" .name }}
 spec:
   acme:
     # The ACME server URL
@@ -33,7 +36,7 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: {{ .name }}
+  name: {{ required "clusterissuer.dns01.name is required" .name }}
 spec:
   acme:
     # The ACME server URL

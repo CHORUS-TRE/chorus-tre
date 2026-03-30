@@ -11,6 +11,7 @@ cert-manager:
 # See: https://cert-manager.io/docs/concepts/issuer/
 clusterissuer:
   # Shared email — used by both issuers unless overridden per-issuer.
+  # MUST be overridden in environment values to a real address for Let's Encrypt registration.
   email: no-reply@example.com
 
   http01:
