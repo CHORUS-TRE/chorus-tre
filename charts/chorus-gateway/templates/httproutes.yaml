@@ -1,0 +1,20 @@
+{{- range .Values.routes }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ required "route.name is required" .name }}
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $.Values.gateway.name }}
+  hostnames:
+    - {{ required "route.hostname is required" .hostname | quote }}
+  rules:
+    - backendRefs:
+        - name: {{ required "route.serviceName is required" .serviceName }}
+          namespace: {{ required "route.namespace is required" .namespace }}
+          port: {{ required "route.servicePort is required" .servicePort }}
+{{- end }}
