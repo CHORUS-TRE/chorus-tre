@@ -4,6 +4,8 @@ kind: ReferenceGrant
 metadata:
   name: chorus-gateway
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gitlab.labels" . | nindent 4 }}
 spec:
   from:
     - group: gateway.networking.k8s.io
