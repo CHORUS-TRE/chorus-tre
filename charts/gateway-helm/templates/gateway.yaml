@@ -10,8 +10,9 @@ spec:
   gatewayClassName: eg
   listeners:
     {{- range .Values.tls.listeners }}
-    {{- /* Name derived from hostname: dots and * replaced. Hostnames must be distinct enough to avoid collisions. */}}
-    - name: {{ required "listener.hostname is required" .hostname | replace "." "-" | replace "*" "wildcard" }}
+    {{- /* Name: use explicit .name if set, otherwise derived from hostname (dots → dashes, * → wildcard, truncated to 63 chars).
+         Hostnames that differ only by characters mapping to "-" would collide — set an explicit .name per listener to disambiguate. */}}
+    - name: {{ .name | default (required "listener.hostname is required" .hostname | replace "." "-" | replace "*" "wildcard" | trunc 63) }}
       port: 443
       protocol: HTTPS
       hostname: {{ .hostname | quote }}
