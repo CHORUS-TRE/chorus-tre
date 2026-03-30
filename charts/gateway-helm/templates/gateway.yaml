@@ -10,14 +10,15 @@ spec:
   gatewayClassName: eg
   listeners:
     {{- range .Values.tls.listeners }}
-    - name: {{ .hostname | replace "." "-" | replace "*" "wildcard" }}
+    {{- /* Name derived from hostname: dots and * replaced. Hostnames must be distinct enough to avoid collisions. */}}
+    - name: {{ required "listener.hostname is required" .hostname | replace "." "-" | replace "*" "wildcard" }}
       port: 443
       protocol: HTTPS
       hostname: {{ .hostname | quote }}
       tls:
         mode: Terminate
         certificateRefs:
-          - name: {{ .secretName | quote }}
+          - name: {{ required "listener.secretName is required" .secretName | quote }}
       allowedRoutes:
         namespaces:
           # Allow HTTPRoutes from any namespace — service charts deploy routes in their own namespaces.
