@@ -19,12 +19,12 @@ gateway:
 # Example:
 #   routes:
 #     - name: gitlab
-#       hostname: gitlab.chorus.local
+#       hostname: gitlab.internal.chorus-tre.local
 #       namespace: gitlab
 #       serviceName: my-release-webservice-default
 #       servicePort: 8181
 #     - name: i2b2
-#       hostname: i2b2.chorus.local
+#       hostname: i2b2.internal.chorus-tre.local
 #       namespace: i2b2
 #       serviceName: my-release-i2b2-frontend
 #       servicePort: 80
