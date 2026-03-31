@@ -8,6 +8,7 @@ gitlab:
       domain: gitlab.chorus-tre.local
 
     ingress:
+      enabled: false
       configureCertmanager: false
       class: nginx
       annotations:
