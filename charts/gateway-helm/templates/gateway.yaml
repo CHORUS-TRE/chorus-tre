@@ -1,3 +1,4 @@
+{{- if .Values.tls.listeners }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -8,15 +9,22 @@ metadata:
 spec:
   gatewayClassName: eg
   listeners:
-    - name: https
+    {{- range .Values.tls.listeners }}
+    {{- /* Name: use explicit .name if set, otherwise derived from hostname (dots → dashes, * → wildcard, truncated to 63 chars).
+         Hostnames that differ only by characters mapping to "-" would collide — set an explicit .name per listener to disambiguate. */}}
+    - name: {{ .name | default (required "listener.hostname is required" .hostname | replace "." "-" | replace "*" "wildcard" | trunc 63) }}
       port: 443
       protocol: HTTPS
-      hostname: {{ .Values.tls.hostname | quote }}
+      hostname: {{ .hostname | quote }}
       tls:
         mode: Terminate
         certificateRefs:
-          - name: {{ .Values.tls.secretName | quote }}
+          - group: ""
+            kind: Secret
+            name: {{ required "listener.secretName is required" .secretName | quote }}
       allowedRoutes:
         namespaces:
           # Allow HTTPRoutes from any namespace — service charts deploy routes in their own namespaces.
           from: All
+    {{- end }}
+{{- end }}

@@ -1,4 +1,6 @@
 gitlab:
+  installCertmanager: false
+
   global:
     edition: ce
 

@@ -1,3 +1,4 @@
+{{- if .Values.podCIDR }}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -10,4 +11,5 @@ spec:
       envoyService:
         externalTrafficPolicy: Local
         loadBalancerSourceRanges:
-          - {{ .Values.podCIDR | quote }}
+          - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
+{{- end }}
