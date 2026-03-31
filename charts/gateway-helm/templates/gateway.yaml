@@ -19,7 +19,9 @@ spec:
       tls:
         mode: Terminate
         certificateRefs:
-          - name: {{ required "listener.secretName is required" .secretName | quote }}
+          - group: ""
+            kind: Secret
+            name: {{ required "listener.secretName is required" .secretName | quote }}
       allowedRoutes:
         namespaces:
           # Allow HTTPRoutes from any namespace — service charts deploy routes in their own namespaces.
