@@ -1,4 +1,3 @@
-{{- if .Values.podCIDR }}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -9,7 +8,10 @@ spec:
     type: Kubernetes
     kubernetes:
       envoyService:
+        # externalTrafficPolicy: Local is required so that SecurityPolicy clientCIDRs
+        # sees the real source IP (pod IP or external IP) rather than the node IP.
+        # loadBalancerSourceRanges is intentionally NOT used here: Cilium masquerades
+        # pod IPs to node IPs for traffic egressing to the MetalLB VIP, so a pod CIDR
+        # filter at the LB level would incorrectly block workspace pods.
+        # Pod CIDR restriction is enforced at the application layer via SecurityPolicy.
         externalTrafficPolicy: Local
-        loadBalancerSourceRanges:
-          - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
-{{- end }}

@@ -2,16 +2,11 @@ gateway-helm:
   deployment:
     priorityClassName: high-priority
 
-# Cluster pod CIDR for loadBalancerSourceRanges — must be overridden per environment.
-# To find it: kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'
-# Each node shows its /24 subnet (e.g. 192.168.0.0/24, 192.168.1.0/24).
-# Derive the cluster supernet by keeping the first two octets and using /16 (e.g. 192.168.0.0/16).
-podCIDR: ""
-
 # The LB IP is assigned automatically by the cloud provider or load balancer controller.
-# Services on this Gateway are restricted to workspace pods only (via loadBalancerSourceRanges)
-# and are not accessible from the internet. The IP should be pointed to by an internal subdomain
-# (e.g. internal.<domain>) to distinguish it from the public ingress.
+# Access restriction to workspace pods is enforced at the application layer via SecurityPolicy
+# (not loadBalancerSourceRanges, which is incompatible with Cilium's pod IP masquerading).
+# The IP should be pointed to by an internal subdomain (e.g. internal.<domain>) to distinguish
+# it from the public ingress.
 # To find the assigned IP after deployment:
 #   kubectl get gateway chorus-gateway -n envoy-gateway-system -o jsonpath='{.status.addresses[0].value}'
 
