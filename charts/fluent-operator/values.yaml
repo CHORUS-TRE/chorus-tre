@@ -18,7 +18,7 @@ fluent-operator:
     image:
       registry: ghcr.io
       repository: fluent/fluent-operator/fluent-bit
-      tag: "4.1.1"
+      tag: "v4.2.3"
       resources:
         limits:
           cpu: 500m
