@@ -5,5 +5,5 @@ maintainers:
   - name: yvesjaggi
     email: yves.jaggi@chuv.ch
 type: application
-version: 0.0.2
+version: 0.0.3
 #appVersion: "v1.8.0.0002"
