@@ -1,9 +1,3 @@
-# Set to true to create a ReferenceGrant allowing Envoy Gateway HTTPRoutes
-# in envoy-gateway-system to reference Services in this namespace.
-gateway:
-  enabled: true
-  namespace: envoy-gateway-system
-
 gitlab:
   installCertmanager: false
 
