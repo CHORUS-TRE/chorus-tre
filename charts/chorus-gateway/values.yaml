@@ -28,4 +28,5 @@ gateway:
 #       namespace: i2b2
 #       serviceName: my-release-i2b2-frontend
 #       servicePort: 80
+#       redirectPath: /webclient
 routes: []
