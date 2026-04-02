@@ -1,0 +1,6 @@
+dependencies:
+- name: firecrest-web-ui-v2
+  repository: https://eth-cscs.github.io/firecrest-ui/helm/
+  version: 2.5.2
+digest: sha256:e3940535ce4f834ad61fbb494f6abd5253d5df2ec4e0eb3c12292d2825807be4
+generated: "2026-03-27T23:15:55.138519+01:00"

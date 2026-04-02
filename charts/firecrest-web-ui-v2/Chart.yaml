@@ -1,0 +1,11 @@
+apiVersion: v2
+name: firecrest-web-ui-v2
+description: FirecREST Web UI v2 - web interface for the FirecREST HPC API
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+version: 0.0.1
+dependencies:
+  - name: firecrest-web-ui-v2
+    version: 2.5.2
+    repository: https://eth-cscs.github.io/firecrest-ui/helm/
