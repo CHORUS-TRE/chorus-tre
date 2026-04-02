@@ -6,13 +6,14 @@ metadata:
   labels:
     app.kubernetes.io/name: firecrest-web-ui
     app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className | quote }}
-  {{- if .Values.ingress.tls.enabled }}
+  {{- if and .Values.ingress.tls .Values.ingress.tls.enabled }}
   tls:
     - hosts:
         - {{ .Values.ingress.host | quote }}

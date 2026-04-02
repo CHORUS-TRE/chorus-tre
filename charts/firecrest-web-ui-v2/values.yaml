@@ -19,5 +19,6 @@ ingress:
     enabled: true
     secretName: firecrest-ui-tls
   backend:
+    # hardcoded in upstream chart template, not release-name derived
     serviceName: firecrest-web-ui-srv
     servicePort: 3000
