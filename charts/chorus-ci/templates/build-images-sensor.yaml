@@ -82,10 +82,24 @@ spec:
                                 value: {{ .Values.chorusImages.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
                               - name: storage-class-name
                                 value: {{ .Values.chorusImages.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
-                            # This loop over the paths from get-paths
                           withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
 
                   - name: get-paths
+                    inputs:
+                      artifacts:
+                        - name: images
+                          path: /src
+                          git:
+                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: {{ $githubSecretUsernameKey }}
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: {{ $githubSecretPasswordKey }}
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
                     script:
                       image: {{ .Values.chorusImages.python.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.python.imageNamespace | default .Values.global.imageNamespace }}/python:{{ .Values.chorusImages.python.tag | default "latest" }}
                       command: [python]
@@ -98,37 +112,48 @@ spec:
                           {{`{{workflow.parameters.modified}}`}}
                         )
 
-                        # The first capturing group is kept
                         patterns = (
                           re.compile("^(server)/"),
                           re.compile("^(app-init)/"),
                           re.compile("^(apps/[^/]+)/"),
                         )
 
-                        def keep_matching(strs: str, patterns: list):
-                          """Keep the string matching any of the patterns."""
+                        def keep_matching(strs, patterns):
                           for x in strs:
                             for p in patterns:
                               if m := p.match(x):
                                 yield m.group(1)
                                 break
 
-                        def get_pvc_name(path: str) -> str:
-                          """Generate a PVC name based on the path."""
+                        def get_pvc_name(path):
                           length = 7
                           random_string = str(uuid.uuid4()).replace('-', '')[:length]
                           return path.replace('/', '-') + '-' + random_string
 
-                        def get_paths_with_pvc_names(paths: list, patterns: list):
-                          """Generate list of dicts with path and pvc_name."""
-                          unique_paths = list(set(keep_matching(paths, patterns)))
-                          for path in unique_paths:
-                            yield {
+                        unique_paths = list(set(keep_matching(paths, patterns)))
+                        filtered = []
+                        for path in unique_paths:
+                          labels_file = f"/src/{path}/labels"
+                          stability = None
+                          try:
+                            with open(labels_file) as f:
+                              for line in f:
+                                line = line.strip()
+                                if line.startswith('ch.chorus-tre.app.stability='):
+                                  stability = line.split('=', 1)[1].strip().strip("\"'")
+                                  break
+                          except FileNotFoundError:
+                            pass
+
+                          if stability == "off":
+                            print(f"Skipping {path}: stability is off", file=sys.stderr)
+                          else:
+                            filtered.append({
                               'path': path,
                               'pvc_name': get_pvc_name(path)
-                            }
+                            })
 
-                        json.dump(list(get_paths_with_pvc_names(paths, patterns)), sys.stdout)
+                        json.dump(filtered, sys.stdout)
 
                   - name: generate-volume-and-build-image
                     inputs:
