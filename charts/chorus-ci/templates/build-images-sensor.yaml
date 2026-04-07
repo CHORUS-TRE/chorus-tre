@@ -70,6 +70,13 @@ spec:
                       - - name: get-paths
                           template: get-paths
 
+                      - - name: filter-paths
+                          template: filter-paths
+                          arguments:
+                            parameters:
+                              - name: paths
+                                value: "{{`{{steps.get-paths.outputs.result}}`}}"
+
                       - - name: generate-volume-and-build-image
                           template: generate-volume-and-build-image
                           arguments:
@@ -82,8 +89,8 @@ spec:
                                 value: {{ .Values.chorusImages.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
                               - name: storage-class-name
                                 value: {{ .Values.chorusImages.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
-                            # This loop over the paths from get-paths
-                          withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
+                            # This loop over the filtered paths
+                          withParam: "{{`{{steps.filter-paths.outputs.result}}`}}"
 
                   - name: get-paths
                     script:
@@ -129,6 +136,53 @@ spec:
                             }
 
                         json.dump(list(get_paths_with_pvc_names(paths, patterns)), sys.stdout)
+
+                  - name: filter-paths
+                    inputs:
+                      parameters:
+                        - name: paths
+                      artifacts:
+                        - name: images
+                          path: /src
+                          git:
+                            repo: "{{`{{workflow.parameters.repo-url}}`}}"
+                            revision: "{{`{{workflow.parameters.revision}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: {{ $githubSecretUsernameKey }}
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: {{ $githubSecretPasswordKey }}
+                            depth: 1
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    script:
+                      image: {{ .Values.chorusImages.python.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.python.imageNamespace | default .Values.global.imageNamespace }}/python:{{ .Values.chorusImages.python.tag | default "latest" }}
+                      command: [python]
+                      source: |
+                        import json, sys
+
+                        paths = {{`{{inputs.parameters.paths}}`}}
+
+                        filtered = []
+                        for item in paths:
+                          labels_file = f"/src/{item['path']}/labels"
+                          stability = None
+                          try:
+                            with open(labels_file) as f:
+                              for line in f:
+                                line = line.strip()
+                                if line.startswith('ch.chorus-tre.app.stability='):
+                                  stability = line.split('=', 1)[1].strip().strip('"').strip("'")
+                                  break
+                          except FileNotFoundError:
+                            pass
+
+                          if stability == "off":
+                            print(f"Skipping {item['path']}: stability is off", file=sys.stderr)
+                          else:
+                            filtered.append(item)
+
+                        json.dump(filtered, sys.stdout)
 
                   - name: generate-volume-and-build-image
                     inputs:
