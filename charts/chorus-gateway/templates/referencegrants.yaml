@@ -15,6 +15,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: {{ $.Values.gateway.namespace }}
+    - group: gateway.networking.k8s.io
+      kind: TCPRoute
+      namespace: {{ $.Values.gateway.namespace }}
   to:
     - group: ""
       kind: Service

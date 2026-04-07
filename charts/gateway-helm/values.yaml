@@ -30,3 +30,11 @@ tls:
   #     - hostname: "*.chorus-tre.local"
   #       secretName: wildcard-tls
   listeners: []
+
+# TCP listeners (e.g. port 22 for GitLab SSH) — must be set in environment values.
+#
+# tcp:
+#   listeners:
+#     - port: 22
+tcp:
+  listeners: []
