@@ -5,6 +5,7 @@ maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch
 version: 0.0.1
+appVersion: "2.5.2"
 dependencies:
   - name: firecrest-web-ui-v2
     version: 2.5.2
