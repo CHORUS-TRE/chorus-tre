@@ -1,0 +1,19 @@
+{{- range .Values.tcpRoutes }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: {{ required "tcpRoute.name is required" .name }}
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $.Values.gateway.name }}
+      sectionName: tcp-{{ required "tcpRoute.gatewayPort is required" .gatewayPort | toString }}
+  rules:
+    - backendRefs:
+        - name: {{ required "tcpRoute.serviceName is required" .serviceName }}
+          namespace: {{ required "tcpRoute.namespace is required" .namespace }}
+          port: {{ required "tcpRoute.servicePort is required" .servicePort }}
+{{- end }}

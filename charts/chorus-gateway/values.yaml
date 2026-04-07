@@ -30,3 +30,27 @@ gateway:
 #       servicePort: 80
 #       redirectPath: /webclient
 routes: []
+
+# TCP service routes — each entry creates a TCPRoute forwarding gatewayPort to the service.
+# gatewayPort must match a tcp.listeners entry in gateway-helm.
+#
+# tcpRoutes:
+#   - name: gitlab-shell
+#     namespace: gitlab
+#     serviceName: chorus-int-gitlab-gitlab-shell
+#     servicePort: 22
+#     gatewayPort: 22
+tcpRoutes: []
+
+# Shell services — each entry creates two CiliumNetworkPolicies restricting SSH access
+# to workspace pods only. Requires podCIDR to be set.
+# gatewayPort must match a tcp.listeners entry in gateway-helm (Envoy remaps it to gatewayPort+10000).
+#
+# shellServices:
+#   - name: gitlab-shell
+#     namespace: gitlab
+#     podSelector:
+#       app: gitlab-shell
+#     containerPort: 2222
+#     gatewayPort: 22
+shellServices: []

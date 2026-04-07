@@ -1,0 +1,51 @@
+{{- if .Values.podCIDR }}
+{{- range .Values.shellServices }}
+---
+# Restrict ingress on the Envoy-remapped port (gatewayPort + 10000) to pod CIDR only.
+# This blocks external users whose real IPs are not in podCIDR (enforced by externalTrafficPolicy: Local).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .name }}-envoy-ingress
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: envoy-gateway
+  ingress:
+    - fromCIDR:
+        - {{ $.Values.podCIDR | quote }}
+      toPorts:
+        - ports:
+            - port: {{ add .gatewayPort 10000 | toString | quote }}
+              protocol: TCP
+---
+# Defense-in-depth: restrict ingress on the container port to Envoy pods only.
+# Envoy terminates the client TCP connection and opens a new one to the service pod,
+# so the source IP at the service pod is the Envoy pod IP, not the original client IP.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .name }}-backend-ingress
+  namespace: {{ required "shellService.namespace is required" .namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- range $k, $v := .podSelector }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/managed-by: envoy-gateway
+            k8s:io.kubernetes.pod.namespace: {{ $.Values.gateway.namespace | quote }}
+      toPorts:
+        - ports:
+            - port: {{ .containerPort | toString | quote }}
+              protocol: TCP
+{{- end }}
+{{- end }}

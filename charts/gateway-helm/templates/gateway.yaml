@@ -27,4 +27,12 @@ spec:
           # Allow HTTPRoutes from any namespace — service charts deploy routes in their own namespaces.
           from: All
     {{- end }}
+    {{- range .Values.tcp.listeners }}
+    - name: {{ .name | default (print "tcp-" .port) }}
+      port: {{ .port }}
+      protocol: TCP
+      allowedRoutes:
+        namespaces:
+          from: All
+    {{- end }}
 {{- end }}
