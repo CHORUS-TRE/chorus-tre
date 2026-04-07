@@ -2,9 +2,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ .Release.Name }}-firecrest-web-ui
+  name: {{ .Release.Name }}-firecrest-web-ui-v2
   labels:
-    app.kubernetes.io/name: firecrest-web-ui
+    app.kubernetes.io/name: firecrest-web-ui-v2
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
   {{- with .Values.ingress.annotations }}
