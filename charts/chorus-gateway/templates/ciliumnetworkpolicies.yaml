@@ -6,7 +6,7 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: {{ .name }}-envoy-ingress
+  name: {{ .name }}-gateway-ingress
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
@@ -28,7 +28,7 @@ spec:
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: {{ .name }}-backend-ingress
+  name: {{ .name }}-service-ingress
   namespace: {{ required "shellService.namespace is required" .namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
