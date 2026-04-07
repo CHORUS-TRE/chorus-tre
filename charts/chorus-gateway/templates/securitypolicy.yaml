@@ -3,7 +3,7 @@
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
-  name: workspace-only
+  name: workspaces-securitypolicy
   namespace: {{ .Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" . | nindent 4 }}
@@ -12,7 +12,7 @@ spec:
     {{- range .Values.routes }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ .name }}
+      name: {{ .name }}-httproute
     {{- end }}
   authorization:
     defaultAction: Deny
