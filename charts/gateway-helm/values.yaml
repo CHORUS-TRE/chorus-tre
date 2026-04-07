@@ -36,3 +36,5 @@ tls:
 # tcp:
 #   listeners:
 #     - port: 22
+tcp:
+  listeners: []
