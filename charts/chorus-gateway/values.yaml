@@ -1,4 +1,5 @@
 # Cluster pod CIDR — used in SecurityPolicy to restrict access to workspace pods only.
+# Not used for CiliumNetworkPolicies (those use fromEntities: cluster instead of CIDR).
 # Must match the value set in gateway-helm.
 # Must be set in environment values.
 # To find it: kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'
