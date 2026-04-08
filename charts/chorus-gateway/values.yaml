@@ -43,8 +43,10 @@ routes: []
 #     gatewayPort: 22
 tcpRoutes: []
 
-# Shell services — each entry creates two CiliumNetworkPolicies restricting SSH access
-# to workspace pods only. Requires podCIDR to be set.
+# Shell services — each entry creates a CiliumNetworkPolicy restricting ingress on the
+# service container port to Envoy pods only (defense-in-depth).
+# A single envoy-gateway-ingress CNP (generated if routes or shellServices exist) restricts
+# all Envoy pod ingress to cluster-internal traffic, blocking external users.
 # gatewayPort must match a tcp.listeners entry in gateway-helm (Envoy remaps it to gatewayPort+10000).
 #
 # shellServices:
