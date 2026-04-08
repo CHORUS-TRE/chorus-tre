@@ -1,8 +1,10 @@
-{{- if .Values.podCIDR }}
 {{- range .Values.shellServices }}
 ---
-# Restrict ingress on the Envoy-remapped port (gatewayPort + 10000) to pod CIDR only.
-# This blocks external users whose real IPs are not in podCIDR (enforced by externalTrafficPolicy: Local).
+# Restrict ingress on the Envoy-remapped port (gatewayPort + 10000) to cluster-internal traffic only.
+# fromEntities: cluster matches all pods and nodes within the cluster regardless of IP masquerading,
+# blocking external users while allowing workspace pods. loadBalancerSourceRanges is not used because
+# Cilium masquerades pod IPs to node IPs when connecting to MetalLB VIPs, making CIDR-based filtering
+# unreliable for pod traffic.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -15,8 +17,8 @@ spec:
     matchLabels:
       app.kubernetes.io/managed-by: envoy-gateway
   ingress:
-    - fromCIDR:
-        - {{ $.Values.podCIDR | quote }}
+    - fromEntities:
+        - cluster
       toPorts:
         - ports:
             - port: {{ add .gatewayPort 10000 | toString | quote }}
@@ -47,5 +49,4 @@ spec:
         - ports:
             - port: {{ .containerPort | toString | quote }}
               protocol: TCP
-{{- end }}
 {{- end }}
