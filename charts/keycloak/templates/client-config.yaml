@@ -12,6 +12,12 @@ data:
   CHORUS_BASE_URL: {{ .Values.client.chorus.baseUrl | quote }}
   CHORUS_REDIRECT_URIS: {{ .Values.client.chorus.redirectUris | quote }}
   CHORUS_WEB_ORIGINS: {{ .Values.client.chorus.webOrigins | quote }}
+  # gitlab
+  GITLAB_ROOT_URL: {{ .Values.client.gitlab.rootUrl | quote }}
+  GITLAB_ADMIN_URL: {{ .Values.client.gitlab.adminUrl | quote }}
+  GITLAB_BASE_URL: {{ .Values.client.gitlab.baseUrl | quote }}
+  GITLAB_REDIRECT_URIS: {{ .Values.client.gitlab.redirectUris | quote }}
+  GITLAB_WEB_ORIGINS: {{ .Values.client.gitlab.webOrigins | quote }}
   # matomo
   MATOMO_ROOT_URL: {{ .Values.client.matomo.rootUrl | quote }}
   MATOMO_ADMIN_URL: {{ .Values.client.matomo.adminUrl | quote }}

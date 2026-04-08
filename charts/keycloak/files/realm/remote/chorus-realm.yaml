@@ -89,6 +89,30 @@ clients:
     optionalClientScopes:
       - "offline_access"
     access: {}
+  - clientId: "gitlab"
+    name: "GitLab"
+    rootUrl: "$(GITLAB_ROOT_URL)"
+    adminUrl: "$(GITLAB_ADMIN_URL)"
+    baseUrl: "$(GITLAB_BASE_URL)"
+    secret: "$(GITLAB_CLIENT_SECRET)"
+    redirectUris: $(GITLAB_REDIRECT_URIS)
+    webOrigins: $(GITLAB_WEB_ORIGINS)
+    directAccessGrantsEnabled: false
+    publicClient: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "false"
+      post.logout.redirect.uris: "+"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
+    optionalClientScopes:
+      - "offline_access"
+    access: {}
 clientScopes:
   - name: "acr"
     description: "OpenID Connect scope for add acr (authentication context class reference)\

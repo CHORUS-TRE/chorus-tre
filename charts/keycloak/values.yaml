@@ -322,6 +322,12 @@ client:
     baseUrl: "/"
     redirectUris: '["http://backend.local/*","http://chorus.local/*"]'
     webOrigins: '["http://backend.local/*","http://chorus.local/*"]'
+  gitlab:
+    rootUrl: "http://gitlab.local"
+    adminUrl: "http://gitlab.local"
+    baseUrl: "/"
+    redirectUris: '["http://gitlab.local/users/auth/openid_connect/callback"]'
+    webOrigins: '["http://gitlab.local"]'
   matomo:
     rootUrl: "http://makoto.local"
     adminUrl: "http://makoto.local"
