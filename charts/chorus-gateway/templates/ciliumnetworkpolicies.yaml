@@ -22,6 +22,7 @@ spec:
       toPorts:
         - ports:
             {{- if .Values.routes }}
+            # All HTTPRoutes use gateway port 443 → Envoy remaps to 10443.
             - port: "10443"
               protocol: TCP
             {{- end }}
