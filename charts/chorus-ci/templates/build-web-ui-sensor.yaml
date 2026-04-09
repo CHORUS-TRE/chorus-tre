@@ -1,6 +1,6 @@
 {{- $fullName := include "chorus-ci.fullname" . -}}
 {{- $serviceAccountName := include "chorus-ci.serviceAccountName" . -}}
-{{- $githubSecretName := .Values.gitCredentials.secretName | default (index .Values.githubSecrets "chorus-web-ui") }}
+{{- $githubSecretName := .Values.gitCredentials.secretName | default "argo-workflows-github-pat" }}
 {{- $githubSecretUsernameKey := .Values.gitCredentials.usernameKey | default "username" }}
 {{- $githubSecretPasswordKey := .Values.gitCredentials.passwordKey | default "password" }}
 ---
