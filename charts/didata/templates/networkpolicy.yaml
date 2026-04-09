@@ -24,14 +24,12 @@ spec:
   {{- if .Values.networkPolicy.egress }}
   {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
   {{- end }}
-    # Always allow DNS resolution to kube-system
-    - to:
-      - namespaceSelector:
-          matchLabels:
-            kubernetes.io/metadata.name: kube-system
-      ports:
+    # Always allow DNS resolution (port 53 only).
+    # Some clusters use node-local-dns on a host-network link-local IP instead
+    # of kube-dns in kube-system, so we cannot restrict by namespace selector.
+    - ports:
       - protocol: UDP
-        port: 53 # Allow DNS resolution to kube-system
+        port: 53
       - protocol: TCP
-        port: 53 # Allow DNS resolution to kube-system
+        port: 53
 {{- end }}
