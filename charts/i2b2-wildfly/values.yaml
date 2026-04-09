@@ -51,7 +51,7 @@ networkPolicy:
   enabled_l7_waf: false
   # Note: When enabled_l7_waf is true, a CiliumNetworkPolicy is created instead of standard K8s NetworkPolicy
   ingress:
-  # Allow ingress-nginx and i2b2-frontend to access wildfly
+  # Allow ingress-nginx, envoy-gateway, and i2b2-frontend to access wildfly
   - from:
     - namespaceSelector:
         matchLabels:
@@ -60,6 +60,16 @@ networkPolicy:
         matchLabels:
           app.kubernetes.io/name: ingress-nginx
           app.kubernetes.io/component: controller
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
     ports:
     - protocol: TCP
       port: 8080
