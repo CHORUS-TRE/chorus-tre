@@ -1,15 +1,31 @@
-{{- if .Values.routes }}
+{{- /*
+  SecurityPolicy restricts internal-only routes to pod CIDR (workspace pods only).
+  Dual-gateway routes (gateways: [internal, external]) are excluded — SecurityPolicy applies
+  per-HTTPRoute not per-parentRef, so it would block external traffic too.
+  For dual-access services, the internal gateway is protected by the CNP layer instead.
+*/}}
+{{- $internalOnlyRoutes := list }}
+{{- range .Values.internal.routes }}
+{{- $hasExternal := false }}
+{{- range .gateways }}
+{{- if eq . "external" }}{{ $hasExternal = true }}{{ end }}
+{{- end }}
+{{- if not $hasExternal }}
+{{- $internalOnlyRoutes = append $internalOnlyRoutes . }}
+{{- end }}
+{{- end }}
+{{- if $internalOnlyRoutes }}
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
   name: workspaces-securitypolicy
-  namespace: {{ .Values.gateway.namespace }}
+  namespace: {{ .Values.internal.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" . | nindent 4 }}
 spec:
   targetRefs:
-    {{- range .Values.routes }}
+    {{- range $internalOnlyRoutes }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: {{ .name }}-httproute
