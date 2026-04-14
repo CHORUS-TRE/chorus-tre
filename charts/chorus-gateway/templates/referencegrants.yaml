@@ -1,5 +1,5 @@
 {{- $seenNamespaces := dict }}
-{{- range concat .Values.internal.routes .Values.external.routes }}
+{{- range concat .Values.internalRoutes .Values.externalRoutes .Values.openRoutes }}
 {{- if not (hasKey $seenNamespaces .namespace) }}
 {{- $_ := set $seenNamespaces .namespace true }}
 ---
@@ -14,15 +14,10 @@ spec:
   from:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: {{ $.Values.internal.gateway.namespace }}
-    {{- if ne $.Values.internal.gateway.namespace $.Values.external.gateway.namespace }}
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
-      namespace: {{ $.Values.external.gateway.namespace }}
-    {{- end }}
+      namespace: {{ $.Values.gateway.namespace }}
     - group: gateway.networking.k8s.io
       kind: TCPRoute
-      namespace: {{ $.Values.internal.gateway.namespace }}
+      namespace: {{ $.Values.gateway.namespace }}
   to:
     - group: ""
       kind: Service

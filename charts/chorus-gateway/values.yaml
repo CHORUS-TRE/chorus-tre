@@ -1,111 +1,106 @@
-# Cluster pod CIDR — used in SecurityPolicy to restrict access to workspace pods only.
-# Not used for CiliumNetworkPolicies (those use fromEntities: cluster instead of CIDR).
-# Must match the value set in gateway-helm.
+# Cluster pod CIDR — used in SecurityPolicy to control per-route access.
+# Internal routes: Allow podCIDR only (workspace pods). External routes: Deny podCIDR (browsers only).
+# With externalTrafficPolicy: Local, SecurityPolicy clientCIDRs sees real source IPs.
 # Must be set in environment values.
 # To find it: kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'
 # Each node shows its /24 subnet (e.g. 192.168.0.0/24, 192.168.1.0/24).
 # Derive the cluster supernet by keeping the first two octets and using /16 (e.g. 192.168.0.0/16).
 podCIDR: ""
 
-# Internal gateway — workspace pods only. SecurityPolicy restricts routes to podCIDR.
-# The envoy-internal-gateway-ingress CiliumNetworkPolicy restricts ingress on the internal
-# gateway's Envoy pods to cluster-internal traffic only (fromEntities: cluster), blocking
-# external users. Adding any ingress rule triggers Cilium deny-by-default for ALL other
-# ingress on the matched pods, so every Envoy listener port must be explicitly listed.
-# Gateway name must match the Gateway metadata.name in the gateway-helm chart.
-internal:
-  gateway:
-    name: chorus-internal-gateway
-    namespace: envoy-gateway-system
+# Gateway reference — must match the Gateway metadata.name in the gateway-helm chart.
+gateway:
+  name: chorus-gateway
+  namespace: envoy-gateway-system
 
-  # HTTPRoutes (parentRef: internal gateway) and ReferenceGrants.
-  # All routes are restricted to pod CIDR only via SecurityPolicy.
-  # Must be set in environment values.
-  #
-  # Optional fields:
-  #   matches: path-restricted route (e.g. expose only /openid-connect/ internally)
-  #   gateways: [internal, external] creates a single HTTPRoute with two parentRefs (dual-access).
-  #     Dual-access routes are excluded from the SecurityPolicy (it applies per-HTTPRoute not
-  #     per-parentRef — would block external traffic too). The internal gateway is protected
-  #     by the CiliumNetworkPolicy layer instead.
-  #
-  # Example:
-  #   routes:
-  #     - name: gitlab
-  #       hostname: gitlab.internal.chorus-tre.local
-  #       namespace: gitlab
-  #       serviceName: my-release-webservice-default
-  #       servicePort: 8181
-  #     - name: i2b2
-  #       hostname: i2b2.internal.chorus-tre.local
-  #       namespace: i2b2
-  #       serviceName: my-release-i2b2-frontend
-  #       servicePort: 80
-  #       redirectPath: /webclient
-  #     - name: backend-idp
-  #       hostname: backend.chorus-tre.local
-  #       namespace: backend
-  #       serviceName: backend
-  #       servicePort: 5000
-  #       matches:
-  #         - pathPrefix: /openid-connect
-  #     - name: keycloak
-  #       hostname: auth.chorus-tre.local
-  #       namespace: keycloak
-  #       serviceName: keycloak
-  #       servicePort: 8080
-  #       gateways: [internal, external]
-  routes: []
+# Internal routes — accessible from workspace pods only (SecurityPolicy allows podCIDR).
+# External browsers get 403.
+# Each entry creates an HTTPRoute and ReferenceGrant.
+# Must be set in environment values.
+#
+# Optional: matches (path-restricted route, e.g. expose only /openid-connect/ internally).
+#
+# Example:
+#   internalRoutes:
+#     - name: gitlab
+#       hostname: gitlab.chorus-tre.local
+#       namespace: gitlab
+#       serviceName: gitlab-webservice-default
+#       servicePort: 8181
+#     - name: i2b2
+#       hostname: i2b2.chorus-tre.local
+#       namespace: i2b2
+#       serviceName: i2b2-frontend
+#       servicePort: 80
+#       redirectPath: /webclient
+#     - name: backend-idp
+#       hostname: backend.chorus-tre.local
+#       namespace: backend
+#       serviceName: backend
+#       servicePort: 5000
+#       matches:
+#         - pathPrefix: /openid-connect
+internalRoutes: []
 
-  # TCPRoutes (parentRef: internal gateway) forwarding gatewayPort to the service.
-  # gatewayPort must match a tcpListeners entry in the gateway-helm chart
-  # (Envoy Gateway remaps it to gatewayPort+10000 internally, e.g. 22 → 10022).
-  #
-  # Example:
-  #   tcpRoutes:
-  #     - name: gitlab-shell
-  #       namespace: gitlab
-  #       serviceName: chorus-int-gitlab-gitlab-shell
-  #       servicePort: 22
-  #       gatewayPort: 22
-  tcpRoutes: []
+# External routes — accessible from external browsers only (SecurityPolicy denies podCIDR).
+# Workspace pods get 403.
+# Each entry creates an HTTPRoute and ReferenceGrant.
+# Must be set in environment values.
+#
+# Example:
+#   externalRoutes:
+#     - name: backend
+#       hostname: backend.chorus-tre.local
+#       namespace: backend
+#       serviceName: backend
+#       servicePort: 5000
+#     - name: juicefs-dashboard
+#       hostname: juicefs-dashboard.chorus-tre.local
+#       namespace: kube-system
+#       serviceName: juicefs-csi-dashboard
+#       servicePort: 8088
+externalRoutes: []
 
-  # Shell services — each entry creates a CiliumNetworkPolicy restricting ingress on the
-  # service container port to Envoy pods only (defense-in-depth).
-  # Envoy terminates the client TCP connection and opens a new one to the service pod,
-  # so the source IP at the service pod is the Envoy pod IP, not the original client IP.
-  # gatewayPort must match a tcpListeners entry in gateway-helm (Envoy remaps it to gatewayPort+10000).
-  #
-  # Example:
-  #   shellServices:
-  #     - name: gitlab-shell
-  #       namespace: gitlab
-  #       podSelector:
-  #         app: gitlab-shell
-  #       containerPort: 2222
-  #       gatewayPort: 22
-  shellServices: []
+# Open routes — accessible from both workspace pods and external browsers.
+# No SecurityPolicy restriction.
+# Each entry creates an HTTPRoute and ReferenceGrant.
+# Must be set in environment values.
+#
+# Example:
+#   openRoutes:
+#     - name: harbor
+#       hostname: harbor.chorus-tre.local
+#       namespace: harbor
+#       serviceName: harbor-core
+#       servicePort: 80
+openRoutes: []
 
-# External gateway — accessible from external browsers. No SecurityPolicy restriction.
-# Workspace pods cannot reach these (operator CNP restricts egress to internal gateway pods only).
-# The envoy-external-gateway-ingress CiliumNetworkPolicy allows all ingress on the external
-# gateway's Envoy pods (both cluster and world traffic) on port 10443.
-# Gateway name must match the Gateway metadata.name in the gateway-helm chart.
-external:
-  gateway:
-    name: chorus-external-gateway
-    namespace: envoy-gateway-system
+# Internal TCP routes — workspace pods only (SecurityPolicy allows podCIDR).
+# Each entry creates a TCPRoute forwarding gatewayPort to the service.
+# SecurityPolicy with clientCIDRs restricts access to podCIDR (same as internalRoutes).
+# gatewayPort must match a tcpListeners entry in the gateway-helm chart
+# (Envoy Gateway remaps it to gatewayPort+10000 internally, e.g. 22 → 10022).
+#
+# Example:
+#   internalTcpRoutes:
+#     - name: gitlab-shell
+#       namespace: gitlab
+#       serviceName: gitlab-shell
+#       servicePort: 22
+#       gatewayPort: 22
+internalTcpRoutes: []
 
-  # HTTPRoutes (parentRef: external gateway) and ReferenceGrants.
-  # No SecurityPolicy restriction — accessible from browsers.
-  # Supports redirectPath but not matches or gateways (dual-access is via internal.routes only).
-  # Must be set in environment values.
-  #
-  # Example:
-  #   routes:
-  #     - name: juicefs-dashboard
-  #       hostname: juicefs-dashboard.chorus-tre.local
-  #       namespace: kube-system
-  #       serviceName: juicefs-csi-driver-dashboard
-  #       servicePort: 8080
-  routes: []
+# Internal shell services — each entry creates a CiliumNetworkPolicy restricting ingress on the
+# service container port to Envoy pods only (defense-in-depth for internal TCP services).
+# Envoy terminates the client TCP connection and opens a new one to the service pod,
+# so the source IP at the service pod is the Envoy pod IP, not the original client IP.
+# gatewayPort must match a tcpListeners entry in gateway-helm (Envoy remaps it to gatewayPort+10000).
+#
+# Example:
+#   internalShellServices:
+#     - name: gitlab-shell
+#       namespace: gitlab
+#       podSelector:
+#         app: gitlab-shell
+#       containerPort: 2222
+#       gatewayPort: 22
+internalShellServices: []

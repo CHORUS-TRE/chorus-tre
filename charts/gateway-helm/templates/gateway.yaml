@@ -1,17 +1,15 @@
-{{- range $key, $gw := .Values.gateways }}
-{{- if $gw.listeners }}
----
+{{- if .Values.listeners }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: {{ required (print "gateways." $key ".name is required") $gw.name }}
+  name: {{ required "gateway.name is required" .Values.gateway.name }}
   namespace: envoy-gateway-system
   annotations:
-    cert-manager.io/cluster-issuer: {{ $gw.clusterIssuer | default $.Values.tls.clusterIssuer | quote }}
+    cert-manager.io/cluster-issuer: {{ .Values.clusterIssuer | quote }}
 spec:
   gatewayClassName: eg
   listeners:
-    {{- range $gw.listeners }}
+    {{- range .Values.listeners }}
     {{- /* Name: use explicit .name if set, otherwise derived from hostname (dots → dashes, * → wildcard, truncated to 63 chars).
          Hostnames that differ only by characters mapping to "-" would collide — set an explicit .name per listener to disambiguate. */}}
     - name: {{ .name | default (required "listener.hostname is required" .hostname | replace "." "-" | replace "*" "wildcard" | trunc 63) }}
@@ -29,7 +27,7 @@ spec:
           # Allow HTTPRoutes from any namespace — service charts deploy routes in their own namespaces.
           from: All
     {{- end }}
-    {{- range $gw.tcpListeners }}
+    {{- range .Values.tcpListeners }}
     - name: {{ .name | default (print "tcp-" .port) }}
       port: {{ .port }}
       protocol: TCP
@@ -37,5 +35,4 @@ spec:
         namespaces:
           from: All
     {{- end }}
-{{- end }}
 {{- end }}

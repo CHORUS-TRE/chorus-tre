@@ -3,50 +3,41 @@ gateway-helm:
     priorityClassName: high-priority
 
 # The LB IP is assigned automatically by the cloud provider or load balancer controller.
-# Access restriction to workspace pods is enforced at the application layer via SecurityPolicy
+# The Gateway creates an Envoy Deployment + LoadBalancer Service with a MetalLB VIP.
+# Access restriction is enforced per-route via SecurityPolicy at the application layer
 # (not loadBalancerSourceRanges, which is incompatible with Cilium's pod IP masquerading).
-# The IP should be pointed to by an internal subdomain (e.g. internal.<domain>) to distinguish
-# it from the public ingress.
+# With externalTrafficPolicy: Local, SecurityPolicy clientCIDRs sees real source IPs
+# (pod IPs for workspace pods, external IPs for browsers).
 # To find the assigned IP after deployment:
 #   kubectl get gateway chorus-gateway -n envoy-gateway-system -o jsonpath='{.status.addresses[0].value}'
 
-tls:
-  # Default ClusterIssuer used by cert-manager to provision TLS certificates.
-  # Can be overridden per-gateway with gateways.<key>.clusterIssuer.
-  # Mixing HTTP01 and DNS01 on a single Gateway is not supported.
-  clusterIssuer: letsencrypt-prod
+# Gateway name — must match the chorus-gateway chart's gateway.name value.
+gateway:
+  name: chorus-gateway
 
-# Each key creates a separate Gateway resource with its own Envoy Deployment + LoadBalancer.
-# Each gateway gets its own MetalLB VIP automatically.
+# ClusterIssuer used by cert-manager to provision TLS certificates for HTTPS listeners.
+# All listeners share the same ClusterIssuer (cert-manager limitation:
+# mixing HTTP01 and DNS01 challenge types on the same Gateway is not supported).
+clusterIssuer: letsencrypt-prod
+
+# HTTPS listeners — one entry per hostname. cert-manager provisions one Certificate per listener.
 # Must be set in environment values.
 #
-# Listeners: one entry per hostname — cert-manager provisions one Certificate per listener.
-#   Option A — per-hostname certs (HTTP01, no DNS access required):
-#     listeners:
-#       - hostname: gitlab.chorus-tre.local
-#         secretName: gitlab-tls
-#   Option B — wildcard cert (DNS01 required, e.g. Cloudflare):
-#     listeners:
-#       - hostname: "*.chorus-tre.local"
-#         secretName: wildcard-tls
+# Option A — per-hostname certs (HTTP01, no DNS access required):
+#   listeners:
+#     - hostname: gitlab.chorus-tre.local
+#       secretName: gitlab-tls
+#     - hostname: i2b2.chorus-tre.local
+#       secretName: i2b2-tls
 #
-# TCP listeners (e.g. port 22 for GitLab SSH):
-#   tcpListeners:
-#     - port: 22
+# Option B — wildcard cert (DNS01 required, e.g. Cloudflare):
+#   listeners:
+#     - hostname: "*.chorus-tre.local"
+#       secretName: wildcard-tls
+listeners: []
+
+# TCP listeners (e.g. port 22 for GitLab SSH) — must be set in environment values.
 #
-# Example:
-#   gateways:
-#     internal:
-#       name: chorus-internal-gateway
-#       listeners:
-#         - hostname: "*.internal.chorus-tre.local"
-#           secretName: internal-tls
-#       tcpListeners:
-#         - port: 22
-#     external:
-#       name: chorus-external-gateway
-#       # clusterIssuer: letsencrypt-prod-http01  # optional per-gateway override
-#       listeners:
-#         - hostname: "*.chorus-tre.local"
-#           secretName: external-tls
-gateways: {}
+# tcpListeners:
+#   - port: 22
+tcpListeners: []
