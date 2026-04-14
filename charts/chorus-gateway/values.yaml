@@ -98,6 +98,7 @@ external:
 
   # HTTPRoutes (parentRef: external gateway) and ReferenceGrants.
   # No SecurityPolicy restriction — accessible from browsers.
+  # Supports redirectPath but not matches or gateways (dual-access is via internal.routes only).
   # Must be set in environment values.
   #
   # Example:

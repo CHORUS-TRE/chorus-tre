@@ -11,8 +11,8 @@ gateway-helm:
 #   kubectl get gateway chorus-gateway -n envoy-gateway-system -o jsonpath='{.status.addresses[0].value}'
 
 tls:
-  # ClusterIssuer used by cert-manager to provision TLS certificates.
-  # Applies to all gateways — shared across internal and external.
+  # Default ClusterIssuer used by cert-manager to provision TLS certificates.
+  # Can be overridden per-gateway with gateways.<key>.clusterIssuer.
   # Mixing HTTP01 and DNS01 on a single Gateway is not supported.
   clusterIssuer: letsencrypt-prod
 
@@ -45,6 +45,7 @@ tls:
 #         - port: 22
 #     external:
 #       name: chorus-external-gateway
+#       # clusterIssuer: letsencrypt-prod-http01  # optional per-gateway override
 #       listeners:
 #         - hostname: "*.chorus-tre.local"
 #           secretName: external-tls

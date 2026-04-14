@@ -3,6 +3,8 @@
   Dual-gateway routes (gateways: [internal, external]) are excluded — SecurityPolicy applies
   per-HTTPRoute not per-parentRef, so it would block external traffic too.
   For dual-access services, the internal gateway is protected by the CNP layer instead.
+  Note: the CNP uses fromEntities: cluster which includes pods AND nodes (kubelet, kube-proxy,
+  health checks). This is slightly broader than the podCIDR SecurityPolicy (pods only).
 */}}
 {{- $internalOnlyRoutes := list }}
 {{- range .Values.internal.routes }}

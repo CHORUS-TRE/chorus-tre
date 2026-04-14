@@ -7,11 +7,12 @@
     used to expose a subset of a service internally (e.g. backend IDP /openid-connect/).
 */}}
 {{- range .Values.internal.routes }}
+{{- $routeName := required "route.name is required" .name }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ required "route.name is required" .name }}-httproute
+  name: {{ $routeName }}-httproute
   namespace: {{ $.Values.internal.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
@@ -23,6 +24,8 @@ spec:
     - name: {{ $.Values.internal.gateway.name }}
     {{- else if eq . "external" }}
     - name: {{ $.Values.external.gateway.name }}
+    {{- else }}
+    {{- fail (printf "unknown gateway %q in route %q — must be \"internal\" or \"external\"" . $routeName) }}
     {{- end }}
     {{- end }}
     {{- else }}
@@ -32,6 +35,8 @@ spec:
     - {{ required "route.hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
+    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
+         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
     - matches:
         - path:
             type: Exact
@@ -83,6 +88,8 @@ spec:
     - {{ required "route.hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
+    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
+         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
     - matches:
         - path:
             type: Exact
