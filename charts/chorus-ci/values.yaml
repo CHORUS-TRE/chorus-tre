@@ -88,9 +88,7 @@ eventBus:
   debug: false
 
 # GitHub App configuration for EventSource authentication
-# When enabled and webhookEvents[].webhookSecretName is set, EventSource will use GitHub App for webhook management
 githubApp:
-  enabled: false
   appID: ""
   installationID: ""
   privateKeySecret:
@@ -104,58 +102,14 @@ gitCredentials:
   passwordKey: "password"
 
 # Creates the webhook and matching events on the GitHub EventSource.
-# For each webhook event:
-# - If githubApp.enabled=true AND webhookSecretName is set: Use GitHub App authentication
-# - Otherwise: Use legacy PAT authentication via secretName
-webhookEvents:
-  - name: ci
-    repositories:
-      - owner: chorus-tre
-        names:
-          - images
-
-    # Legacy PAT-based authentication (used when githubApp.enabled=false or webhookSecretName is empty)
-    # Secret must contain: token (GitHub PAT) and secret (webhook secret)
-    secretName: chorus-ci-github-images
-
-    # GitHub App authentication (used when githubApp.enabled=true AND this is set)
-    # References a secret containing only the webhook signature validation secret
-    webhookSecretName: "" # e.g. images-webhook
-    webhookSecretKey: webhookSecret
-
-  - name: chorus-web-ui
-    repositories:
-      - owner: chorus-tre
-        names:
-          - chorus-web-ui
-    secretName: chorus-ci-github-chorus-web-ui
-    webhookSecretName: "" # e.g. chorus-web-ui-webhook
-    webhookSecretKey: webhookSecret
-
-  - name: chorus-backend
-    repositories:
-      - owner: chorus-tre
-        names:
-          - chorus-backend
-    secretName: chorus-ci-github-chorus-backend
-    webhookSecretName: "" # e.g. chorus-backend-webhook
-    webhookSecretKey: webhookSecret
-
-  - name: workbench-operator
-    repositories:
-      - owner: chorus-tre
-        names:
-          - workbench-operator
-    secretName: chorus-ci-github-workbench-operator
-    webhookSecretName: "" # e.g. workbench-operator-webhook
-    webhookSecretKey: webhookSecret
-
-# DEPRECATED: Use gitCredentials instead. This map is kept for backward compatibility.
-# References to secrets containing git credentials (username/password) for workflow git operations.
-githubSecrets:
-  chorus-backend: argo-workflows-github-chorus-backend
-  chorus-web-ui: argo-workflows-github-chorus-web-ui
-  workbench-operator: argo-workflows-github-workbench-operator
+webhookEvents: []
+  # - name: chorus-web-ui
+  #   repositories:
+  #     - owner: chorus-tre
+  #       names:
+  #         - chorus-web-ui
+  #   webhookSecretName: chorus-web-ui-webhook
+  #   webhookSecretKey: webhookSecret
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -191,13 +145,13 @@ ingress:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/app-root: /push
   hosts:
-    - host: webhook-ci.build.chorus-tre.local
+    - host: webhook.build.chorus-tre.local
       paths:
         - path: "/"
           pathType: Prefix
   tls:
     - hosts:
-        - webhook-ci.build.chorus-tre.local
+        - webhook.build.chorus-tre.local
       secretName: chorus-ci-tls
 
 resources: {}

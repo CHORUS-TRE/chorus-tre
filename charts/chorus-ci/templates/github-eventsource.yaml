@@ -1,7 +1,6 @@
 {{- $fullName := include "chorus-ci.fullname" . -}}
 {{- $targetPort := .Values.service.targetPort -}}
 {{- $ingressHost := .Values.ingress.hosts | mustFirst -}}
-{{- $isGithubAppEnabled := .Values.githubApp.enabled -}}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: EventSource
@@ -36,7 +35,6 @@ spec:
       events:
         - "*"
 
-      {{- if and $isGithubAppEnabled (ne .webhookSecretName "") }}
       # GitHub App authentication (webhook lifecycle managed via GitHub App)
       githubApp:
         privateKey:
@@ -48,18 +46,6 @@ spec:
       webhookSecret:
         name: {{ .webhookSecretName }}
         key: {{ .webhookSecretKey }}
-      {{- else if .secretName }}
-      # Legacy PAT authentication (webhook lifecycle managed via PAT)
-      # apiToken refers to K8s secret that stores the github api token
-      # if apiToken is provided controller will create webhook on GitHub repo
-      apiToken:
-        name: {{ .secretName }}
-        key: token
-      # webhookSecret refers to K8s secret that stores the github hook secret
-      webhookSecret:
-        name: {{ .secretName }}
-        key: secret
-      {{- end }}
 
       # type of the connection between event-source and Github.
       # You should set it to false to avoid man-in-the-middle and other attacks.
