@@ -1,15 +1,15 @@
-{{- range .Values.tcpRoutes }}
+{{- range .Values.internal.tcpRoutes }}
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: TCPRoute
 metadata:
   name: {{ required "tcpRoute.name is required" .name }}
-  namespace: {{ $.Values.gateway.namespace }}
+  namespace: {{ $.Values.internal.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
 spec:
   parentRefs:
-    - name: {{ $.Values.gateway.name }}
+    - name: {{ $.Values.internal.gateway.name }}
       sectionName: tcp-{{ required "tcpRoute.gatewayPort is required" .gatewayPort | toString }}
   rules:
     - backendRefs:
