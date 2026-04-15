@@ -144,15 +144,15 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/app-root: /push
-  hosts: []
-    # - host: webhook.build.chorus-tre.local
-    #   paths:
-    #     - path: "/"
-    #       pathType: Prefix
-  tls: []
-    # - hosts:
-    #     - webhook.build.chorus-tre.local
-    #   secretName: chorus-ci-tls
+  hosts:
+    - host: webhook.build.chorus-tre.local
+      paths:
+        - path: "/"
+          pathType: Prefix
+  tls:
+    - hosts:
+        - webhook.build.chorus-tre.local
+      secretName: chorus-ci-tls
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
