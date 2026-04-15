@@ -1,59 +1,110 @@
-# Cluster pod CIDR — used in SecurityPolicy to restrict access to workspace pods only.
-# Not used for CiliumNetworkPolicies (those use fromEntities: cluster instead of CIDR).
-# Must match the value set in gateway-helm.
+# Cluster pod CIDR — used in SecurityPolicy to control per-route access.
+# Internal routes: Allow podCIDR only (workspace pods). External routes: Deny podCIDR (browsers only).
+# With externalTrafficPolicy: Local, SecurityPolicy clientCIDRs sees real source IPs.
 # Must be set in environment values.
 # To find it: kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'
 # Each node shows its /24 subnet (e.g. 192.168.0.0/24, 192.168.1.0/24).
 # Derive the cluster supernet by keeping the first two octets and using /16 (e.g. 192.168.0.0/16).
 podCIDR: ""
 
-# Gateway reference — all HTTPRoutes attach to this Gateway.
+# Gateway reference — must match the Gateway metadata.name in the gateway-helm chart.
 gateway:
-  # Must match the Gateway metadata.name in the gateway-helm chart.
   name: chorus-gateway
   namespace: envoy-gateway-system
 
-# Internal service routes — each entry creates an HTTPRoute and ReferenceGrant.
-# All routes are restricted to pod CIDR only via SecurityPolicy.
+# Internal routes — accessible from workspace pods only (SecurityPolicy allows podCIDR).
+# External browsers get 403.
+# Each entry creates an HTTPRoute and ReferenceGrant.
+# Must be set in environment values.
+#
+# Optional: matches (path-restricted route, e.g. expose only /openid-connect/ internally).
+#
+# Example:
+#   internalRoutes:
+#     - name: gitlab
+#       hostname: gitlab.chorus-tre.local
+#       namespace: gitlab
+#       serviceName: gitlab-webservice-default
+#       servicePort: 8181
+#     - name: i2b2
+#       hostname: i2b2.chorus-tre.local
+#       namespace: i2b2
+#       serviceName: i2b2-frontend
+#       servicePort: 80
+#       redirectPath: /webclient
+#     - name: backend-idp
+#       hostname: backend.chorus-tre.local
+#       namespace: backend
+#       serviceName: backend
+#       servicePort: 5000
+#       matches:
+#         - pathPrefix: /openid-connect
+internalRoutes: []
+
+# External routes — accessible from external browsers only (SecurityPolicy denies podCIDR).
+# Workspace pods get 403.
+# Each entry creates an HTTPRoute and ReferenceGrant.
 # Must be set in environment values.
 #
 # Example:
-#   routes:
-#     - name: gitlab
-#       hostname: gitlab.internal.chorus-tre.local
-#       namespace: gitlab
-#       serviceName: my-release-webservice-default
-#       servicePort: 8181
-#     - name: i2b2
-#       hostname: i2b2.internal.chorus-tre.local
-#       namespace: i2b2
-#       serviceName: my-release-i2b2-frontend
+#   externalRoutes:
+#     # Full backend API — browsers only. Combine with the backend-idp internalRoute above
+#     # to gate /openid-connect/ to workspace pods while keeping the rest browser-only.
+#     # Same hostname, different paths, different SecurityPolicies — Gateway API evaluates
+#     # the more specific pathPrefix first.
+#     - name: backend
+#       hostname: backend.chorus-tre.local
+#       namespace: backend
+#       serviceName: backend
+#       servicePort: 5000
+#     - name: juicefs-dashboard
+#       hostname: juicefs-dashboard.chorus-tre.local
+#       namespace: kube-system
+#       serviceName: juicefs-csi-dashboard
+#       servicePort: 8088
+externalRoutes: []
+
+# Open routes — accessible from both workspace pods and external browsers.
+# No SecurityPolicy restriction.
+# Each entry creates an HTTPRoute and ReferenceGrant.
+# Must be set in environment values.
+#
+# Example:
+#   openRoutes:
+#     - name: harbor
+#       hostname: harbor.chorus-tre.local
+#       namespace: harbor
+#       serviceName: harbor-core
 #       servicePort: 80
-#       redirectPath: /webclient
-routes: []
+openRoutes: []
 
-# TCP service routes — each entry creates a TCPRoute forwarding gatewayPort to the service.
-# gatewayPort must match a tcp.listeners entry in gateway-helm.
+# Internal TCP routes — workspace pods only (SecurityPolicy allows podCIDR).
+# Each entry creates a TCPRoute forwarding gatewayPort to the service.
+# SecurityPolicy with clientCIDRs restricts access to podCIDR (same as internalRoutes).
+# gatewayPort must match a tcpListeners entry in the gateway-helm chart
+# (Envoy Gateway remaps it to gatewayPort+10000 internally, e.g. 22 → 10022).
 #
-# tcpRoutes:
-#   - name: gitlab-shell
-#     namespace: gitlab
-#     serviceName: chorus-int-gitlab-gitlab-shell
-#     servicePort: 22
-#     gatewayPort: 22
-tcpRoutes: []
+# Example:
+#   internalTcpRoutes:
+#     - name: gitlab-shell
+#       namespace: gitlab
+#       serviceName: gitlab-shell
+#       servicePort: 22
+#       gatewayPort: 22
+internalTcpRoutes: []
 
-# Shell services — each entry creates a CiliumNetworkPolicy restricting ingress on the
-# service container port to Envoy pods only (defense-in-depth).
-# A single envoy-gateway-ingress CNP (generated if routes or shellServices exist) restricts
-# all Envoy pod ingress to cluster-internal traffic, blocking external users.
-# gatewayPort must match a tcp.listeners entry in gateway-helm (Envoy remaps it to gatewayPort+10000).
+# Internal shell services — each entry creates a CiliumNetworkPolicy restricting ingress on the
+# service container port to Envoy pods only (defense-in-depth for internal TCP services).
+# Envoy terminates the client TCP connection and opens a new one to the service pod,
+# so the source IP at the service pod is the Envoy pod IP, not the original client IP.
+# gatewayPort must match a tcpListeners entry in gateway-helm (Envoy remaps it to gatewayPort+10000).
 #
-# shellServices:
-#   - name: gitlab-shell
-#     namespace: gitlab
-#     podSelector:
-#       app: gitlab-shell
-#     containerPort: 2222
-#     gatewayPort: 22
-shellServices: []
+# Example:
+#   internalShellServices:
+#     - name: gitlab-shell
+#       namespace: gitlab
+#       podSelector:
+#         app: gitlab-shell
+#       containerPort: 2222
+#       gatewayPort: 22
+internalShellServices: []

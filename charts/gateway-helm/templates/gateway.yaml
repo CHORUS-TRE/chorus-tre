@@ -1,15 +1,15 @@
-{{- if .Values.tls.listeners }}
+{{- if or .Values.listeners .Values.tcpListeners }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: chorus-gateway
+  name: {{ required "gateway.name is required" .Values.gateway.name }}
   namespace: envoy-gateway-system
   annotations:
-    cert-manager.io/cluster-issuer: {{ .Values.tls.clusterIssuer | quote }}
+    cert-manager.io/cluster-issuer: {{ .Values.clusterIssuer | quote }}
 spec:
   gatewayClassName: eg
   listeners:
-    {{- range .Values.tls.listeners }}
+    {{- range .Values.listeners }}
     {{- /* Name: use explicit .name if set, otherwise derived from hostname (dots → dashes, * → wildcard, truncated to 63 chars).
          Hostnames that differ only by characters mapping to "-" would collide — set an explicit .name per listener to disambiguate. */}}
     - name: {{ .name | default (required "listener.hostname is required" .hostname | replace "." "-" | replace "*" "wildcard" | trunc 63) }}
@@ -27,7 +27,7 @@ spec:
           # Allow HTTPRoutes from any namespace — service charts deploy routes in their own namespaces.
           from: All
     {{- end }}
-    {{- range .Values.tcp.listeners }}
+    {{- range .Values.tcpListeners }}
     - name: {{ .name | default (print "tcp-" .port) }}
       port: {{ .port }}
       protocol: TCP

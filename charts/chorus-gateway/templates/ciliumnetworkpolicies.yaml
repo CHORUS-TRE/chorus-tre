@@ -1,8 +1,8 @@
-{{- if or .Values.routes .Values.shellServices }}
+{{- if or .Values.internalRoutes .Values.externalRoutes .Values.openRoutes .Values.internalShellServices }}
 ---
-# Restrict ingress on all Envoy pods to cluster-internal traffic only.
-# fromEntities: cluster matches all pods and nodes within the cluster regardless of IP
-# masquerading, blocking external users while allowing workspace pods.
+# Allow ingress on the Envoy Gateway pods from both cluster and external traffic.
+# Access control is enforced per-route via SecurityPolicy (internal: allow podCIDR,
+# external: deny podCIDR, open: no restriction).
 # Adding any ingress rule triggers Cilium deny-by-default for ALL other ingress on the
 # matched pods, so every Envoy listener port must be explicitly listed here.
 apiVersion: cilium.io/v2
@@ -17,22 +17,20 @@ spec:
     matchLabels:
       app.kubernetes.io/managed-by: envoy-gateway
   ingress:
-    - fromEntities:
-        - cluster
-      toPorts:
+    - toPorts:
         - ports:
-            {{- if .Values.routes }}
+            {{- if or .Values.internalRoutes .Values.externalRoutes .Values.openRoutes }}
             # All HTTPRoutes use gateway port 443 → Envoy remaps to 10443.
             - port: "10443"
               protocol: TCP
             {{- end }}
-            {{- range .Values.shellServices }}
+            {{- range .Values.internalShellServices }}
             - port: {{ add .gatewayPort 10000 | toString | quote }}
               protocol: TCP
             {{- end }}
 {{- end }}
 
-{{- range .Values.shellServices }}
+{{- range .Values.internalShellServices }}
 ---
 # Defense-in-depth: restrict ingress on the container port to Envoy pods only.
 # Envoy terminates the client TCP connection and opens a new one to the service pod,

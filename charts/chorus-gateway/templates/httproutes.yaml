@@ -1,9 +1,14 @@
-{{- range .Values.routes }}
+{{- /*
+  Internal routes — workspace pods only (SecurityPolicy allows podCIDR).
+  Optional: matches (path-restricted, e.g. only /openid-connect/ internally).
+*/}}
+{{- range .Values.internalRoutes }}
+{{- $route := . }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ required "route.name is required" .name }}-httproute
+  name: {{ required "route.name is required" .name }}-internal-httproute
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
@@ -14,6 +19,99 @@ spec:
     - {{ required "route.hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
+    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
+         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
+    - matches:
+        - path:
+            type: Exact
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: {{ .redirectPath | quote }}
+    {{- end }}
+    {{- if .matches }}
+    {{- range .matches }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ required "match.pathPrefix is required" .pathPrefix | quote }}
+      backendRefs:
+        - name: {{ required "route.serviceName is required" $route.serviceName }}
+          namespace: {{ required "route.namespace is required" $route.namespace }}
+          port: {{ required "route.servicePort is required" $route.servicePort }}
+    {{- end }}
+    {{- else }}
+    - backendRefs:
+        - name: {{ required "route.serviceName is required" .serviceName }}
+          namespace: {{ required "route.namespace is required" .namespace }}
+          port: {{ required "route.servicePort is required" .servicePort }}
+    {{- end }}
+{{- end }}
+
+{{- /*
+  External routes — browsers only (SecurityPolicy denies podCIDR).
+  Workspace pods get 403.
+*/}}
+{{- range .Values.externalRoutes }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ required "route.name is required" .name }}-external-httproute
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $.Values.gateway.name }}
+  hostnames:
+    - {{ required "route.hostname is required" .hostname | quote }}
+  rules:
+    {{- if .redirectPath }}
+    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
+         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
+    - matches:
+        - path:
+            type: Exact
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: {{ .redirectPath | quote }}
+    {{- end }}
+    - backendRefs:
+        - name: {{ required "route.serviceName is required" .serviceName }}
+          namespace: {{ required "route.namespace is required" .namespace }}
+          port: {{ required "route.servicePort is required" .servicePort }}
+{{- end }}
+
+{{- /*
+  Open routes — accessible from both workspace pods and external browsers.
+  No SecurityPolicy restriction.
+*/}}
+{{- range .Values.openRoutes }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ required "route.name is required" .name }}-open-httproute
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $.Values.gateway.name }}
+  hostnames:
+    - {{ required "route.hostname is required" .hostname | quote }}
+  rules:
+    {{- if .redirectPath }}
+    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
+         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
     - matches:
         - path:
             type: Exact

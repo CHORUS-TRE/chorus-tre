@@ -1,24 +1,67 @@
-{{- if .Values.routes }}
+{{- /*
+  Internal SecurityPolicy — allows podCIDR only (workspace pods).
+  External clients are rejected (403 for HTTP routes, L4 connection close for TCP routes).
+  Targets internal HTTPRoutes and TCPRoutes.
+*/}}
+{{- if or .Values.internalRoutes .Values.internalTcpRoutes }}
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
-  name: workspaces-securitypolicy
+  name: internal-securitypolicy
   namespace: {{ .Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" . | nindent 4 }}
 spec:
   targetRefs:
-    {{- range .Values.routes }}
+    {{- range .Values.internalRoutes }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ .name }}-httproute
+      name: {{ .name }}-internal-httproute
+    {{- end }}
+    {{- range .Values.internalTcpRoutes }}
+    - group: gateway.networking.k8s.io
+      kind: TCPRoute
+      name: {{ .name }}
     {{- end }}
   authorization:
     defaultAction: Deny
     rules:
-      - action: Allow
+      - name: allow-workspace-pods
+        action: Allow
         principal:
           clientCIDRs:
             - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
 {{- end }}
+
+{{- /*
+  External SecurityPolicy — denies podCIDR (workspace pods get 403).
+  External browsers are allowed (defaultAction: Allow).
+*/}}
+{{- if .Values.externalRoutes }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: external-securitypolicy
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    {{- range .Values.externalRoutes }}
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ .name }}-external-httproute
+    {{- end }}
+  authorization:
+    defaultAction: Allow
+    rules:
+      - name: deny-workspace-pods
+        action: Deny
+        principal:
+          clientCIDRs:
+            - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
+{{- end }}
+
+{{- /* Open routes have no SecurityPolicy — accessible from everyone. */}}

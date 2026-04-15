@@ -3,38 +3,41 @@ gateway-helm:
     priorityClassName: high-priority
 
 # The LB IP is assigned automatically by the cloud provider or load balancer controller.
-# Access restriction to workspace pods is enforced at the application layer via SecurityPolicy
+# The Gateway creates an Envoy Deployment + LoadBalancer Service with a MetalLB VIP.
+# Access restriction is enforced per-route via SecurityPolicy at the application layer
 # (not loadBalancerSourceRanges, which is incompatible with Cilium's pod IP masquerading).
-# The IP should be pointed to by an internal subdomain (e.g. internal.<domain>) to distinguish
-# it from the public ingress.
+# With externalTrafficPolicy: Local, SecurityPolicy clientCIDRs sees real source IPs
+# (pod IPs for workspace pods, external IPs for browsers).
 # To find the assigned IP after deployment:
 #   kubectl get gateway chorus-gateway -n envoy-gateway-system -o jsonpath='{.status.addresses[0].value}'
 
-tls:
-  # ClusterIssuer used by cert-manager to provision TLS certificates.
-  # Applies to all listeners — mixing HTTP01 and DNS01 on a single Gateway is not supported.
-  clusterIssuer: letsencrypt-prod
+# Gateway name — must match the chorus-gateway chart's gateway.name value.
+gateway:
+  name: chorus-gateway
 
-  # One entry per hostname — cert-manager provisions one Certificate per listener.
-  # Must be set in environment values.
-  #
-  # Option A — per-hostname certs (HTTP01, no DNS access required):
-  #   listeners:
-  #     - hostname: gitlab.chorus-tre.local
-  #       secretName: gitlab-tls
-  #     - hostname: keycloak.chorus-tre.local
-  #       secretName: keycloak-tls
-  #
-  # Option B — wildcard cert (DNS01 required, e.g. Cloudflare):
-  #   listeners:
-  #     - hostname: "*.chorus-tre.local"
-  #       secretName: wildcard-tls
-  listeners: []
+# ClusterIssuer used by cert-manager to provision TLS certificates for HTTPS listeners.
+# All listeners share the same ClusterIssuer (cert-manager limitation:
+# mixing HTTP01 and DNS01 challenge types on the same Gateway is not supported).
+clusterIssuer: letsencrypt-prod
+
+# HTTPS listeners — one entry per hostname. cert-manager provisions one Certificate per listener.
+# Must be set in environment values.
+#
+# Option A — per-hostname certs (HTTP01, no DNS access required):
+#   listeners:
+#     - hostname: gitlab.chorus-tre.local
+#       secretName: gitlab-tls
+#     - hostname: i2b2.chorus-tre.local
+#       secretName: i2b2-tls
+#
+# Option B — wildcard cert (DNS01 required, e.g. Cloudflare):
+#   listeners:
+#     - hostname: "*.chorus-tre.local"
+#       secretName: wildcard-tls
+listeners: []
 
 # TCP listeners (e.g. port 22 for GitLab SSH) — must be set in environment values.
 #
-# tcp:
-#   listeners:
-#     - port: 22
-tcp:
-  listeners: []
+# tcpListeners:
+#   - port: 22
+tcpListeners: []

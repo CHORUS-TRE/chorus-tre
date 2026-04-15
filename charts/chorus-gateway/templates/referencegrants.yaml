@@ -1,5 +1,5 @@
 {{- $seenNamespaces := dict }}
-{{- range .Values.routes }}
+{{- range concat .Values.internalRoutes .Values.externalRoutes .Values.openRoutes }}
 {{- if not (hasKey $seenNamespaces .namespace) }}
 {{- $_ := set $seenNamespaces .namespace true }}
 ---
