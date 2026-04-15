@@ -48,6 +48,10 @@ internalRoutes: []
 #
 # Example:
 #   externalRoutes:
+#     # Full backend API — browsers only. Combine with the backend-idp internalRoute above
+#     # to gate /openid-connect/ to workspace pods while keeping the rest browser-only.
+#     # Same hostname, different paths, different SecurityPolicies — Gateway API evaluates
+#     # the more specific pathPrefix first.
 #     - name: backend
 #       hostname: backend.chorus-tre.local
 #       namespace: backend

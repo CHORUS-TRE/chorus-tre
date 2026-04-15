@@ -1,6 +1,6 @@
 {{- /*
   Internal SecurityPolicy — allows podCIDR only (workspace pods).
-  External browsers get 403.
+  External clients are rejected (403 for HTTP routes, L4 connection close for TCP routes).
   Targets internal HTTPRoutes and TCPRoutes.
 */}}
 {{- if or .Values.internalRoutes .Values.internalTcpRoutes }}
