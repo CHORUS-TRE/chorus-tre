@@ -1,36 +1,20 @@
 {{- /*
-  Internal routes — attached to the internal gateway by default.
-  - Default: parentRef is internalGateway only (workspace pods only, SecurityPolicy restricted).
-  - Dual-access (gateways: [internal, external]): single HTTPRoute with two parentRefs,
-    reachable from both workspace pods and external browsers.
-  - Path-restricted (matches: [{pathPrefix: /path}]): only forwards matching paths to the backend,
-    used to expose a subset of a service internally (e.g. backend IDP /openid-connect/).
+  Internal routes — workspace pods only (SecurityPolicy allows podCIDR).
+  Optional: matches (path-restricted, e.g. only /openid-connect/ internally).
 */}}
-{{- range .Values.internal.routes }}
-{{- $routeName := required "route.name is required" .name }}
+{{- range .Values.internalRoutes }}
+{{- $route := . }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ $routeName }}-httproute
-  namespace: {{ $.Values.internal.gateway.namespace }}
+  name: {{ required "route.name is required" .name }}-internal-httproute
+  namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
 spec:
   parentRefs:
-    {{- if .gateways }}
-    {{- range .gateways }}
-    {{- if eq . "internal" }}
-    - name: {{ $.Values.internal.gateway.name }}
-    {{- else if eq . "external" }}
-    - name: {{ $.Values.external.gateway.name }}
-    {{- else }}
-    {{- fail (printf "unknown gateway %q in route %q — must be \"internal\" or \"external\"" . $routeName) }}
-    {{- end }}
-    {{- end }}
-    {{- else }}
-    - name: {{ $.Values.internal.gateway.name }}
-    {{- end }}
+    - name: {{ $.Values.gateway.name }}
   hostnames:
     - {{ required "route.hostname is required" .hostname | quote }}
   rules:
@@ -55,9 +39,9 @@ spec:
             type: PathPrefix
             value: {{ required "match.pathPrefix is required" .pathPrefix | quote }}
       backendRefs:
-        - name: {{ required "route.serviceName is required" $.serviceName }}
-          namespace: {{ required "route.namespace is required" $.namespace }}
-          port: {{ required "route.servicePort is required" $.servicePort }}
+        - name: {{ required "route.serviceName is required" $route.serviceName }}
+          namespace: {{ required "route.namespace is required" $route.namespace }}
+          port: {{ required "route.servicePort is required" $route.servicePort }}
     {{- end }}
     {{- else }}
     - backendRefs:
@@ -68,22 +52,60 @@ spec:
 {{- end }}
 
 {{- /*
-  External routes — attached to the external gateway only.
-  No SecurityPolicy restriction — accessible from external browsers.
-  Workspace pods cannot reach these (operator CNP restricts egress to internal gateway pods only).
+  External routes — browsers only (SecurityPolicy denies podCIDR).
+  Workspace pods get 403.
 */}}
-{{- range .Values.external.routes }}
+{{- range .Values.externalRoutes }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: {{ required "route.name is required" .name }}-external-httproute
-  namespace: {{ $.Values.external.gateway.namespace }}
+  namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
 spec:
   parentRefs:
-    - name: {{ $.Values.external.gateway.name }}
+    - name: {{ $.Values.gateway.name }}
+  hostnames:
+    - {{ required "route.hostname is required" .hostname | quote }}
+  rules:
+    {{- if .redirectPath }}
+    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
+         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
+    - matches:
+        - path:
+            type: Exact
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: {{ .redirectPath | quote }}
+    {{- end }}
+    - backendRefs:
+        - name: {{ required "route.serviceName is required" .serviceName }}
+          namespace: {{ required "route.namespace is required" .namespace }}
+          port: {{ required "route.servicePort is required" .servicePort }}
+{{- end }}
+
+{{- /*
+  Open routes — accessible from both workspace pods and external browsers.
+  No SecurityPolicy restriction.
+*/}}
+{{- range .Values.openRoutes }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ required "route.name is required" .name }}-open-httproute
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $.Values.gateway.name }}
   hostnames:
     - {{ required "route.hostname is required" .hostname | quote }}
   rules:

@@ -1,42 +1,67 @@
 {{- /*
-  SecurityPolicy restricts internal-only routes to pod CIDR (workspace pods only).
-  Dual-gateway routes (gateways: [internal, external]) are excluded — SecurityPolicy applies
-  per-HTTPRoute not per-parentRef, so it would block external traffic too.
-  For dual-access services, the internal gateway is protected by the CNP layer instead.
-  Note: the CNP uses fromEntities: cluster which includes pods AND nodes (kubelet, kube-proxy,
-  health checks). This is slightly broader than the podCIDR SecurityPolicy (pods only).
+  Internal SecurityPolicy — allows podCIDR only (workspace pods).
+  External clients are rejected (403 for HTTP routes, L4 connection close for TCP routes).
+  Targets internal HTTPRoutes and TCPRoutes.
 */}}
-{{- $internalOnlyRoutes := list }}
-{{- range .Values.internal.routes }}
-{{- $hasExternal := false }}
-{{- range .gateways }}
-{{- if eq . "external" }}{{ $hasExternal = true }}{{ end }}
-{{- end }}
-{{- if not $hasExternal }}
-{{- $internalOnlyRoutes = append $internalOnlyRoutes . }}
-{{- end }}
-{{- end }}
-{{- if $internalOnlyRoutes }}
+{{- if or .Values.internalRoutes .Values.internalTcpRoutes }}
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
-  name: workspaces-securitypolicy
-  namespace: {{ .Values.internal.gateway.namespace }}
+  name: internal-securitypolicy
+  namespace: {{ .Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" . | nindent 4 }}
 spec:
   targetRefs:
-    {{- range $internalOnlyRoutes }}
+    {{- range .Values.internalRoutes }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ .name }}-httproute
+      name: {{ .name }}-internal-httproute
+    {{- end }}
+    {{- range .Values.internalTcpRoutes }}
+    - group: gateway.networking.k8s.io
+      kind: TCPRoute
+      name: {{ .name }}
     {{- end }}
   authorization:
     defaultAction: Deny
     rules:
-      - action: Allow
+      - name: allow-workspace-pods
+        action: Allow
         principal:
           clientCIDRs:
             - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
 {{- end }}
+
+{{- /*
+  External SecurityPolicy — denies podCIDR (workspace pods get 403).
+  External browsers are allowed (defaultAction: Allow).
+*/}}
+{{- if .Values.externalRoutes }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: external-securitypolicy
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    {{- range .Values.externalRoutes }}
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ .name }}-external-httproute
+    {{- end }}
+  authorization:
+    defaultAction: Allow
+    rules:
+      - name: deny-workspace-pods
+        action: Deny
+        principal:
+          clientCIDRs:
+            - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
+{{- end }}
+
+{{- /* Open routes have no SecurityPolicy — accessible from everyone. */}}
