@@ -62,6 +62,17 @@ internalRoutes: []
 #       namespace: kube-system
 #       serviceName: juicefs-csi-dashboard
 #       servicePort: 8088
+#     # Routes with extAuth get an ExtAuth SecurityPolicy + a /oauth2 callback route.
+#     # The oauth2-proxy handles authentication via Keycloak OIDC.
+#     - name: prometheus
+#       hostname: prometheus.chorus-tre.local
+#       namespace: prometheus
+#       serviceName: prometheus
+#       servicePort: 9090
+#       extAuth:
+#         serviceName: prometheus-oauth2-proxy
+#         namespace: prometheus
+#         servicePort: 80
 externalRoutes: []
 
 # Open routes — accessible from both workspace pods and external browsers.

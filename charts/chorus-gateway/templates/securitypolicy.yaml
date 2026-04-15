@@ -37,6 +37,7 @@ spec:
 {{- /*
   External SecurityPolicy — denies podCIDR (workspace pods get 403).
   External browsers are allowed (defaultAction: Allow).
+  Routes with extAuth are excluded — they get their own ExtAuth SecurityPolicy below.
 */}}
 {{- if .Values.externalRoutes }}
 ---
@@ -50,9 +51,17 @@ metadata:
 spec:
   targetRefs:
     {{- range .Values.externalRoutes }}
+    {{- if not .extAuth }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: {{ .name }}-external-httproute
+    {{- end }}
+    {{- /* OAuth2 callback routes for extAuth routes — deny podCIDR too */}}
+    {{- if .extAuth }}
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ .name }}-oauth2-httproute
+    {{- end }}
     {{- end }}
   authorization:
     defaultAction: Allow
@@ -62,6 +71,58 @@ spec:
         principal:
           clientCIDRs:
             - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
+{{- end }}
+
+{{- /*
+  ExtAuth SecurityPolicies — one per external route that has extAuth configured.
+  Uses Envoy external authorization to forward auth checks to an oauth2-proxy service.
+  Also denies podCIDR (workspace pods) via authorization rules.
+*/}}
+{{- range .Values.externalRoutes }}
+{{- if .extAuth }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ .name }}-extauth-securitypolicy
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ .name }}-external-httproute
+  authorization:
+    defaultAction: Allow
+    rules:
+      - name: deny-workspace-pods
+        action: Deny
+        principal:
+          clientCIDRs:
+            - {{ required "podCIDR must be set" $.Values.podCIDR | quote }}
+  extAuth:
+    failOpen: false
+    headersToExtAuth:
+      - Cookie
+      - Authorization
+      - X-Forwarded-Proto
+      - X-Forwarded-Host
+      - X-Forwarded-Uri
+    http:
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ required "extAuth.serviceName is required" .extAuth.serviceName }}
+          namespace: {{ required "extAuth.namespace is required" .extAuth.namespace }}
+          port: {{ required "extAuth.servicePort is required" .extAuth.servicePort }}
+      path: {{ .extAuth.path | default "/oauth2/auth" }}
+      headersToBackend:
+        - X-Auth-Request-User
+        - X-Auth-Request-Email
+        - X-Auth-Request-Groups
+        - X-Auth-Request-Access-Token
+{{- end }}
 {{- end }}
 
 {{- /* Open routes have no SecurityPolicy — accessible from everyone. */}}
