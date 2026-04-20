@@ -91,9 +91,11 @@ spec:
 {{- end }}
 
 {{- /*
-  ExtAuth callback routes — for external routes with extAuth, create an open HTTPRoute
+  ExtAuth callback routes — for external routes with extAuth, create an HTTPRoute
   on /oauth2 path that routes to the oauth2-proxy service for callback handling.
-  No SecurityPolicy — must be accessible for the OAuth2 flow to complete.
+  Targeted by external-securitypolicy (deny podCIDR) so workspace pods can't hit
+  the callback, while external browsers complete the OAuth2 flow normally.
+  No ExtAuth SecurityPolicy — the callback itself must not require auth.
 */}}
 {{- range .Values.externalRoutes }}
 {{- if .extAuth }}

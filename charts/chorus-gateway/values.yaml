@@ -7,7 +7,8 @@
 # Derive the cluster supernet by keeping the first two octets and using /16 (e.g. 192.168.0.0/16).
 podCIDR: ""
 
-# Gateway reference — must match the Gateway metadata.name in the gateway-helm chart.
+# Gateway reference. `name` must match `gateway.name` in the gateway-helm chart
+# (routes attach to that Gateway by name). Rename in both charts.
 gateway:
   name: chorus-gateway
   namespace: envoy-gateway-system
@@ -57,11 +58,9 @@ internalRoutes: []
 #       namespace: backend
 #       serviceName: backend
 #       servicePort: 5000
-#     - name: juicefs-dashboard
-#       hostname: juicefs-dashboard.chorus-tre.local
-#       namespace: kube-system
-#       serviceName: juicefs-csi-dashboard
-#       servicePort: 8088
+#     # Routes for services without built-in auth must use extAuth (see below) —
+#     # exposing them with just SecurityPolicy denies workspace pods but leaves
+#     # them open to any external browser.
 #     # Routes with extAuth get an ExtAuth SecurityPolicy + a /oauth2 callback route.
 #     # The oauth2-proxy handles authentication via Keycloak OIDC.
 #     - name: prometheus
