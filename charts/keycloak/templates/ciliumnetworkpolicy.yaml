@@ -1,4 +1,3 @@
-{{- if .Values.allowedIngressNamespaces }}
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -14,6 +13,7 @@ spec:
     matchLabels:
       app.kubernetes.io/name: keycloak
       app.kubernetes.io/component: keycloak
+  {{- if .Values.allowedIngressNamespaces }}
   ingress:
     - fromEndpoints:
         {{- range .Values.allowedIngressNamespaces }}
@@ -26,4 +26,8 @@ spec:
               protocol: TCP
             - port: "8443"
               protocol: TCP
-{{- end }}
+            # If keycloak ever runs with replicas > 1, also allow 7800/TCP for
+            # jgroups/infinispan clustering or cross-pod discovery will fail.
+  {{- else }}
+  ingress: []
+  {{- end }}

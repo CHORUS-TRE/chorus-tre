@@ -1,4 +1,3 @@
-{{- if .Values.allowedIngressNamespaces }}
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -13,10 +12,13 @@ spec:
   endpointSelector:
     matchLabels:
       app: harbor
+  {{- if .Values.allowedIngressNamespaces }}
   ingress:
     - fromEndpoints:
         {{- range .Values.allowedIngressNamespaces }}
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: {{ . | quote }}
         {{- end }}
-{{- end }}
+  {{- else }}
+  ingress: []
+  {{- end }}
