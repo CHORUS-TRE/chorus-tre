@@ -365,3 +365,14 @@ certificate:
 
   issuerRef:
     name: CHANGEME-issuer
+
+# Restrict ingress to the keycloak pods to the listed namespaces. When empty,
+# no CiliumNetworkPolicy is created and ingress is unrestricted.
+# Keeps workspace namespaces out while allowing the Envoy Gateway and platform
+# pods (backend, harbor, oauth2-proxies) to reach keycloak.
+allowedIngressNamespaces:
+  - envoy-gateway-system
+  - backend
+  - harbor
+  - prometheus
+  - keycloak
