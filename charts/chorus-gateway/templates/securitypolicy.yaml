@@ -22,7 +22,7 @@ spec:
     {{- range .Values.internalTcpRoutes }}
     - group: gateway.networking.k8s.io
       kind: TCPRoute
-      name: {{ .name }}
+      name: {{ .name }}-internal-tcproute
     {{- end }}
   authorization:
     defaultAction: Deny
