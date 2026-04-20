@@ -241,3 +241,12 @@ robots: {}
   #         - resource: artifact
   #           action: delete
   #           effect: deny
+
+# Restrict ingress to the harbor proxy pods to the listed namespaces. When empty,
+# no CiliumNetworkPolicy is created and ingress is unrestricted.
+# Keeps direct (service-DNS) ingress from arbitrary namespaces out while allowing
+# the Envoy Gateway (which handles all kubelet image pulls, ArgoCD chart pulls,
+# and external browser traffic) and intra-harbor component-to-component calls.
+allowedIngressNamespaces:
+  - envoy-gateway-system
+  - harbor
