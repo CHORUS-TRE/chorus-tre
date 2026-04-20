@@ -100,15 +100,17 @@ spec:
         action: Deny
         principal:
           clientCIDRs:
-            - {{ required "podCIDR must be set" $.Values.podCIDR | quote }}
+            - {{ required "podCIDR must be set to match the cluster's pod CIDR" $.Values.podCIDR | quote }}
   extAuth:
     failOpen: false
     headersToExtAuth:
       - Cookie
       - Authorization
+      - Accept
       - X-Forwarded-Proto
       - X-Forwarded-Host
       - X-Forwarded-Uri
+      - X-Auth-Request-Redirect
     http:
       backendRefs:
         - group: ""
