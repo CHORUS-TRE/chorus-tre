@@ -256,3 +256,4 @@ robots: {}
 allowedIngressNamespaces:
   - envoy-gateway-system
   - harbor
+  - prometheus
