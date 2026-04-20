@@ -11,7 +11,8 @@ gateway-helm:
 # To find the assigned IP after deployment:
 #   kubectl get gateway chorus-gateway -n envoy-gateway-system -o jsonpath='{.status.addresses[0].value}'
 
-# Gateway name — must match the chorus-gateway chart's gateway.name value.
+# Gateway name. Must match `gateway.name` in the chorus-gateway chart
+# (HTTPRoutes/TCPRoutes/SecurityPolicies attach by name). Rename in both charts.
 gateway:
   name: chorus-gateway
 

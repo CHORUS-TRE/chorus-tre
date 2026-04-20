@@ -3,7 +3,7 @@
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: TCPRoute
 metadata:
-  name: {{ required "tcpRoute.name is required" .name }}
+  name: {{ required "tcpRoute.name is required" .name }}-internal-tcproute
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}

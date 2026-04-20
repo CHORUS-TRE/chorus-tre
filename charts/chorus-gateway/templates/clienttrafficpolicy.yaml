@@ -1,0 +1,24 @@
+{{- /*
+  ClientTrafficPolicy — path handling for the gateway.
+
+  escapedSlashesAction: UnescapeAndForward
+    Decodes %2F to / and forwards to the backend without a redirect.
+    Envoy's default is UnescapeAndRedirect, which returns a 307 to the decoded
+    path. That redirect has no CORS headers, so browser XHR/fetch fails CORS
+    on paths containing %2F (observed with backend file-archive endpoints where
+    the frontend URL-encodes a trailing slash).
+*/}}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  name: gateway-path-handling
+  namespace: {{ .Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.gateway.name }}
+  path:
+    escapedSlashesAction: UnescapeAndForward
