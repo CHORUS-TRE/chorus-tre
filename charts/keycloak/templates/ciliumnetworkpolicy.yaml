@@ -8,10 +8,17 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: keycloak
+      app.kubernetes.io/component: keycloak
   ingress:
     - fromEndpoints:
         {{- range .Values.allowedIngressNamespaces }}
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: {{ . | quote }}
         {{- end }}
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+            - port: "8443"
+              protocol: TCP
 {{- end }}

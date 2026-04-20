@@ -374,5 +374,6 @@ allowedIngressNamespaces:
   - envoy-gateway-system
   - backend
   - harbor
+  - matomo
   - prometheus
   - keycloak
