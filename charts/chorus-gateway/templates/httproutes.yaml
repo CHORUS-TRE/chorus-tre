@@ -54,8 +54,11 @@ spec:
 {{- /*
   External routes — browsers only (SecurityPolicy denies podCIDR).
   Workspace pods get 403.
+  Optional: matches (path-restricted, e.g. restrict only /admin to browsers
+  while leaving the rest of the hostname on an openRoute).
 */}}
 {{- range .Values.externalRoutes }}
+{{- $route := . }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -84,10 +87,23 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: {{ .redirectPath | quote }}
     {{- end }}
+    {{- if .matches }}
+    {{- range .matches }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ required "match.pathPrefix is required" .pathPrefix | quote }}
+      backendRefs:
+        - name: {{ required "route.serviceName is required" $route.serviceName }}
+          namespace: {{ required "route.namespace is required" $route.namespace }}
+          port: {{ required "route.servicePort is required" $route.servicePort }}
+    {{- end }}
+    {{- else }}
     - backendRefs:
         - name: {{ required "route.serviceName is required" .serviceName }}
           namespace: {{ required "route.namespace is required" .namespace }}
           port: {{ required "route.servicePort is required" .servicePort }}
+    {{- end }}
 {{- end }}
 
 {{- /*

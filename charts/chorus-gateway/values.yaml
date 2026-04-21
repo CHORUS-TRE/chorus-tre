@@ -70,6 +70,9 @@ internalAccessDeniedHTML: |-
 # Each entry creates an HTTPRoute and ReferenceGrant.
 # Must be set in environment values.
 #
+# Optional: matches (path-restricted, e.g. restrict only /admin on a hostname
+# that is otherwise served by an openRoute catch-all).
+#
 # Example:
 #   externalRoutes:
 #     # Full backend API — browsers only. Combine with the backend-idp internalRoute above
