@@ -39,7 +39,7 @@ apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
   name: {{ .name }}-service-ingress
-  namespace: {{ required "shellService.namespace is required" .namespace }}
+  namespace: {{ required "namespace is required" .namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
 spec:

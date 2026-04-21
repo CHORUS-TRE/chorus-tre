@@ -8,7 +8,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ required "route.name is required" .name }}-internal-httproute
+  name: {{ include "chorus-gateway.internalHTTPRouteName" . }}
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
@@ -16,51 +16,39 @@ spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}
   hostnames:
-    - {{ required "route.hostname is required" .hostname | quote }}
+    - {{ required "hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
-    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
-         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
-    - matches:
-        - path:
-            type: Exact
-            value: /
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: {{ .redirectPath | quote }}
+    {{- include "chorus-gateway.redirectOnRoot" . | nindent 4 }}
     {{- end }}
     {{- if .matches }}
     {{- range .matches }}
     - matches:
         - path:
             type: PathPrefix
-            value: {{ required "match.pathPrefix is required" .pathPrefix | quote }}
+            value: {{ required "pathPrefix is required" .pathPrefix | quote }}
       backendRefs:
-        - name: {{ required "route.serviceName is required" $route.serviceName }}
-          namespace: {{ required "route.namespace is required" $route.namespace }}
-          port: {{ required "route.servicePort is required" $route.servicePort }}
+        {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
     {{- end }}
     {{- else }}
     - backendRefs:
-        - name: {{ required "route.serviceName is required" .serviceName }}
-          namespace: {{ required "route.namespace is required" .namespace }}
-          port: {{ required "route.servicePort is required" .servicePort }}
+        {{- include "chorus-gateway.backendRef" . | nindent 8 }}
     {{- end }}
 {{- end }}
 
 {{- /*
   External routes — browsers only (SecurityPolicy denies podCIDR).
   Workspace pods get 403.
+  Optional: matches (path-restricted, e.g. restrict only /admin to browsers
+  while leaving the rest of the hostname on an openRoute).
 */}}
 {{- range .Values.externalRoutes }}
+{{- $route := . }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ required "route.name is required" .name }}-external-httproute
+  name: {{ include "chorus-gateway.externalHTTPRouteName" . }}
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
@@ -68,26 +56,24 @@ spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}
   hostnames:
-    - {{ required "route.hostname is required" .hostname | quote }}
+    - {{ required "hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
-    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
-         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
+    {{- include "chorus-gateway.redirectOnRoot" . | nindent 4 }}
+    {{- end }}
+    {{- if .matches }}
+    {{- range .matches }}
     - matches:
         - path:
-            type: Exact
-            value: /
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: {{ .redirectPath | quote }}
+            type: PathPrefix
+            value: {{ required "pathPrefix is required" .pathPrefix | quote }}
+      backendRefs:
+        {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
     {{- end }}
+    {{- else }}
     - backendRefs:
-        - name: {{ required "route.serviceName is required" .serviceName }}
-          namespace: {{ required "route.namespace is required" .namespace }}
-          port: {{ required "route.servicePort is required" .servicePort }}
+        {{- include "chorus-gateway.backendRef" . | nindent 8 }}
+    {{- end }}
 {{- end }}
 
 {{- /*
@@ -103,7 +89,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ .name }}-oauth2-httproute
+  name: {{ include "chorus-gateway.oauth2HTTPRouteName" . }}
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
@@ -118,22 +104,23 @@ spec:
             type: PathPrefix
             value: /oauth2
       backendRefs:
-        - name: {{ .extAuth.serviceName }}
-          namespace: {{ .extAuth.namespace }}
-          port: {{ .extAuth.servicePort }}
+        {{- include "chorus-gateway.backendRef" .extAuth | nindent 8 }}
 {{- end }}
 {{- end }}
 
 {{- /*
   Open routes — accessible from both workspace pods and external browsers.
   No SecurityPolicy restriction.
+  Optional: matches (path-restricted, e.g. only /v2 and /service/token open
+  while the rest of the hostname is an externalRoute catchall).
 */}}
 {{- range .Values.openRoutes }}
+{{- $route := . }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: {{ required "route.name is required" .name }}-open-httproute
+  name: {{ include "chorus-gateway.openHTTPRouteName" . }}
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
@@ -141,24 +128,22 @@ spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}
   hostnames:
-    - {{ required "route.hostname is required" .hostname | quote }}
+    - {{ required "hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
-    {{- /* Redirect on exact "/" — Gateway API evaluates matches-bearing rules before
-         match-less ones, so this takes precedence over the catchall backendRefs below. */}}
+    {{- include "chorus-gateway.redirectOnRoot" . | nindent 4 }}
+    {{- end }}
+    {{- if .matches }}
+    {{- range .matches }}
     - matches:
         - path:
-            type: Exact
-            value: /
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: {{ .redirectPath | quote }}
+            type: PathPrefix
+            value: {{ required "pathPrefix is required" .pathPrefix | quote }}
+      backendRefs:
+        {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
     {{- end }}
+    {{- else }}
     - backendRefs:
-        - name: {{ required "route.serviceName is required" .serviceName }}
-          namespace: {{ required "route.namespace is required" .namespace }}
-          port: {{ required "route.servicePort is required" .servicePort }}
+        {{- include "chorus-gateway.backendRef" . | nindent 8 }}
+    {{- end }}
 {{- end }}

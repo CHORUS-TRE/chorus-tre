@@ -17,21 +17,17 @@ spec:
     {{- range .Values.internalRoutes }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ .name }}-internal-httproute
+      name: {{ include "chorus-gateway.internalHTTPRouteName" . }}
     {{- end }}
     {{- range .Values.internalTcpRoutes }}
     - group: gateway.networking.k8s.io
       kind: TCPRoute
-      name: {{ .name }}-internal-tcproute
+      name: {{ include "chorus-gateway.internalTCPRouteName" . }}
     {{- end }}
   authorization:
     defaultAction: Deny
     rules:
-      - name: allow-workspace-pods
-        action: Allow
-        principal:
-          clientCIDRs:
-            - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
+      {{- include "chorus-gateway.podCIDRRule" (dict "name" "allow-workspace-pods" "action" "Allow" "podCIDR" .Values.podCIDR) | nindent 6 }}
 {{- end }}
 
 {{- /*
@@ -54,23 +50,19 @@ spec:
     {{- if not .extAuth }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ .name }}-external-httproute
+      name: {{ include "chorus-gateway.externalHTTPRouteName" . }}
     {{- end }}
     {{- /* OAuth2 callback routes for extAuth routes — deny podCIDR */}}
     {{- if .extAuth }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ .name }}-oauth2-httproute
+      name: {{ include "chorus-gateway.oauth2HTTPRouteName" . }}
     {{- end }}
     {{- end }}
   authorization:
     defaultAction: Allow
     rules:
-      - name: deny-workspace-pods
-        action: Deny
-        principal:
-          clientCIDRs:
-            - {{ required "podCIDR must be set to match the cluster's pod CIDR" .Values.podCIDR | quote }}
+      {{- include "chorus-gateway.podCIDRRule" (dict "name" "deny-workspace-pods" "action" "Deny" "podCIDR" .Values.podCIDR) | nindent 6 }}
 {{- end }}
 
 {{- /*
@@ -84,7 +76,7 @@ spec:
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
-  name: {{ .name }}-extauth-securitypolicy
+  name: {{ include "chorus-gateway.extAuthSecurityPolicyName" . }}
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
@@ -92,15 +84,11 @@ spec:
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ .name }}-external-httproute
+      name: {{ include "chorus-gateway.externalHTTPRouteName" . }}
   authorization:
     defaultAction: Allow
     rules:
-      - name: deny-workspace-pods
-        action: Deny
-        principal:
-          clientCIDRs:
-            - {{ required "podCIDR must be set to match the cluster's pod CIDR" $.Values.podCIDR | quote }}
+      {{- include "chorus-gateway.podCIDRRule" (dict "name" "deny-workspace-pods" "action" "Deny" "podCIDR" $.Values.podCIDR) | nindent 6 }}
   extAuth:
     failOpen: false
     headersToExtAuth:

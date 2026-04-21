@@ -70,6 +70,9 @@ internalAccessDeniedHTML: |-
 # Each entry creates an HTTPRoute and ReferenceGrant.
 # Must be set in environment values.
 #
+# Optional: matches (path-restricted, e.g. restrict only /admin on a hostname
+# that is otherwise served by an openRoute catch-all).
+#
 # Example:
 #   externalRoutes:
 #     # Full backend API — browsers only. Combine with the backend-idp internalRoute above
@@ -95,12 +98,23 @@ internalAccessDeniedHTML: |-
 #         serviceName: prometheus-oauth2-proxy
 #         namespace: prometheus
 #         servicePort: 80
+#     # Restrict only /admin on a hostname otherwise served by an openRoute catchall.
+#     - name: auth-admin
+#       hostname: auth.chorus-tre.local
+#       namespace: keycloak
+#       serviceName: keycloak
+#       servicePort: 80
+#       matches:
+#         - pathPrefix: /admin
 externalRoutes: []
 
 # Open routes — accessible from both workspace pods and external browsers.
 # No SecurityPolicy restriction.
 # Each entry creates an HTTPRoute and ReferenceGrant.
 # Must be set in environment values.
+#
+# Optional: matches (path-restricted, e.g. only /v2 and /service/token open
+# on a hostname that is otherwise served by an externalRoute catchall).
 #
 # Example:
 #   openRoutes:
@@ -109,6 +123,16 @@ externalRoutes: []
 #       namespace: keycloak
 #       serviceName: keycloak
 #       servicePort: 80
+#     # Expose only /v2 and /service/token on a hostname otherwise served by
+#     # an externalRoute catchall (so pods can pull images, browsers get the UI).
+#     - name: harbor-registry
+#       hostname: harbor.chorus-tre.local
+#       namespace: harbor
+#       serviceName: harbor
+#       servicePort: 80
+#       matches:
+#         - pathPrefix: /v2
+#         - pathPrefix: /service/token
 openRoutes: []
 
 # Internal TCP routes — workspace pods only (SecurityPolicy allows podCIDR).
