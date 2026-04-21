@@ -241,3 +241,19 @@ robots: {}
   #         - resource: artifact
   #           action: delete
   #           effect: deny
+
+# Restrict ingress to the harbor pods to the listed namespaces.
+#
+# Default covers: the Envoy Gateway (which handles all kubelet image pulls,
+# ArgoCD chart pulls, and external browser traffic) and intra-harbor
+# component-to-component calls.
+#
+# Override per-env if namespace names differ or if a service not listed here
+# calls harbor directly via service DNS.
+#
+# The CiliumNetworkPolicy is always rendered (secure-by-default for a TRE).
+# Setting this to [] or omitting it produces a deny-all ingress policy.
+allowedIngressNamespaces:
+  - envoy-gateway-system
+  - harbor
+  - prometheus

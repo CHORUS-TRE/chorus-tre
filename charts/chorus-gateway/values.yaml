@@ -81,10 +81,10 @@ externalRoutes: []
 #
 # Example:
 #   openRoutes:
-#     - name: harbor
-#       hostname: harbor.chorus-tre.local
-#       namespace: harbor
-#       serviceName: harbor-core
+#     - name: auth
+#       hostname: auth.chorus-tre.local
+#       namespace: keycloak
+#       serviceName: keycloak
 #       servicePort: 80
 openRoutes: []
 

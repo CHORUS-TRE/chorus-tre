@@ -1,0 +1,33 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: keycloak-ingress-restrict
+  namespace: {{ .Release.Namespace }}
+  labels:
+    helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak
+      app.kubernetes.io/component: keycloak
+  {{- if .Values.allowedIngressNamespaces }}
+  ingress:
+    - fromEndpoints:
+        {{- range .Values.allowedIngressNamespaces }}
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: {{ . | quote }}
+        {{- end }}
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+            - port: "8443"
+              protocol: TCP
+            # If keycloak ever runs with replicas > 1, also allow 7800/TCP for
+            # jgroups/infinispan clustering or cross-pod discovery will fail.
+  {{- else }}
+  ingress: []
+  {{- end }}
