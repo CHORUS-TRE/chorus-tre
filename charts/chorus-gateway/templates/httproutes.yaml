@@ -16,7 +16,7 @@ spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}
   hostnames:
-    - {{ required "route.hostname is required" .hostname | quote }}
+    - {{ required "hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
     {{- include "chorus-gateway.redirectOnRoot" . | nindent 4 }}
@@ -26,7 +26,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ required "match.pathPrefix is required" .pathPrefix | quote }}
+            value: {{ required "pathPrefix is required" .pathPrefix | quote }}
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
     {{- end }}
@@ -56,7 +56,7 @@ spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}
   hostnames:
-    - {{ required "route.hostname is required" .hostname | quote }}
+    - {{ required "hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
     {{- include "chorus-gateway.redirectOnRoot" . | nindent 4 }}
@@ -66,7 +66,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ required "match.pathPrefix is required" .pathPrefix | quote }}
+            value: {{ required "pathPrefix is required" .pathPrefix | quote }}
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
     {{- end }}
@@ -128,7 +128,7 @@ spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}
   hostnames:
-    - {{ required "route.hostname is required" .hostname | quote }}
+    - {{ required "hostname is required" .hostname | quote }}
   rules:
     {{- if .redirectPath }}
     {{- include "chorus-gateway.redirectOnRoot" . | nindent 4 }}
@@ -138,7 +138,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ required "match.pathPrefix is required" .pathPrefix | quote }}
+            value: {{ required "pathPrefix is required" .pathPrefix | quote }}
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
     {{- end }}

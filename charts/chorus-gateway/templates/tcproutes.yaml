@@ -10,7 +10,7 @@ metadata:
 spec:
   parentRefs:
     - name: {{ $.Values.gateway.name }}
-      sectionName: tcp-{{ required "tcpRoute.gatewayPort is required" .gatewayPort | toString }}
+      sectionName: tcp-{{ required "gatewayPort is required" .gatewayPort | toString }}
   rules:
     - backendRefs:
         {{- include "chorus-gateway.backendRef" . | nindent 8 }}

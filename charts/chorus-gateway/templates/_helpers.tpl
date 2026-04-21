@@ -20,9 +20,9 @@ Single backendRef list for an HTTPRoute, derived from a route entry.
 Argument: a route map with serviceName, namespace, servicePort.
 */}}
 {{- define "chorus-gateway.backendRef" -}}
-- name: {{ required "route.serviceName is required" .serviceName }}
-  namespace: {{ required "route.namespace is required" .namespace }}
-  port: {{ required "route.servicePort is required" .servicePort }}
+- name: {{ required "serviceName is required" .serviceName }}
+  namespace: {{ required "namespace is required" .namespace }}
+  port: {{ required "servicePort is required" .servicePort }}
 {{- end }}
 
 {{/*
@@ -63,25 +63,25 @@ is a one-line change in _helpers.tpl rather than chasing strings across
 multiple templates. All take a route map and return "<route.name>-<suffix>".
 */}}
 {{- define "chorus-gateway.internalHTTPRouteName" -}}
-{{- printf "%s-internal-httproute" (required "route.name is required" .name) -}}
+{{- printf "%s-internal-httproute" (required "name is required" .name) -}}
 {{- end }}
 
 {{- define "chorus-gateway.externalHTTPRouteName" -}}
-{{- printf "%s-external-httproute" (required "route.name is required" .name) -}}
+{{- printf "%s-external-httproute" (required "name is required" .name) -}}
 {{- end }}
 
 {{- define "chorus-gateway.oauth2HTTPRouteName" -}}
-{{- printf "%s-oauth2-httproute" (required "route.name is required" .name) -}}
+{{- printf "%s-oauth2-httproute" (required "name is required" .name) -}}
 {{- end }}
 
 {{- define "chorus-gateway.openHTTPRouteName" -}}
-{{- printf "%s-open-httproute" (required "route.name is required" .name) -}}
+{{- printf "%s-open-httproute" (required "name is required" .name) -}}
 {{- end }}
 
 {{- define "chorus-gateway.internalTCPRouteName" -}}
-{{- printf "%s-internal-tcproute" (required "route.name is required" .name) -}}
+{{- printf "%s-internal-tcproute" (required "name is required" .name) -}}
 {{- end }}
 
 {{- define "chorus-gateway.extAuthSecurityPolicyName" -}}
-{{- printf "%s-extauth-securitypolicy" (required "route.name is required" .name) -}}
+{{- printf "%s-extauth-securitypolicy" (required "name is required" .name) -}}
 {{- end }}
