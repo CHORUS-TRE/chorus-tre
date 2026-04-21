@@ -57,17 +57,5 @@ juicefs-csi-driver:
       enabled: true
       existingSecret: "juicefs-dashboard-secret"
     ingress:
-      enabled: true
-      className: "nginx"
-      annotations:
-        cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      hosts:
-      - host: "juicefs-dashboard.chorus-tre.local"
-        paths:
-        - path: /
-          pathType: ImplementationSpecific
-      tls:
-        - secretName: juicefs-dashboard-tls
-          hosts:
-            - juicefs-dashboard.chorus-tre.local
+      enabled: false
     priorityClassName: "low-priority"

@@ -1,7 +1,7 @@
 apiVersion: v2
 name: chorus-gateway
 description: Envoy Gateway HTTPRoutes and SecurityPolicies for CHORUS services
-version: 0.0.13
+version: 0.0.14
 maintainers:
   - name: iDmple
     email: nathalie.casati@chuv.ch

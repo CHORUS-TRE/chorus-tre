@@ -42,6 +42,29 @@ gateway:
 #         - pathPrefix: /openid-connect
 internalRoutes: []
 
+# HTML body returned when an internal route denies an external client (SecurityPolicy 403).
+# Replaces the default "RBAC: access denied" text with a user-friendly page via a
+# BackendTrafficPolicy + responseOverride on each internal HTTPRoute.
+# Set to "" to disable the override and keep Envoy's default response body.
+internalAccessDeniedHTML: |-
+  <!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Access denied</title>
+      <style>
+        body { font-family: system-ui, sans-serif; margin: 4rem auto; max-width: 40rem; color: #333; }
+        h1 { color: #222; }
+        p { line-height: 1.5; }
+      </style>
+    </head>
+    <body>
+      <h1>Access denied</h1>
+      <p>This service is only reachable from inside a CHORUS workspace.</p>
+      <p>Please open it from within your workspace.</p>
+    </body>
+  </html>
+
 # External routes — accessible from external browsers only (SecurityPolicy denies podCIDR).
 # Workspace pods get 403.
 # Each entry creates an HTTPRoute and ReferenceGrant.
