@@ -105,6 +105,9 @@ externalRoutes: []
 # Each entry creates an HTTPRoute and ReferenceGrant.
 # Must be set in environment values.
 #
+# Optional: matches (path-restricted, e.g. only /v2 and /service/token open
+# on a hostname that is otherwise served by an externalRoute catchall).
+#
 # Example:
 #   openRoutes:
 #     - name: auth

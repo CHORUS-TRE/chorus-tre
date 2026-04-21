@@ -17,7 +17,7 @@ spec:
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ .name }}-internal-httproute
+      name: {{ include "chorus-gateway.internalHTTPRouteName" . }}
   responseOverride:
     - match:
         statusCodes:
