@@ -59,7 +59,13 @@ gitlab:
       packages:
         enabled: false
       omniauth:
-        enabled: false
+        enabled: true
+        allowSingleSignOn: ["openid_connect"]
+        blockAutoCreatedUsers: false
+        autoLinkUser: ["openid_connect"]
+        providers:
+          - secret: gitlab-oidc-secret
+            key: provider
       smtp:
         enabled: false
 
