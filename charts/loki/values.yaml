@@ -138,3 +138,39 @@ loki:
     enabled: false
   test:
     enabled: false
+
+  networkPolicy:
+    enabled: true
+    flavor: cilium
+    # Note: if you switching to kubernetes flavor,
+    # you will need to explicitely add "matchLabels: {}" to all podSelector and namespaceSelector
+    # like so
+    # podSelector:
+    #   matchLabels:
+    #     app.kubernetes.io/name: prometheus
+    metrics:
+      podSelector:
+        app.kubernetes.io/name: prometheus
+      namespaceSelector:
+        kubernetes.io/metadata.name: prometheus
+    ingress:
+      podSelector:
+        app.kubernetes.io/name: fluent-bit
+      namespaceSelector:
+        kubernetes.io/metadata.name: fluent
+    alertmanager:
+      port: 9093
+      podSelector:
+        app.kubernetes.io/name: alertmanager
+      namespaceSelector:
+        kubernetes.io/metadata.name: prometheus
+    externalStorage:
+      ports:
+      - 443
+      cidrs: [] # add your S3 provider's IP ranges here for secure access to external storage
+    discovery:
+      port: 7946
+      podSelector:
+        app.kubernetes.io/part-of: memberlist
+      namespaceSelector:
+        kubernetes.io/metadata.name: prometheus

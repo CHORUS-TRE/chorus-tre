@@ -1,0 +1,26 @@
+{{- if and (.Values.networkPolicy.enabled) (eq .Values.networkPolicy.flavor "cilium") }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "loki.name" . }}-ingress-grafana
+  namespace: {{ include "loki.namespace" . }}
+  labels:
+    app.kubernetes.io/instance: {{ include "loki.fullname" . }}
+    app.kubernetes.io/name: {{ include "loki.name" . }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ include "loki.fullname" . }}
+      app.kubernetes.io/name: {{ include "loki.name" . }}
+      app.kubernetes.io/component: gateway
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app.kubernetes.io/name: grafana
+        "k8s:io.kubernetes.pod.namespace": prometheus
+    toPorts:
+    - ports:
+      - port: http-metrics
+        protocol: TCP
+{{- end }}
