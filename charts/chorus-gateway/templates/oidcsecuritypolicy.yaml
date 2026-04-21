@@ -1,0 +1,57 @@
+{{- /*
+  OIDC SecurityPolicies — one per external route with `oidc` configured.
+  Envoy Gateway's native OIDC filter handles the full authorization-code
+  flow: redirect browser to the IdP, exchange the code server-side, set a
+  session cookie, intercept callbacks. The route's upstream service never
+  sees unauthenticated traffic.
+
+  `oidc.clientSecret.name` must reference a Secret in the gateway namespace
+  containing a `client-secret` key.
+*/}}
+{{- range .Values.externalRoutes }}
+{{- if .oidc }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ .name }}-oidc-securitypolicy
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ include "chorus-gateway.externalHTTPRouteName" . }}
+  oidc:
+    provider:
+      backendRefs:
+        - name: {{ required "oidc.provider.serviceName is required" .oidc.provider.serviceName }}
+          namespace: {{ required "oidc.provider.namespace is required" .oidc.provider.namespace }}
+          port: {{ required "oidc.provider.servicePort is required" .oidc.provider.servicePort }}
+      issuer: {{ required "oidc.issuer is required" .oidc.issuer | quote }}
+      {{- if .oidc.authorizationEndpoint }}
+      authorizationEndpoint: {{ .oidc.authorizationEndpoint | quote }}
+      {{- end }}
+      {{- if .oidc.tokenEndpoint }}
+      tokenEndpoint: {{ .oidc.tokenEndpoint | quote }}
+      {{- end }}
+    clientID: {{ required "oidc.clientID is required" .oidc.clientID | quote }}
+    clientSecret:
+      name: {{ required "oidc.clientSecretName is required" .oidc.clientSecretName | quote }}
+    redirectURL: {{ required "oidc.redirectURL is required" .oidc.redirectURL | quote }}
+    {{- if .oidc.logoutPath }}
+    logoutPath: {{ .oidc.logoutPath | quote }}
+    {{- end }}
+    {{- if .oidc.scopes }}
+    scopes:
+      {{- range .oidc.scopes }}
+      - {{ . | quote }}
+      {{- end }}
+    {{- end }}
+  authorization:
+    defaultAction: Allow
+    rules:
+      {{- include "chorus-gateway.podCIDRRule" (dict "name" "deny-workspace-pods" "action" "Deny" "podCIDR" $.Values.podCIDR) | nindent 6 }}
+{{- end }}
+{{- end }}

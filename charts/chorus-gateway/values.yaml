@@ -106,6 +106,28 @@ internalAccessDeniedHTML: |-
 #       servicePort: 80
 #       matches:
 #         - pathPrefix: /admin
+#     # Route protected by native Envoy Gateway OIDC — no oauth2-proxy needed.
+#     # clientSecretName must reference a Secret in the gateway namespace with a
+#     # `client-secret` key. Redirect URL path is intercepted by Envoy and handled
+#     # internally; the upstream service never sees unauthenticated traffic.
+#     - name: juicefs-dashboard
+#       hostname: juicefs-dashboard.chorus-tre.local
+#       namespace: kube-system
+#       serviceName: juicefs-csi-dashboard
+#       servicePort: 8088
+#       oidc:
+#         provider:
+#           serviceName: keycloak
+#           namespace: keycloak
+#           servicePort: 80
+#         issuer: https://auth.chorus-tre.local/realms/infra
+#         authorizationEndpoint: https://auth.chorus-tre.local/realms/infra/protocol/openid-connect/auth
+#         tokenEndpoint: https://auth.chorus-tre.local/realms/infra/protocol/openid-connect/token
+#         clientID: juicefs-dashboard
+#         clientSecretName: juicefs-dashboard-oidc-secret
+#         redirectURL: https://juicefs-dashboard.chorus-tre.local/oauth2/callback
+#         logoutPath: /oauth2/logout
+#         scopes: [openid, email]
 externalRoutes: []
 
 # Open routes — accessible from both workspace pods and external browsers.
