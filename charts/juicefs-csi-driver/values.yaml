@@ -54,7 +54,8 @@ juicefs-csi-driver:
 
   dashboard:
     auth:
-      enabled: false
+      enabled: true
+      existingSecret: "juicefs-dashboard-secret"
     ingress:
       enabled: false
     priorityClassName: "low-priority"
