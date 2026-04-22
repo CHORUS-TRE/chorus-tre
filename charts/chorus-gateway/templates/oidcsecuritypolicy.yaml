@@ -5,8 +5,9 @@
   session cookie, intercept callbacks. The route's upstream service never
   sees unauthenticated traffic.
 
-  `oidc.clientSecret.name` must reference a Secret in the gateway namespace
-  containing a `client-secret` key.
+  `oidc.clientSecretName` (values) must reference a Secret in the gateway
+  namespace containing a `client-secret` key — Envoy Gateway reads that
+  fixed key name from the Secret.
 */}}
 {{- range .Values.externalRoutes }}
 {{- if .oidc }}
