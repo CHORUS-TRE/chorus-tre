@@ -10,7 +10,7 @@
   fixed key name from the Secret.
 */}}
 {{- range .Values.externalRoutes }}
-{{- if .oidc }}
+{{- if and .oidc (ne (.oidc.enabled | toString) "false") }}
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy

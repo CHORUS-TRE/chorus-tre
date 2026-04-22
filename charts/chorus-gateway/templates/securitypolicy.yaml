@@ -47,7 +47,7 @@ metadata:
 spec:
   targetRefs:
     {{- range .Values.externalRoutes }}
-    {{- if and (not .extAuth) (not .oidc) }}
+    {{- if and (not .extAuth) (or (not .oidc) (eq (.oidc.enabled | toString) "false")) }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: {{ include "chorus-gateway.externalHTTPRouteName" . }}
