@@ -61,7 +61,7 @@ gitlab:
       omniauth:
         enabled: true
         allowSingleSignOn: ["openid_connect"]
-        blockAutoCreatedUsers: false
+        blockAutoCreatedUsers: true
         autoLinkUser: ["openid_connect"]
         providers:
           - secret: gitlab-oidc-secret
