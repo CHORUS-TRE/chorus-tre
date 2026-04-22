@@ -347,6 +347,12 @@ client:
     baseUrl: "/harbor/projects"
     redirectUris: '["http://harbor.local/c/oidc/callback"]'
     webOrigins: '["http://harbor.local"]'
+  juicefs-dashboard:
+    rootUrl: "http://juicefs-dashboard.local"
+    adminUrl: "http://juicefs-dashboard.local"
+    baseUrl: "/"
+    redirectUris: '["http://juicefs-dashboard.local/oauth2/callback"]'
+    webOrigins: '["http://juicefs-dashboard.local"]'
   prometheus:
     rootUrl: "http://prometheus.local"
     adminUrl: "http://prometheus.local"
