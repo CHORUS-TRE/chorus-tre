@@ -138,3 +138,16 @@ loki:
     enabled: false
   test:
     enabled: false
+
+# We manage network policies without relying on the upstream chart
+# because we want to be able to use Cilium's advanced features and have more control over the policies.
+networkPolicy:
+  enabled: true
+  # available flavors are "kubernetes" and "cilium"
+  flavor: cilium
+  kubePrometheusStack:
+    namespace: prometheus
+  fluentBit:
+    namespace: fluent
+  externalStorage:
+    cidrs: [] # add your S3 provider's IP ranges here for secure access to external storage
