@@ -1,13 +1,47 @@
-{{- $seenNamespaces := dict }}
-{{- range concat .Values.internalRoutes .Values.externalRoutes .Values.openRoutes }}
-{{- if not (hasKey $seenNamespaces .namespace) }}
-{{- $_ := set $seenNamespaces .namespace true }}
+{{- /*
+  Collect namespaces that host a backend Service referenced from a SecurityPolicy:
+  - extAuth: SecurityPolicy.extAuth.http.backendRefs → Service
+  - oidc:    SecurityPolicy.oidc.provider.backendRefs → Service
+  Both are cross-namespace references from SecurityPolicy (in gateway.namespace)
+  to a Service (in extAuth.namespace / oidc.provider.namespace), so those grants
+  must additionally allow SecurityPolicy as a `from`.
+*/}}
+{{- $extAuthNamespaces := dict }}
+{{- range .Values.externalRoutes }}
+{{- if .extAuth }}
+{{- $_ := set $extAuthNamespaces .extAuth.namespace true }}
+{{- end }}
+{{- end }}
+
+{{- $oidcNamespaces := dict }}
+{{- range .Values.externalRoutes }}
+{{- if and .oidc (ne (.oidc.enabled | toString) "false") (.oidc.provider) }}
+{{- $_ := set $oidcNamespaces .oidc.provider.namespace true }}
+{{- end }}
+{{- end }}
+
+{{- /*
+  Collect every namespace that needs a ReferenceGrant — any namespace that
+  hosts a backend Service referenced from the gateway namespace.
+*/}}
+{{- $grantNamespaces := dict }}
+{{- range concat .Values.internalRoutes .Values.externalRoutes .Values.openRoutes .Values.internalTcpRoutes }}
+{{- $_ := set $grantNamespaces .namespace true }}
+{{- end }}
+{{- range $ns, $_ := $extAuthNamespaces }}
+{{- $_ := set $grantNamespaces $ns true }}
+{{- end }}
+{{- range $ns, $_ := $oidcNamespaces }}
+{{- $_ := set $grantNamespaces $ns true }}
+{{- end }}
+
+{{- range $ns, $_ := $grantNamespaces }}
 ---
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
-  name: {{ .namespace }}-referencegrant
-  namespace: {{ .namespace }}
+  name: {{ $ns }}-referencegrant
+  namespace: {{ $ns }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}
 spec:
@@ -18,8 +52,12 @@ spec:
     - group: gateway.networking.k8s.io
       kind: TCPRoute
       namespace: {{ $.Values.gateway.namespace }}
+    {{- if or (hasKey $extAuthNamespaces $ns) (hasKey $oidcNamespaces $ns) }}
+    - group: gateway.envoyproxy.io
+      kind: SecurityPolicy
+      namespace: {{ $.Values.gateway.namespace }}
+    {{- end }}
   to:
     - group: ""
       kind: Service
-{{- end }}
 {{- end }}

@@ -169,6 +169,39 @@ clients:
       - "offline_access"
       - "groups"
     access: {}
+  - clientId: "juicefs-dashboard"
+    name: "JuiceFS Dashboard"
+    rootUrl: "$(JUICEFS_DASHBOARD_ROOT_URL)"
+    adminUrl: "$(JUICEFS_DASHBOARD_ADMIN_URL)"
+    baseUrl: "$(JUICEFS_DASHBOARD_BASE_URL)"
+    secret: "$(JUICEFS_DASHBOARD_CLIENT_SECRET)"
+    redirectUris: $(JUICEFS_DASHBOARD_REDIRECT_URIS)
+    webOrigins: $(JUICEFS_DASHBOARD_WEB_ORIGINS)
+    implicitFlowEnabled: true
+    directAccessGrantsEnabled: true
+    publicClient: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "false"
+      exclude.issuer.from.auth.response: "false"
+      backchannel.logout.session.required: "true"
+      client_credentials.use_refresh_token: "false"
+      display.on.consent.screen: "false"
+      oauth2.device.authorization.grant.enabled: "false"
+      backchannel.logout.revoke.offline.tokens: "false"
+      use.refresh.tokens: "true"
+      exclude.session.state.from.auth.response: "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
+    optionalClientScopes:
+      - "offline_access"
+      - "groups"
+    access: {}
   - clientId: "prometheus"
     name: "Prometheus"
     rootUrl: "$(PROMETHEUS_ROOT_URL)"

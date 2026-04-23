@@ -1,0 +1,32 @@
+{{- /*
+  BackendTrafficPolicy per internal HTTPRoute — replaces Envoy's default
+  "RBAC: access denied" body with a friendlier HTML page whenever the
+  internal SecurityPolicy rejects a request (i.e. non-podCIDR source).
+*/}}
+{{- if and .Values.internalAccessDeniedHTML .Values.internalRoutes }}
+{{- range .Values.internalRoutes }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: {{ .name }}-internal-access-denied
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ include "chorus-gateway.internalHTTPRouteName" . }}
+  responseOverride:
+    - match:
+        statusCodes:
+          - type: Value
+            value: 403
+      response:
+        contentType: text/html
+        body:
+          type: Inline
+          inline: {{ $.Values.internalAccessDeniedHTML | toJson }}
+{{- end }}
+{{- end }}

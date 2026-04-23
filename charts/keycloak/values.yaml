@@ -347,6 +347,12 @@ client:
     baseUrl: "/harbor/projects"
     redirectUris: '["http://harbor.local/c/oidc/callback"]'
     webOrigins: '["http://harbor.local"]'
+  juicefs-dashboard:
+    rootUrl: "http://juicefs-dashboard.local"
+    adminUrl: "http://juicefs-dashboard.local"
+    baseUrl: "/"
+    redirectUris: '["http://juicefs-dashboard.local/oauth2/callback"]'
+    webOrigins: '["http://juicefs-dashboard.local"]'
   prometheus:
     rootUrl: "http://prometheus.local"
     adminUrl: "http://prometheus.local"
@@ -365,3 +371,22 @@ certificate:
 
   issuerRef:
     name: CHANGEME-issuer
+
+# Restrict ingress to the keycloak pods to the listed namespaces.
+#
+# Default covers: gateway-proxied traffic (browsers + any pod reaching keycloak
+# via the public URL), direct in-cluster calls from platform pods that bypass
+# the gateway (e.g. token_url pointing to the internal keycloak service), and
+# intra-namespace components (cache, config-cli).
+#
+# Override per-env if namespace names differ or if a service not listed here
+# calls keycloak directly via service DNS.
+#
+# The CiliumNetworkPolicy is always rendered (secure-by-default for a TRE).
+# Setting this to [] or omitting it produces a deny-all ingress policy.
+allowedIngressNamespaces:
+  - envoy-gateway-system
+  - backend
+  - harbor
+  - prometheus
+  - keycloak

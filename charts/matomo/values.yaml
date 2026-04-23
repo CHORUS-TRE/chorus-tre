@@ -12,14 +12,9 @@ matomo:
   updateStrategy:
     type: Recreate
   ingress:
-    enabled: true
-    pathType: Prefix
-    ingressClassName: "nginx"
-    hostname: "matomo.chorus-tre.local"
-    annotations:
-      cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    tls: true
-    selfSigned: false
+    enabled: false
+  service:
+    type: ClusterIP
   mariadb:
     enabled: false
   externalDatabase:

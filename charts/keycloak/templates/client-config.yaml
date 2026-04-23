@@ -52,6 +52,12 @@ data:
   HARBOR_BASE_URL: {{ .Values.client.harbor.baseUrl | quote }}
   HARBOR_REDIRECT_URIS: {{ .Values.client.harbor.redirectUris | quote }}
   HARBOR_WEB_ORIGINS: {{ .Values.client.harbor.webOrigins | quote }}
+  # juicefs-dashboard
+  JUICEFS_DASHBOARD_ROOT_URL: {{ index .Values.client "juicefs-dashboard" "rootUrl" | quote }}
+  JUICEFS_DASHBOARD_ADMIN_URL: {{ index .Values.client "juicefs-dashboard" "adminUrl" | quote }}
+  JUICEFS_DASHBOARD_BASE_URL: {{ index .Values.client "juicefs-dashboard" "baseUrl" | quote }}
+  JUICEFS_DASHBOARD_REDIRECT_URIS: {{ index .Values.client "juicefs-dashboard" "redirectUris" | quote }}
+  JUICEFS_DASHBOARD_WEB_ORIGINS: {{ index .Values.client "juicefs-dashboard" "webOrigins" | quote }}
   # prometheus
   PROMETHEUS_ROOT_URL: {{ .Values.client.prometheus.rootUrl | quote }}
   PROMETHEUS_ADMIN_URL: {{ .Values.client.prometheus.adminUrl | quote }}

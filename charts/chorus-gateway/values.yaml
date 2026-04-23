@@ -7,7 +7,8 @@
 # Derive the cluster supernet by keeping the first two octets and using /16 (e.g. 192.168.0.0/16).
 podCIDR: ""
 
-# Gateway reference — must match the Gateway metadata.name in the gateway-helm chart.
+# Gateway reference. `name` must match `gateway.name` in the gateway-helm chart
+# (routes attach to that Gateway by name). Rename in both charts.
 gateway:
   name: chorus-gateway
   namespace: envoy-gateway-system
@@ -41,10 +42,36 @@ gateway:
 #         - pathPrefix: /openid-connect
 internalRoutes: []
 
+# HTML body returned when an internal route denies an external client (SecurityPolicy 403).
+# Replaces the default "RBAC: access denied" text with a user-friendly page via a
+# BackendTrafficPolicy + responseOverride on each internal HTTPRoute.
+# Set to "" to disable the override and keep Envoy's default response body.
+internalAccessDeniedHTML: |-
+  <!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Access denied</title>
+      <style>
+        body { font-family: system-ui, sans-serif; margin: 4rem auto; max-width: 40rem; color: #333; }
+        h1 { color: #222; }
+        p { line-height: 1.5; }
+      </style>
+    </head>
+    <body>
+      <h1>Access denied</h1>
+      <p>This service is only reachable from inside a CHORUS workspace.</p>
+      <p>Please open it from within your workspace.</p>
+    </body>
+  </html>
+
 # External routes — accessible from external browsers only (SecurityPolicy denies podCIDR).
 # Workspace pods get 403.
 # Each entry creates an HTTPRoute and ReferenceGrant.
 # Must be set in environment values.
+#
+# Optional: matches (path-restricted, e.g. restrict only /admin on a hostname
+# that is otherwise served by an openRoute catch-all).
 #
 # Example:
 #   externalRoutes:
@@ -57,11 +84,52 @@ internalRoutes: []
 #       namespace: backend
 #       serviceName: backend
 #       servicePort: 5000
+#     # Routes for services without built-in auth must use extAuth (see below) —
+#     # exposing them with just SecurityPolicy denies workspace pods but leaves
+#     # them open to any external browser.
+#     # Routes with extAuth get an ExtAuth SecurityPolicy + a /oauth2 callback route.
+#     # The oauth2-proxy handles authentication via Keycloak OIDC.
+#     - name: prometheus
+#       hostname: prometheus.chorus-tre.local
+#       namespace: prometheus
+#       serviceName: prometheus
+#       servicePort: 9090
+#       extAuth:
+#         serviceName: prometheus-oauth2-proxy
+#         namespace: prometheus
+#         servicePort: 80
+#     # Restrict only /admin on a hostname otherwise served by an openRoute catchall.
+#     - name: auth-admin
+#       hostname: auth.chorus-tre.local
+#       namespace: keycloak
+#       serviceName: keycloak
+#       servicePort: 80
+#       matches:
+#         - pathPrefix: /admin
+#     # Route protected by native Envoy Gateway OIDC.
+#     # clientSecretName must reference a Secret in the gateway namespace with a
+#     # `client-secret` key. Redirect URL path is intercepted by Envoy and handled
+#     # internally; the upstream service never sees unauthenticated traffic.
+#     # authorizationEndpoint and tokenEndpoint are optional — Envoy Gateway
+#     # discovers them from the issuer's /.well-known/openid-configuration by
+#     # default. Set them explicitly only to override that discovery.
+#     # Set `enabled: false` to temporarily turn off OIDC without deleting the block.
 #     - name: juicefs-dashboard
 #       hostname: juicefs-dashboard.chorus-tre.local
 #       namespace: kube-system
 #       serviceName: juicefs-csi-dashboard
 #       servicePort: 8088
+#       oidc:
+#         provider:
+#           serviceName: keycloak
+#           namespace: keycloak
+#           servicePort: 80
+#         issuer: https://auth.chorus-tre.local/realms/infra
+#         clientID: juicefs-dashboard
+#         clientSecretName: juicefs-dashboard-oidc-secret
+#         redirectURL: https://juicefs-dashboard.chorus-tre.local/oauth2/callback
+#         logoutPath: /oauth2/logout
+#         scopes: [openid, email]
 externalRoutes: []
 
 # Open routes — accessible from both workspace pods and external browsers.
@@ -69,13 +137,26 @@ externalRoutes: []
 # Each entry creates an HTTPRoute and ReferenceGrant.
 # Must be set in environment values.
 #
+# Optional: matches (path-restricted, e.g. only /v2 and /service/token open
+# on a hostname that is otherwise served by an externalRoute catchall).
+#
 # Example:
 #   openRoutes:
-#     - name: harbor
+#     - name: auth
+#       hostname: auth.chorus-tre.local
+#       namespace: keycloak
+#       serviceName: keycloak
+#       servicePort: 80
+#     # Expose only /v2 and /service/token on a hostname otherwise served by
+#     # an externalRoute catchall (so pods can pull images, browsers get the UI).
+#     - name: harbor-registry
 #       hostname: harbor.chorus-tre.local
 #       namespace: harbor
-#       serviceName: harbor-core
+#       serviceName: harbor
 #       servicePort: 80
+#       matches:
+#         - pathPrefix: /v2
+#         - pathPrefix: /service/token
 openRoutes: []
 
 # Internal TCP routes — workspace pods only (SecurityPolicy allows podCIDR).
