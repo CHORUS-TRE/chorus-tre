@@ -47,6 +47,31 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  name: fluent-egress-kube-apiserver
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  policyTypes:
+    - Egress
+  podSelector:
+    matchLabels:
+      {{- include "networkPolicy.fluentBitSelector" . | nindent 6 }}
+  egress:
+    - ports:
+        - port: 6443
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              component: kube-apiserver
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
   name: fluent-egress
   namespace: {{ .Release.Namespace }}
   labels:

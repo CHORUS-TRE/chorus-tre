@@ -47,10 +47,12 @@ graph LR
 
     subgraph kube-system["kube-system namespace"]
         CoreDNS[CoreDNS]
+        APIServer[Kubernetes API]
     end
 
     FluentBit -->|"http<br/>(logs)"| LokiGateway
     FluentBit -->|"DNS:53"| CoreDNS
+    FluentBit -->|"https:6443<br/>(metadata)"| APIServer
     FluentOperator -->|"DNS:53"| CoreDNS
 
     classDef fluentStyle fill:#e1f5ff,stroke:#01579b,stroke-width:2px
@@ -59,14 +61,15 @@ graph LR
 
     class FluentOperator,FluentBit fluentStyle
     class LokiGateway lokiStyle
-    class CoreDNS systemStyle
+    class CoreDNS,APIServer systemStyle
 ```
 
 ### Policies Created
 
 #### Egress Policies
-- **fluent-egress**: Allows Fluent Bit pods → Loki Gateway
+- **fluent-egress**: Allows Fluent Bit pods → Loki Gateway (port 8080)
 - **fluent-egress-dns**: Allows all Fluent pods → CoreDNS (kube-system:53)
+- **fluent-egress-kube-apiserver**: Allows Fluent Bit pods → Kubernetes API server (kube-system:6443, for metadata enrichment)
 - **fluent-namespace-only**: Allows all pods to communicate within same namespace
 
 #### Ingress Policies
