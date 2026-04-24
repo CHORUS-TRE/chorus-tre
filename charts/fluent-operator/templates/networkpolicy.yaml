@@ -3,7 +3,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: fluent-operator-namespace-only
+  name: fluent-namespace-only
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
@@ -13,8 +13,7 @@ spec:
     - Egress
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: fluent-operator
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "networkPolicy.operatorSelector" . | nindent 6 }}
   egress:
     - to:
         - podSelector: {}
@@ -25,17 +24,14 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: fluent-operator-egress-dns
+  name: fluent-egress-dns
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
 spec:
   policyTypes:
     - Egress
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: fluent-operator
-      app.kubernetes.io/instance: {{ .Release.Name }}
+  podSelector: {}
   egress:
     - ports:
         - port: 53
@@ -53,7 +49,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: fluent-operator-egress
+  name: fluent-egress
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
@@ -62,9 +58,7 @@ spec:
     - Egress
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: fluent-operator
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/component: fluent-bit
+      {{- include "networkPolicy.fluentBitSelector" . | nindent 6 }}
   egress:
     - ports:
         - port: {{ .Values.networkPolicy.loki.port | default 80 }}

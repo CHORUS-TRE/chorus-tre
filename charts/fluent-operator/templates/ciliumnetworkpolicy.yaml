@@ -3,7 +3,7 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: fluent-operator-namespace-only
+  name: fluent-namespace-only
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
@@ -21,15 +21,12 @@ spec:
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: fluent-operator-egress-dns
+  name: fluent-egress-dns
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
 spec:
-  endpointSelector:
-    matchLabels:
-      app.kubernetes.io/name: fluent-operator
-      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpointSelector: {}
   egress:
   - toPorts:
     - ports:
@@ -45,16 +42,14 @@ spec:
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: fluent-operator-egress
+  name: fluent-egress
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
 spec:
   endpointSelector:
     matchLabels:
-      app.kubernetes.io/name: fluent-operator
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/component: fluent-bit
+      {{- include "networkPolicy.fluentBitSelector" . | nindent 6 }}
   egress:
   - toPorts:
     - ports:

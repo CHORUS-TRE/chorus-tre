@@ -65,12 +65,12 @@ graph LR
 ### Policies Created
 
 #### Egress Policies
-- **fluent-operator-egress**: Allows Fluent Bit pods → Loki Gateway
-- **fluent-operator-egress-dns**: Allows all Fluent Operator pods → CoreDNS (kube-system:53)
-- **fluent-operator-namespace-only**: Allows all pods to communicate within same namespace
+- **fluent-egress**: Allows Fluent Bit pods → Loki Gateway
+- **fluent-egress-dns**: Allows all Fluent pods → CoreDNS (kube-system:53)
+- **fluent-namespace-only**: Allows all pods to communicate within same namespace
 
 #### Ingress Policies
-- **fluent-operator-namespace-only**: Allows all pods to communicate within same namespace
+- **fluent-namespace-only**: Allows all pods to communicate within same namespace
 
 ### Configuration
 
@@ -82,3 +82,7 @@ networkPolicy:
     namespace: loki
     port: 80  # Loki gateway port
 ```
+
+**Note:** Pod selectors are defined in `templates/_helpers.tpl` and match the standard fluent-operator labels:
+- Fluent Operator pods: `app.kubernetes.io/name: fluent-operator`
+- Fluent Bit pods: `app.kubernetes.io/name: fluent-bit`
