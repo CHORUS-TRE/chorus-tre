@@ -11,9 +11,7 @@ spec:
   policyTypes:
     - Ingress
     - Egress
-  podSelector:
-    matchLabels:
-      {{- include "networkPolicy.operatorSelector" . | nindent 6 }}
+  podSelector: {}
   egress:
     - to:
         - podSelector: {}
