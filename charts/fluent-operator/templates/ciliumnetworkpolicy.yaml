@@ -42,6 +42,21 @@ spec:
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
+  name: fluent-egress-kube-apiserver
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "networkPolicy.fluentBitSelector" . | nindent 6 }}
+  egress:
+  - toEntities:
+    - kube-apiserver
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
   name: fluent-egress
   namespace: {{ .Release.Namespace }}
   labels:
