@@ -1,0 +1,68 @@
+{{- if and (.Values.networkPolicy.enabled) (eq .Values.networkPolicy.flavor "cilium") }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fluent-operator-namespace-only
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  endpointSelector: {}
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": {{ .Release.Namespace }}
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": {{ .Release.Namespace }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fluent-operator-egress-dns
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: fluent-operator
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  egress:
+  - toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+    toEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": kube-system
+        k8s-app: kube-dns
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fluent-operator-egress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: fluent-operator
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: fluent-bit
+  egress:
+  - toPorts:
+    - ports:
+      - port: {{ .Values.networkPolicy.loki.port | default "80" | quote }}
+        protocol: TCP
+    toEndpoints:
+    - matchLabels:
+        app.kubernetes.io/name: loki
+        app.kubernetes.io/component: gateway
+        "k8s:io.kubernetes.pod.namespace": {{ .Values.networkPolicy.loki.namespace | default "loki" }}
+{{- end }}

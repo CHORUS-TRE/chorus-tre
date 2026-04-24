@@ -20,3 +20,65 @@ stringData:
   tenantID: "your-tenant-id"
 type: Opaque
 ```
+
+## Network Policies
+
+**Important:** This wrapper chart defines custom NetworkPolicy resources that are **not present in the upstream fluent-operator chart**. These policies are maintained locally to provide granular network security for Fluent Operator deployments.
+
+### Overview
+
+- **Flavors:** Supports both `kubernetes` and `cilium` NetworkPolicy types
+- **Configuration:** Set `networkPolicy.enabled: true` and `networkPolicy.flavor: kubernetes` or `cilium`
+
+### Allowed Communication Flows
+
+```mermaid
+graph LR
+    subgraph fluent["fluent namespace"]
+        FluentOperator[Fluent Operator]
+        FluentBit[Fluent Bit<br/>DaemonSet]
+
+        FluentOperator -->|"manages"| FluentBit
+    end
+
+    subgraph loki["loki namespace"]
+        LokiGateway[Loki Gateway]
+    end
+
+    subgraph kube-system["kube-system namespace"]
+        CoreDNS[CoreDNS]
+    end
+
+    FluentBit -->|"http<br/>(logs)"| LokiGateway
+    FluentBit -->|"DNS:53"| CoreDNS
+    FluentOperator -->|"DNS:53"| CoreDNS
+
+    classDef fluentStyle fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef lokiStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef systemStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+
+    class FluentOperator,FluentBit fluentStyle
+    class LokiGateway lokiStyle
+    class CoreDNS systemStyle
+```
+
+### Policies Created
+
+#### Egress Policies
+- **fluent-operator-egress**: Allows Fluent Bit pods → Loki Gateway
+- **fluent-operator-egress-dns**: Allows all Fluent Operator pods → CoreDNS (kube-system:53)
+- **fluent-operator-namespace-only**: Allows all pods to communicate within same namespace
+
+#### Ingress Policies
+- **fluent-operator-namespace-only**: Allows all pods to communicate within same namespace
+
+### Configuration
+
+```yaml
+networkPolicy:
+  enabled: true
+  flavor: cilium  # or "kubernetes"
+  loki:
+    namespace: loki
+    port: 80  # Loki gateway port
+```
