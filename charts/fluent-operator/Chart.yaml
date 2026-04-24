@@ -1,7 +1,7 @@
 apiVersion: v2
 description: Fluent Operator provides great flexibility in building a logging layer based on Fluent Bit and Fluentd.
 name: fluent-operator
-version: 0.0.2
+version: 0.0.3
 dependencies:
   - name: fluent-operator
     version: 3.5.0

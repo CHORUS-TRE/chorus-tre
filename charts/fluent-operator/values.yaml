@@ -72,5 +72,5 @@ networkPolicy:
   loki:
     # Namespace where Loki is deployed
     namespace: loki
-    # Port for Loki gateway
-    port: 80
+    # Port for Loki gateway (pod port, not service port - typically 8080)
+    port: 8080

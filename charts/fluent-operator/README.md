@@ -80,9 +80,11 @@ networkPolicy:
   flavor: cilium  # or "kubernetes"
   loki:
     namespace: loki
-    port: 80  # Loki gateway port
+    port: 8080  # Pod port (container port), not service port!
 ```
 
 **Note:** Pod selectors are defined in `templates/_helpers.tpl` and match the standard fluent-operator labels:
 - Fluent Operator pods: `app.kubernetes.io/name: fluent-operator`
 - Fluent Bit pods: `app.kubernetes.io/name: fluent-bit`
+
+**Important:** The `loki.port` must be the **pod/container port** (typically 8080), not the service port (80). Network policies operate at the pod level and see the actual container port.
