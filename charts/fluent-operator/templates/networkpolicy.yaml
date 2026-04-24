@@ -1,0 +1,72 @@
+{{- if and (.Values.networkPolicy.enabled) (eq .Values.networkPolicy.flavor "kubernetes") }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fluent-namespace-only
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  policyTypes:
+    - Ingress
+    - Egress
+  podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+  ingress:
+    - from:
+        - podSelector: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fluent-egress-dns
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  policyTypes:
+    - Egress
+  podSelector: {}
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fluent-egress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  policyTypes:
+    - Egress
+  podSelector:
+    matchLabels:
+      {{- include "networkPolicy.fluentBitSelector" . | nindent 6 }}
+  egress:
+    - ports:
+        - port: {{ .Values.networkPolicy.loki.port | default 80 }}
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.loki.namespace | default "loki" }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+              app.kubernetes.io/component: gateway
+{{- end }}

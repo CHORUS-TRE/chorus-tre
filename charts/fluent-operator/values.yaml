@@ -62,3 +62,15 @@ fluent-operator:
     # Fluentd crds are needed for the operator to start properly, even if Fluentd is not used
     crdsEnable: true
     enable: false
+
+# Network Policy Configuration
+# Custom NetworkPolicy resources for securing Fluent Operator deployment
+networkPolicy:
+  enabled: true
+  # Available flavors: "kubernetes" or "cilium"
+  flavor: cilium
+  loki:
+    # Namespace where Loki is deployed
+    namespace: loki
+    # Port for Loki gateway
+    port: 80
