@@ -25,6 +25,14 @@ spec:
     ports:
     - protocol: TCP
       port: 5432
+  # Allow Prometheus to scrape postgres_exporter
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+    ports:
+    - protocol: TCP
+      port: 9187
   {{- with .Values.chorusNetworkPolicy.ingress }}
     {{- toYaml . | nindent 2 }}
   {{- end }}
