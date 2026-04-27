@@ -230,6 +230,8 @@ jobs:
         OVERALL_EXIT=0
         WARNING_COUNT=0
         TARGET_FILE="${{ steps.modified_charts.outputs.targets_file }}"
+        WARNING_TARGET_FILE="$PWD/.chart-e2e-warning-targets.tsv"
+        : > "$WARNING_TARGET_FILE"
 
         cleanup_chart() {
           local chart_name="$1"
@@ -261,6 +263,27 @@ jobs:
 
         while IFS=$'\t' read -r chart_path chart_reason; do
           [[ -z "$chart_path" ]] && continue
+          if [[ "$chart_reason" == *"reverse dependent"* && "$chart_reason" != *"directly modified"* && "$chart_reason" != *"CI infrastructure changed"* ]]; then
+            printf '%s\t%s\n' "$(basename "$chart_path")" "$chart_reason" >> "$WARNING_TARGET_FILE"
+          fi
+        done < "$TARGET_FILE"
+
+        if [[ -s "$WARNING_TARGET_FILE" ]]; then
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Planned Warning-Only Impact Checks"
+          echo "These charts are being tested as reverse dependents. Failures here warn but do not fail the job."
+          while IFS=$'\t' read -r warning_chart warning_reason; do
+            [[ -z "$warning_chart" ]] && continue
+            echo "  - ${warning_chart}: ${warning_reason}"
+            echo "::warning::Planned warning-only impacted-service check: ${warning_chart} (${warning_reason})"
+          done < "$WARNING_TARGET_FILE"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+        fi
+
+        while IFS=$'\t' read -r chart_path chart_reason; do
+          [[ -z "$chart_path" ]] && continue
           chart_name=$(basename "$chart_path")
           failure_mode="error"
           if [[ "$chart_reason" == *"reverse dependent"* && "$chart_reason" != *"directly modified"* && "$chart_reason" != *"CI infrastructure changed"* ]]; then
@@ -277,6 +300,7 @@ jobs:
           fi
           if [[ "$failure_mode" == "warning" ]]; then
             echo "Failure mode: warning-only impacted-service check."
+            echo "::warning::Running warning-only impacted-service check for ${chart_name} (${chart_reason})"
           fi
           echo ""
 

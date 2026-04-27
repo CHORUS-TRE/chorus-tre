@@ -7,7 +7,9 @@
 # The i2b2-pg image is pre-seeded and starts without extra config.
 image:
   repository: docker.io/i2b2/i2b2-pg
-  tag: "release-v1.8.1a.0001"
+  # Temporary verification commit: use a non-existent tag so a DB-only update
+  # produces one direct chart failure plus reverse-dependent warnings.
+  tag: "release-v1.8.1a.0001-ci-warning-check"
 
 # PriorityClass "medium-priority" doesn't exist in Kind
 priorityClassName: ""
