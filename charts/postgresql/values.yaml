@@ -2,6 +2,10 @@
 chorusNetworkPolicy:
   enabled: true
   enabled_l7_waf: false
+  # Namespace running kube-prometheus-stack (Prometheus scraper)
+  prometheusNamespace: prometheus
+  # postgres_exporter port (matches the postgresql subchart's metrics.containerPort)
+  metricsPort: 9187
   # Default ingress: Allow from same namespace only
   ingress: []
   # Default egress: Deny all (databases don't initiate outbound connections)
