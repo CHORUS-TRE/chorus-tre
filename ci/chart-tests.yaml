@@ -1,0 +1,198 @@
+# ci/chart-tests.yaml — Central test registry for chart e2e testing
+#
+# Defines per-chart test parameters for the e2e pipeline.
+# Charts not listed here get a default smoke test (deploy + service reachability).
+#
+# Structure:
+#   defaults:              Global defaults applied to all charts
+#   charts.<name>:         Per-chart configuration
+#     namespace:           K8s namespace (default: "test")
+#     timeout:             Seconds to wait for pods Ready (default: 120)
+#     values:              Inline --set overrides (key: value)
+#     values_file:         Path to a CI-specific values file (relative to repo root)
+#     fullname_override:   Optional stable K8s object/service name for this chart
+#     skip_deploy:         If true, skip helm install (e.g., CRD-only charts)
+#     depends_on:          List of chart names that must be deployed first
+#                          Dependencies are deployed (not tested) before this chart.
+#                          They remain running so the chart under test can connect.
+#                          The workflow also uses this graph in reverse: when a
+#                          dependency chart changes, its dependents are retested
+#                          as impacted services and the reason is printed in CI.
+#     dependency_values:   Dynamic --set overrides resolved from dependency charts
+#       <helm.value.key>:
+#         chart:          Dependency chart name referenced by depends_on
+#         attribute:      Resolved field: serviceName (default), releaseName, namespace,
+#                         servicePort, httpBaseUrl, or httpUrl
+#         path:           Optional suffix appended for httpUrl
+#     probe:               Optional source identity for reachability and HTTP health checks
+#       namespace:         Namespace where the probe pod should run
+#       labels:            Pod labels applied to the probe pod
+#     services:            List of services to check for reachability after deployment
+#       - port:            Port to check
+#     health_check:        Application-level health verification
+#       port:              Port to check
+#       protocol:          "http" (default), "pg", or "mariadb"
+#       path:              HTTP path to check (e.g., /) — http mode only
+#       expect_status:     Expected HTTP status code (default: 200) — http mode only
+#       expect_content_type_regex: Case-insensitive regex for Content-Type — http mode only
+#       body_must_match:   Case-insensitive regex that must appear in the body — http mode only
+#       body_must_not_match: Case-insensitive regex that must not appear in the body — http mode only
+#       pg_user:           PostgreSQL user — pg mode only
+#       pg_db:             PostgreSQL database — pg mode only
+#       pg_password:       PostgreSQL password (plaintext, CI-only) — pg mode only
+#       query:             SQL query to execute — pg/mariadb mode (default: SELECT 1)
+#       mariadb_user:      MariaDB user — mariadb mode only
+#       mariadb_db:        MariaDB database — mariadb mode only
+#       mariadb_password:  MariaDB password (plaintext, CI-only) — mariadb mode only
+
+defaults:
+  namespace: test
+  timeout: 120
+
+charts:
+  # ──────────────────────────────────────────────────────────────
+  # i2b2-wildfly: Backend service reachability + health
+  # Uses real i2b2-wildfly image backed by a real i2b2-postgres dependency.
+  # depends_on deploys i2b2-postgres first so the DB is available.
+  # ──────────────────────────────────────────────────────────────
+  i2b2-wildfly:
+    namespace: i2b2
+    timeout: 360
+    values_file: ci/test-values/i2b2-wildfly.yaml
+    depends_on:
+      - i2b2-postgres
+    dependency_values:
+      env.DS_WD_IP:
+        chart: i2b2-postgres
+      env.DS_WD_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+      env.DS_CRC_IP:
+        chart: i2b2-postgres
+      env.DS_CRC_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+      env.DS_ONT_IP:
+        chart: i2b2-postgres
+      env.DS_ONT_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+      env.DS_PM_IP:
+        chart: i2b2-postgres
+      env.DS_PM_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+      env.DS_HIVE_IP:
+        chart: i2b2-postgres
+      env.DS_HIVE_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+    probe:
+      namespace: i2b2
+      labels:
+        app.kubernetes.io/name: i2b2-frontend
+    pre_install:
+      # Create the secret that wildfly expects for DB passwords.
+      # The i2b2-pg image uses "demouser" as the default password for the i2b2 user.
+      - kubectl create secret generic i2b2-wildfly-secret --from-literal=pg_pass=demouser --from-literal=ds_password=demouser --from-literal=ds_wd_pass=demouser --from-literal=ds_crc_pass=demouser --from-literal=ds_ont_pass=demouser --from-literal=ds_pm_pass=demouser --from-literal=ds_hive_pass=demouser -n i2b2 --dry-run=client -o yaml | kubectl apply -f -
+    services:
+      - port: 8080
+    # Wildfly returns 200 only when all DB datasources are connected.
+    health_check:
+      path: /
+      port: 8080
+      expect_status: 200
+
+  # ──────────────────────────────────────────────────────────────
+  # i2b2-frontend: Frontend service reachability + health
+  # Uses real i2b2-web image (Apache httpd). Configmap created by chart.
+  # depends_on deploys wildfly (which transitively deploys postgres).
+  # ──────────────────────────────────────────────────────────────
+  i2b2-frontend:
+    namespace: i2b2
+    timeout: 180
+    values_file: ci/test-values/i2b2-frontend.yaml
+    depends_on:
+      - i2b2-wildfly
+    dependency_values:
+      cm.urlCellPM:
+        chart: i2b2-wildfly
+        attribute: httpUrl
+        path: /i2b2/services/PMService/
+      cm.pmURL:
+        chart: i2b2-wildfly
+        attribute: httpUrl
+        path: /i2b2/rest/PMService/getServices
+      cm.whiteListURL:
+        chart: i2b2-wildfly
+        attribute: httpBaseUrl
+      cm.ProxyPass:
+        chart: i2b2-wildfly
+        attribute: httpUrl
+        path: /i2b2/
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 80
+    health_check:
+      path: /webclient/
+      port: 80
+      expect_status: 200
+      expect_content_type_regex: 'text/html'
+      body_must_match: 'i2b2 Login|Forgot password|classic i2b2 webclient|js-i2b2|proxy.php'
+      body_must_not_match: 'error|Apache2 Ubuntu Default Page|Default welcome page|It works!?|404 Not Found|403 Forbidden|502 Bad Gateway|503 Service Unavailable'
+
+  # ──────────────────────────────────────────────────────────────
+  # i2b2-postgres: Database service reachability + health
+  # Uses real i2b2-pg image which auto-initializes all schemas.
+  # CI values file nulls out sidecar probes; uses tcpSocket readiness probe.
+  # ──────────────────────────────────────────────────────────────
+  i2b2-postgres:
+    namespace: i2b2
+    timeout: 300
+    values_file: ci/test-values/i2b2-postgres.yaml
+    pre_install:
+      # The sidecar expects this secret to exist
+      - kubectl create secret generic i2b2-postgres-secret --from-literal=postgres-password=testpass -n i2b2 --dry-run=client -o yaml | kubectl apply -f -
+    services:
+      - port: 5432
+    # psql connection + schema verification via kubectl exec.
+    health_check:
+      protocol: pg
+      port: 5432
+      pg_user: i2b2
+      pg_db: i2b2
+      pg_password: demouser
+      query: "SELECT count(*) AS i2b2_tables FROM information_schema.tables WHERE table_schema LIKE 'i2b2%'"
+
+  # ──────────────────────────────────────────────────────────────
+  # didata: Service reachability only
+  # ──────────────────────────────────────────────────────────────
+  didata:
+    namespace: didata
+    values_file: ci/test-values/didata.yaml
+    probe:
+      namespace: ingress-nginx
+      labels:
+        app.kubernetes.io/name: ingress-nginx
+        app.kubernetes.io/component: controller
+    services:
+      - port: 8080
+
+  # ──────────────────────────────────────────────────────────────
+  # CRD-only or infra charts — skip deploy (no pods to test)
+  # ──────────────────────────────────────────────────────────────
+  cert-manager-crds:
+    skip_deploy: true
+  fluent-operator-crds:
+    skip_deploy: true
+  prometheus-operator-crds:
+    skip_deploy: true
+  trivy-operator-crds:
+    skip_deploy: true
+  chorus-priority-class:
+    skip_deploy: true
+  self-signed-issuer:
+    skip_deploy: true

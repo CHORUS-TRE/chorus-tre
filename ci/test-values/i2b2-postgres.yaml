@@ -1,0 +1,48 @@
+# ci/test-values/i2b2-postgres.yaml
+# CI-specific values for running i2b2-postgres in the Kind-based chart e2e.
+# This file applies compatibility overrides for the ephemeral test cluster.
+
+# Use the real i2b2-pg image since the statefulset template doesn't expose
+# env vars for the main container, and vanilla postgres needs POSTGRES_PASSWORD.
+# The i2b2-pg image is pre-seeded and starts without extra config.
+image:
+  repository: docker.io/i2b2/i2b2-pg
+  # Temporary verification commit: use a non-existent tag so a DB-only update
+  # produces one direct chart failure plus reverse-dependent warnings.
+  tag: "release-v1.8.1a.0001-ci-warning-check"
+
+# PriorityClass "medium-priority" doesn't exist in Kind
+priorityClassName: ""
+
+# Disable K8s ingress
+ingress:
+  enabled: false
+
+# Null out liveness probe — we don't need it for CI
+livenessProbe: null
+
+# tcpSocket readiness probe — pg_isready rejects for 120+ seconds
+# during first startup, but the port opens much earlier.
+#
+# IMPORTANT: Must null out `exec` explicitly — Helm deep-merges the base
+# values.yaml (which has exec.command) with this file. Without exec: null,
+# K8s gets both exec AND tcpSocket handlers → "may not specify more than 1
+# handler type".
+readinessProbe:
+  exec: null
+  tcpSocket:
+    port: 5432
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 30
+
+# Sidecar probes also need to be nulled
+sidecar:
+  livenessProbe: null
+  readinessProbe: null
+
+# Reduce PVC size for Kind
+volumeClaimTemplates:
+  - name: postgresql-data
+    storage: 1Gi

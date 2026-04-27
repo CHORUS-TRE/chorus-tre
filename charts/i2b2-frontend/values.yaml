@@ -45,10 +45,8 @@ service:
 
 ingress:
   enabled: false
-  className: "nginx"
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/app-root: /webclient
+  className: ""
+  annotations: {}
   hosts:
     - host: i2b2.chorus-tre.local
       paths:
@@ -120,3 +118,29 @@ cm:
   pmURL: "http://chorus-env-i2b2-wildfly:8080/i2b2/rest/PMService/getServices"
   whiteListURL: "http://chorus-env-i2b2-wildfly:8080"
   ProxyPass: "http://chorus-env-i2b2-wildfly:8080/i2b2/"
+
+networkPolicy:
+  enabled: true
+  # Enable L7 Web Application Firewall for advanced HTTP traffic control
+  enabled_l7_waf: true
+  ingress:
+  # Allow ingress only from Envoy Gateway. Frontend exposure is expected
+  # to be handled through chorus-gateway rather than a chart-local Ingress.
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: envoy-gateway-system
+        app.kubernetes.io/managed-by: envoy-gateway
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
+  egress:
+  # Allow egress to i2b2-wildfly
+  - toEndpoints:
+    - matchLabels:
+        app.kubernetes.io/name: i2b2-wildfly
+        # io.kubernetes.pod.namespace: i2b2-wildfly
+    toPorts:
+    - ports:
+      - port: "8080"
+        protocol: TCP

@@ -1,0 +1,14 @@
+# ci/test-values/i2b2-frontend.yaml
+# CI-specific values for running i2b2-frontend in the Kind-based chart e2e.
+#
+# Keeps the chart focused on its in-cluster service path.
+# Wildfly dependency wiring is injected from chart-tests.yaml.
+
+# PriorityClass "low-priority" doesn't exist in Kind
+priorityClassName: ""
+
+# Keep the default command (/run-httpd.sh localhost).
+# Apache starts regardless of whether the backend is reachable.
+
+ingress:
+  enabled: false
