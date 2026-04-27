@@ -85,3 +85,11 @@ multiple templates. All take a route map and return "<route.name>-<suffix>".
 {{- define "chorus-gateway.extAuthSecurityPolicyName" -}}
 {{- printf "%s-extauth-securitypolicy" (required "name is required" .name) -}}
 {{- end }}
+
+{{- define "chorus-gateway.externalOIDCSecurityPolicyName" -}}
+{{- printf "%s-external-oidc-securitypolicy" (required "name is required" .name) -}}
+{{- end }}
+
+{{- define "chorus-gateway.openOIDCSecurityPolicyName" -}}
+{{- printf "%s-open-oidc-securitypolicy" (required "name is required" .name) -}}
+{{- end }}
