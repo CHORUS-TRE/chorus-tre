@@ -4,7 +4,7 @@ name: valkey
 version: 0.0.13
 dependencies:
   - name: valkey
-    version: 2.4.7
+    version: 5.5.1
     repository: https://charts.bitnami.com/bitnami
 
 maintainers:
