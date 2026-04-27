@@ -31,11 +31,89 @@ jobs:
       id: changed-files
       uses: tj-actions/changed-files@v47.0.6
 
+    - name: Install yq
+      uses: mikefarah/yq@v4.44.6
+
     - name: Identify modified charts
       id: modified_charts
       run: |
         MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
         MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*' | sort -u || true)
+        TARGET_FILE="$PWD/.chart-e2e-targets.tsv"
+        : > "$TARGET_FILE"
+
+        declare -A TARGET_REASONS
+
+        add_reason() {
+          local chart_path="$1"
+          local reason="$2"
+
+          if [[ -z "${TARGET_REASONS[$chart_path]:-}" ]]; then
+            TARGET_REASONS["$chart_path"]="$reason"
+          elif [[ "; ${TARGET_REASONS[$chart_path]}; " != *"; ${reason}; "* ]]; then
+            TARGET_REASONS["$chart_path"]+="; ${reason}"
+          fi
+        }
+
+        chart_is_registered() {
+          local chart_name="$1"
+          yq -e ".charts.\"${chart_name}\"" ci/chart-tests.yaml >/dev/null 2>&1
+        }
+
+        chart_is_skipped() {
+          local chart_name="$1"
+          [[ "$(yq -r ".charts.\"${chart_name}\".skip_deploy // false" ci/chart-tests.yaml 2>/dev/null)" == "true" ]]
+        }
+
+        reverse_dependents_of() {
+          local dependency_chart="$1"
+          yq -r ".charts | to_entries[] | select(((.value.depends_on // []) | index(\"${dependency_chart}\")) != null) | .key" ci/chart-tests.yaml 2>/dev/null || true
+        }
+
+        collect_impacted_targets() {
+          local modified_chart_path="$1"
+          local modified_chart_name
+          modified_chart_name=$(basename "$modified_chart_path")
+
+          add_reason "$modified_chart_path" "directly modified"
+
+          if ! chart_is_registered "$modified_chart_name"; then
+            return
+          fi
+
+          local queue=("${modified_chart_name}|")
+          local seen="|${modified_chart_name}|"
+          local queue_item current_chart current_chain dependent_chart dependent_path reason next_chain
+
+          while [[ ${#queue[@]} -gt 0 ]]; do
+            queue_item="${queue[0]}"
+            queue=("${queue[@]:1}")
+
+            current_chart="${queue_item%%|*}"
+            current_chain="${queue_item#*|}"
+
+            while IFS= read -r dependent_chart; do
+              [[ -z "$dependent_chart" ]] && continue
+              [[ "$seen" == *"|${dependent_chart}|"* ]] && continue
+              seen+="${dependent_chart}|"
+
+              dependent_path="charts/${dependent_chart}"
+              if [[ -n "$current_chain" ]]; then
+                reason="reverse dependent of modified ${modified_chart_name} via ${current_chain}"
+                next_chain="${current_chain} -> ${dependent_chart}"
+              else
+                reason="reverse dependent of modified ${modified_chart_name}"
+                next_chain="${dependent_chart}"
+              fi
+
+              if ! chart_is_skipped "$dependent_chart"; then
+                add_reason "$dependent_path" "$reason"
+              fi
+
+              queue+=("${dependent_chart}|${next_chain}")
+            done < <(reverse_dependents_of "$current_chart")
+          done
+        }
 
         # If CI infra changed but no charts, test all registered charts
         if [ -z "$MODIFIED_CHARTS" ]; then
@@ -48,15 +126,54 @@ jobs:
                 [ "$skip" = "true" ] && continue
                 echo "charts/${name}"
               done | sort -u)
+
+            while IFS= read -r chart_path; do
+              [[ -z "$chart_path" ]] && continue
+              add_reason "$chart_path" "CI infrastructure changed - full registered chart sweep"
+            done <<< "$MODIFIED_CHARTS"
           fi
+        else
+          while IFS= read -r chart_path; do
+            [[ -z "$chart_path" ]] && continue
+            collect_impacted_targets "$chart_path"
+          done <<< "$MODIFIED_CHARTS"
         fi
 
-        if [ -z "$MODIFIED_CHARTS" ]; then
+        if [ -n "$MODIFIED_CHARTS" ]; then
+          FINAL_CHARTS=$(printf '%s\n' "${!TARGET_REASONS[@]}" | sort -u)
+
+          while IFS= read -r chart_path; do
+            [[ -z "$chart_path" ]] && continue
+            printf '%s\t%s\n' "$chart_path" "${TARGET_REASONS[$chart_path]}" >> "$TARGET_FILE"
+          done <<< "$FINAL_CHARTS"
+
+          echo "Chart test target reasons:"
+          while IFS=$'\t' read -r chart_path reason; do
+            [[ -z "$chart_path" ]] && continue
+            echo "  - $(basename "$chart_path"): $reason"
+          done < "$TARGET_FILE"
+
+          {
+            echo "### Chart E2E Targets"
+            echo
+            echo "Reverse dependents are included so dependency updates surface which services break; reverse-only impacted checks warn instead of failing the job."
+            echo
+            while IFS=$'\t' read -r chart_path reason; do
+              [[ -z "$chart_path" ]] && continue
+              echo "- $(basename "$chart_path"): $reason"
+            done < "$TARGET_FILE"
+          } >> "$GITHUB_STEP_SUMMARY"
+        else
+          FINAL_CHARTS=""
+        fi
+
+        if [ -z "$FINAL_CHARTS" ]; then
           echo "No charts to test."
           echo "charts=" >> "$GITHUB_OUTPUT"
         else
-          echo "Charts to test: $MODIFIED_CHARTS"
-          echo "charts=$(echo $MODIFIED_CHARTS | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          echo "Charts to test: $FINAL_CHARTS"
+          echo "charts=$(echo $FINAL_CHARTS | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          echo "targets_file=$TARGET_FILE" >> "$GITHUB_OUTPUT"
         fi
 
     # ── Install tools ───────────────────────────────────────────
@@ -65,10 +182,6 @@ jobs:
       uses: azure/setup-helm@v5.0.0
       with:
         version: 'latest'
-
-    - name: Install yq
-      if: steps.modified_charts.outputs.charts != ''
-      uses: mikefarah/yq@v4.44.6
 
     # ── Create Kind cluster ─────────────────────────────────────
     - name: Create Kind cluster
@@ -115,49 +228,75 @@ jobs:
       if: steps.modified_charts.outputs.charts != ''
       run: |
         OVERALL_EXIT=0
+        WARNING_COUNT=0
+        TARGET_FILE="${{ steps.modified_charts.outputs.targets_file }}"
 
-        for chart_path in ${{ steps.modified_charts.outputs.charts }}; do
+        cleanup_chart() {
+          local chart_name="$1"
+          local chart_ns queue all_deps current sub_deps dep_name dep_ns
+
+          chart_ns=$(yq ".charts.\"${chart_name}\".namespace // .defaults.namespace // \"test\"" ci/chart-tests.yaml)
+          helm uninstall "e2e-${chart_name}" -n "${chart_ns}" 2>/dev/null || true
+
+          queue=$(yq -r ".charts.\"${chart_name}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
+          all_deps=""
+          while [ -n "$queue" ]; do
+            current=$(echo "$queue" | head -1)
+            queue=$(echo "$queue" | tail -n +2)
+            echo "$all_deps" | grep -qx "$current" 2>/dev/null && continue
+            all_deps=$(printf "%s\n%s" "$current" "$all_deps")
+            sub_deps=$(yq -r ".charts.\"${current}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
+            [ -n "$sub_deps" ] && queue=$(printf "%s\n%s" "$queue" "$sub_deps")
+          done
+
+          for dep_name in $all_deps; do
+            [ -z "$dep_name" ] && continue
+            dep_ns=$(yq ".charts.\"${dep_name}\".namespace // \"${chart_ns}\"" ci/chart-tests.yaml)
+            echo "  Cleaning up dependency: ${dep_name}"
+            helm uninstall "e2e-${dep_name}" -n "${dep_ns}" 2>/dev/null || true
+          done
+
+          kubectl delete pods --field-selector=status.phase!=Running -A 2>/dev/null || true
+        }
+
+        while IFS=$'\t' read -r chart_path chart_reason; do
+          [[ -z "$chart_path" ]] && continue
           chart_name=$(basename "$chart_path")
+          failure_mode="error"
+          if [[ "$chart_reason" == *"reverse dependent"* && "$chart_reason" != *"directly modified"* && "$chart_reason" != *"CI infrastructure changed"* ]]; then
+            failure_mode="warning"
+          fi
+
           echo ""
           echo "╔══════════════════════════════════════════════════════════╗"
           echo "║  Testing: ${chart_name}"
           echo "╚══════════════════════════════════════════════════════════╝"
+          echo "Reason: ${chart_reason}"
+          if [[ "$chart_reason" == *"reverse dependent"* ]]; then
+            echo "Impact check: dependency changes can break this service even when this chart did not change directly."
+          fi
+          if [[ "$failure_mode" == "warning" ]]; then
+            echo "Failure mode: warning-only impacted-service check."
+          fi
           echo ""
 
           if ! ./ci/run-chart-e2e.sh "$chart_path" "$chart_name"; then
-            echo "::error::E2E tests failed for chart: ${chart_name}"
-            OVERALL_EXIT=1
+            if [[ "$failure_mode" == "warning" ]]; then
+              echo "::warning::Impacted service check failed for chart: ${chart_name} (${chart_reason})"
+              WARNING_COUNT=$((WARNING_COUNT + 1))
+            else
+              echo "::error::E2E tests failed for chart: ${chart_name}"
+              OVERALL_EXIT=1
+            fi
           fi
 
-          # Clean up between charts: uninstall release, its dependencies (transitively), and delete test pods
-          CHART_NS=$(yq ".charts.\"${chart_name}\".namespace // .defaults.namespace // \"test\"" ci/chart-tests.yaml)
-          helm uninstall "e2e-${chart_name}" -n "${CHART_NS}" 2>/dev/null || true
-
-          # Collect all transitive dependencies and uninstall them
-          # Simple BFS: queue starts with direct deps, expands transitively
-          QUEUE=$(yq -r ".charts.\"${chart_name}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
-          ALL_DEPS=""
-          while [ -n "$QUEUE" ]; do
-            CURRENT=$(echo "$QUEUE" | head -1)
-            QUEUE=$(echo "$QUEUE" | tail -n +2)
-            # Skip if already seen
-            echo "$ALL_DEPS" | grep -qx "$CURRENT" 2>/dev/null && continue
-            ALL_DEPS=$(printf "%s\n%s" "$CURRENT" "$ALL_DEPS")
-            # Add sub-dependencies to queue
-            SUB_DEPS=$(yq -r ".charts.\"${CURRENT}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
-            [ -n "$SUB_DEPS" ] && QUEUE=$(printf "%s\n%s" "$QUEUE" "$SUB_DEPS")
-          done
-          # Uninstall collected deps (leaves first since we prepended)
-          for DEP_NAME in $ALL_DEPS; do
-            [ -z "$DEP_NAME" ] && continue
-            DEP_NS=$(yq ".charts.\"${DEP_NAME}\".namespace // \"${CHART_NS}\"" ci/chart-tests.yaml)
-            echo "  Cleaning up dependency: ${DEP_NAME}"
-            helm uninstall "e2e-${DEP_NAME}" -n "${DEP_NS}" 2>/dev/null || true
-          done
-
-          kubectl delete pods --field-selector=status.phase!=Running -A 2>/dev/null || true
+          cleanup_chart "$chart_name"
           echo ""
-        done
+        done < "$TARGET_FILE"
+
+        if [[ "$WARNING_COUNT" -gt 0 ]]; then
+          echo "::warning::${WARNING_COUNT} reverse-dependent impacted-service warning(s) detected"
+        fi
 
         exit $OVERALL_EXIT
 

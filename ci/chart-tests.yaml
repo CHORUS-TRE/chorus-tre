@@ -15,6 +15,9 @@
 #     depends_on:          List of chart names that must be deployed first
 #                          Dependencies are deployed (not tested) before this chart.
 #                          They remain running so the chart under test can connect.
+#                          The workflow also uses this graph in reverse: when a
+#                          dependency chart changes, its dependents are retested
+#                          as impacted services and the reason is printed in CI.
 #     dependency_values:   Dynamic --set overrides resolved from dependency charts
 #       <helm.value.key>:
 #         chart:          Dependency chart name referenced by depends_on
