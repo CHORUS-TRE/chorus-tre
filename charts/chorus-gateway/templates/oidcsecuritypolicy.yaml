@@ -1,15 +1,20 @@
 {{- /*
-  OIDC SecurityPolicies — one per external route with `oidc` configured.
+  OIDC SecurityPolicies — one per route with `oidc` configured.
   Envoy Gateway's native OIDC filter handles the full authorization-code
   flow: redirect browser to the IdP, exchange the code server-side, set a
   session cookie, intercept callbacks. The route's upstream service never
   sees unauthenticated traffic.
 
+  Supported on `externalRoutes` (with a "deny workspace pods" rule based on
+  podCIDR) and on `openRoutes` (no CIDR rule — used on clusters without
+  workspaces, e.g. CI clusters).
+
   `oidc.clientSecretName` (values) must reference a Secret in the gateway
   namespace containing a `client-secret` key — Envoy Gateway reads that
   fixed key name from the Secret.
 */}}
-{{- range .Values.externalRoutes }}
+{{- range $kind, $routes := dict "external" .Values.externalRoutes "open" .Values.openRoutes }}
+{{- range $routes }}
 {{- if and .oidc (ne (.oidc.enabled | toString) "false") }}
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
@@ -23,7 +28,7 @@ spec:
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: {{ include "chorus-gateway.externalHTTPRouteName" . }}
+      name: {{ if eq $kind "external" }}{{ include "chorus-gateway.externalHTTPRouteName" . }}{{ else }}{{ include "chorus-gateway.openHTTPRouteName" . }}{{ end }}
   oidc:
     provider:
       backendRefs:
@@ -50,9 +55,12 @@ spec:
       - {{ . | quote }}
       {{- end }}
     {{- end }}
+  {{- if eq $kind "external" }}
   authorization:
     defaultAction: Allow
     rules:
       {{- include "chorus-gateway.podCIDRRule" (dict "name" "deny-workspace-pods" "action" "Deny" "podCIDR" $.Values.podCIDR) | nindent 6 }}
+  {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
