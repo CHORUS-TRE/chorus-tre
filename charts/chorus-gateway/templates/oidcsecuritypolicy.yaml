@@ -20,7 +20,7 @@
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
-  name: {{ .name }}-oidc-securitypolicy
+  name: {{ if eq $kind "external" }}{{ include "chorus-gateway.externalOIDCSecurityPolicyName" . }}{{ else }}{{ include "chorus-gateway.openOIDCSecurityPolicyName" . }}{{ end }}
   namespace: {{ $.Values.gateway.namespace }}
   labels:
     {{- include "chorus-gateway.labels" $ | nindent 4 }}

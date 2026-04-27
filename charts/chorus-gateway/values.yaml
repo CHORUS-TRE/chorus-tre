@@ -157,6 +157,27 @@ externalRoutes: []
 #       matches:
 #         - pathPrefix: /v2
 #         - pathPrefix: /service/token
+#     # OIDC on an openRoute — for Build cluster, where CHORUS isn't deployed.
+#     # Envoy Gateway runs the full Keycloak login flow before any request reaches
+#     # prometheus. No podCIDR rule is emitted (no workspaces to isolate).
+#     - name: prometheus
+#       hostname: prometheus.build.chorus-tre.local
+#       namespace: prometheus
+#       serviceName: chorus-build-kube-promethe-prometheus
+#       servicePort: 9090
+#       oidc:
+#         provider:
+#           serviceName: chorus-build-keycloak
+#           namespace: keycloak
+#           servicePort: 80
+#         issuer: https://auth.build.chorus-tre.local/realms/infra
+#         authorizationEndpoint: https://auth.build.chorus-tre.local/realms/infra/protocol/openid-connect/auth
+#         tokenEndpoint: https://auth.build.chorus-tre.local/realms/infra/protocol/openid-connect/token
+#         clientID: prometheus
+#         clientSecretName: prometheus-oidc-secret
+#         redirectURL: https://prometheus.build.chorus-tre.local/oauth2/callback
+#         logoutPath: /oauth2/logout
+#         scopes: [openid, email]
 openRoutes: []
 
 # Internal TCP routes — workspace pods only (SecurityPolicy allows podCIDR).
