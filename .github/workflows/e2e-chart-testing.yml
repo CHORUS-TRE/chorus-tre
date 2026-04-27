@@ -304,7 +304,7 @@ jobs:
           fi
           echo ""
 
-          if ! ./ci/run-chart-e2e.sh "$chart_path" "$chart_name"; then
+          if ! python3 ./ci/run-chart-e2e.py "$chart_path" "$chart_name"; then
             if [[ "$failure_mode" == "warning" ]]; then
               echo "::warning::Impacted service check failed for chart: ${chart_name} (${chart_reason})"
               WARNING_COUNT=$((WARNING_COUNT + 1))
