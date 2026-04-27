@@ -1,0 +1,176 @@
+name: Chart E2E Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - master
+    paths:
+      - '.github/workflows/e2e-chart-testing.yml'
+      - 'charts/**'
+      - 'ci/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chart-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    # ── Checkout ────────────────────────────────────────────────
+    - name: Checkout repository
+      uses: actions/checkout@v5.0.0
+      with:
+        fetch-depth: 0
+
+    # ── Detect modified charts ──────────────────────────────────
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v47.0.6
+
+    - name: Identify modified charts
+      id: modified_charts
+      run: |
+        MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
+        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*' | sort -u || true)
+
+        # If CI infra changed but no charts, test all registered charts
+        if [ -z "$MODIFIED_CHARTS" ]; then
+          CI_CHANGED=$(echo "$MODIFIED_FILES" | grep -Ec '^(ci/|\.github/workflows/e2e-chart-testing\.yml$)' || true)
+          if [ "$CI_CHANGED" -gt 0 ]; then
+            echo "CI infra changed — testing all registered charts"
+            MODIFIED_CHARTS=$(yq -r '.charts | keys | .[]' ci/chart-tests.yaml | \
+              while read -r name; do
+                skip=$(yq -r ".charts.\"${name}\".skip_deploy // false" ci/chart-tests.yaml)
+                [ "$skip" = "true" ] && continue
+                echo "charts/${name}"
+              done | sort -u)
+          fi
+        fi
+
+        if [ -z "$MODIFIED_CHARTS" ]; then
+          echo "No charts to test."
+          echo "charts=" >> "$GITHUB_OUTPUT"
+        else
+          echo "Charts to test: $MODIFIED_CHARTS"
+          echo "charts=$(echo $MODIFIED_CHARTS | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+        fi
+
+    # ── Install tools ───────────────────────────────────────────
+    - name: Set up Helm
+      if: steps.modified_charts.outputs.charts != ''
+      uses: azure/setup-helm@v5.0.0
+      with:
+        version: 'latest'
+
+    - name: Install yq
+      if: steps.modified_charts.outputs.charts != ''
+      uses: mikefarah/yq@v4.44.6
+
+    # ── Create Kind cluster ─────────────────────────────────────
+    - name: Create Kind cluster
+      if: steps.modified_charts.outputs.charts != ''
+      uses: helm/kind-action@v1.14.0
+      with:
+        cluster_name: chart-e2e
+        config: ci/kind-config.yaml
+        wait: 60s
+
+    - name: Install Cilium CNI
+      if: steps.modified_charts.outputs.charts != ''
+      run: |
+        helm repo add cilium https://helm.cilium.io
+        helm repo update cilium
+        helm upgrade --install cilium cilium/cilium \
+          --namespace kube-system \
+          --create-namespace \
+          --set kubeProxyReplacement=true \
+          --set k8sServiceHost=chart-e2e-control-plane \
+          --set k8sServicePort=6443 \
+          --wait
+        kubectl -n kube-system rollout status daemonset/cilium --timeout=300s
+        kubectl -n kube-system rollout status deployment/cilium-operator --timeout=300s
+
+    # ── Add Helm repos for all charts (deps may not be in modified list)
+    - name: Add Helm repositories
+      if: steps.modified_charts.outputs.charts != ''
+      run: |
+        for chart_path in charts/*/; do
+          if [ -f "${chart_path}Chart.yaml" ]; then
+            REPOS=$(grep 'repository:' "${chart_path}Chart.yaml" | awk '{print $2}' | sort -u || true)
+            for repo in $REPOS; do
+              [[ "$repo" == oci://* ]] && continue
+              repo_name=$(echo "$repo" | sed -E 's|^https?://||;s|/|-|g')
+              helm repo add "$repo_name" "$repo" 2>/dev/null || true
+            done
+          fi
+        done
+        helm repo update 2>/dev/null || true
+
+    # ── Run e2e tests per chart ─────────────────────────────────
+    - name: Run chart e2e tests
+      if: steps.modified_charts.outputs.charts != ''
+      run: |
+        OVERALL_EXIT=0
+
+        for chart_path in ${{ steps.modified_charts.outputs.charts }}; do
+          chart_name=$(basename "$chart_path")
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║  Testing: ${chart_name}"
+          echo "╚══════════════════════════════════════════════════════════╝"
+          echo ""
+
+          if ! ./ci/run-chart-e2e.sh "$chart_path" "$chart_name"; then
+            echo "::error::E2E tests failed for chart: ${chart_name}"
+            OVERALL_EXIT=1
+          fi
+
+          # Clean up between charts: uninstall release, its dependencies (transitively), and delete test pods
+          CHART_NS=$(yq ".charts.\"${chart_name}\".namespace // .defaults.namespace // \"test\"" ci/chart-tests.yaml)
+          helm uninstall "e2e-${chart_name}" -n "${CHART_NS}" 2>/dev/null || true
+
+          # Collect all transitive dependencies and uninstall them
+          # Simple BFS: queue starts with direct deps, expands transitively
+          QUEUE=$(yq -r ".charts.\"${chart_name}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
+          ALL_DEPS=""
+          while [ -n "$QUEUE" ]; do
+            CURRENT=$(echo "$QUEUE" | head -1)
+            QUEUE=$(echo "$QUEUE" | tail -n +2)
+            # Skip if already seen
+            echo "$ALL_DEPS" | grep -qx "$CURRENT" 2>/dev/null && continue
+            ALL_DEPS=$(printf "%s\n%s" "$CURRENT" "$ALL_DEPS")
+            # Add sub-dependencies to queue
+            SUB_DEPS=$(yq -r ".charts.\"${CURRENT}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
+            [ -n "$SUB_DEPS" ] && QUEUE=$(printf "%s\n%s" "$QUEUE" "$SUB_DEPS")
+          done
+          # Uninstall collected deps (leaves first since we prepended)
+          for DEP_NAME in $ALL_DEPS; do
+            [ -z "$DEP_NAME" ] && continue
+            DEP_NS=$(yq ".charts.\"${DEP_NAME}\".namespace // \"${CHART_NS}\"" ci/chart-tests.yaml)
+            echo "  Cleaning up dependency: ${DEP_NAME}"
+            helm uninstall "e2e-${DEP_NAME}" -n "${DEP_NS}" 2>/dev/null || true
+          done
+
+          kubectl delete pods --field-selector=status.phase!=Running -A 2>/dev/null || true
+          echo ""
+        done
+
+        exit $OVERALL_EXIT
+
+    # ── Upload debug info on failure ────────────────────────────
+    - name: Collect debug info on failure
+      if: failure() && steps.modified_charts.outputs.charts != ''
+      run: |
+        echo "=== Node status ==="
+        kubectl get nodes -o wide
+        echo ""
+        echo "=== All pods ==="
+        kubectl get pods -A -o wide
+        echo ""
+        echo "=== Events ==="
+        kubectl get events -A --sort-by=.lastTimestamp | tail -50
+        echo ""

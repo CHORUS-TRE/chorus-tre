@@ -1,0 +1,40 @@
+# ci/test-values/i2b2-wildfly.yaml
+# CI-specific values for running i2b2-wildfly in the Kind-based chart e2e.
+#
+# The depends_on mechanism in chart-tests.yaml deploys postgres first.
+# The pre_install hook creates the i2b2-wildfly-secret with default passwords.
+#
+# Keeps the chart focused on its in-cluster service path.
+# Postgres dependency wiring is injected from chart-tests.yaml.
+# Probes keep generous initialDelaySeconds because WildFly is slow to boot with DB init.
+
+# PriorityClass "low-priority" doesn't exist in Kind
+priorityClassName: ""
+
+# Disable K8s ingress (no ingress controller in Kind)
+ingress:
+  enabled: false
+
+# Keep service ports at defaults
+service:
+  type: ClusterIP
+  http: 8080
+  api: 9990
+
+# Wildfly is slow to boot; increase initialDelaySeconds.
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 10
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 20
