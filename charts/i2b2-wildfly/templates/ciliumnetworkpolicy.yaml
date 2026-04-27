@@ -31,19 +31,30 @@ spec:
   # Note: CiliumNetworkPolicy uses different format than K8s NetworkPolicy
   # For L7 WAF mode, define specific Cilium egress rules in environment-specific values
   egress:
-  # Always allow DNS resolution.
-  # Use kube-dns entity to auto-detect DNS infrastructure (kube-dns or node-local-dns).
-  - toEntities:
-    - kube-dns
+  # Allow DNS to in-cluster CoreDNS pods (clusters without node-local-dns).
+  # Targets the kube-dns Service backing pods by their label.
+  - toEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": kube-system
+        app: coredns
     toPorts:
     - ports:
       - port: "53"
         protocol: UDP
       - port: "53"
         protocol: TCP
-      rules:
-        dns:
-        - matchPattern: "*"
+  # Allow DNS to node-local-dns (host network, link-local IP 169.254.x.x).
+  # Cilium classifies that link-local IP as the "world" entity (not "host" and
+  # not the node-local-dns pod identity, since the pod runs hostNetwork=true).
+  # Bounded to port 53 — does not allow general external egress.
+  - toEntities:
+    - world
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
   {{- if .Values.networkPolicy.egress }}
     {{- toYaml .Values.networkPolicy.egress | nindent 2 }}
   {{- end }}
