@@ -14,7 +14,7 @@
 {{- end }}
 
 {{- $oidcNamespaces := dict }}
-{{- range .Values.externalRoutes }}
+{{- range concat .Values.externalRoutes .Values.openRoutes }}
 {{- if and .oidc (ne (.oidc.enabled | toString) "false") (.oidc.provider) }}
 {{- $_ := set $oidcNamespaces .oidc.provider.namespace true }}
 {{- end }}
