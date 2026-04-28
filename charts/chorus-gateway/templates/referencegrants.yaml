@@ -25,7 +25,7 @@
   hosts a backend Service referenced from the gateway namespace.
 */}}
 {{- $grantNamespaces := dict }}
-{{- range concat .Values.internalRoutes .Values.externalRoutes .Values.openRoutes .Values.internalTcpRoutes }}
+{{- range concat .Values.internalRoutes .Values.externalRoutes .Values.openRoutes .Values.internalTcpRoutes .Values.openGrpcRoutes }}
 {{- $_ := set $grantNamespaces .namespace true }}
 {{- end }}
 {{- range $ns, $_ := $extAuthNamespaces }}
@@ -51,6 +51,9 @@ spec:
       namespace: {{ $.Values.gateway.namespace }}
     - group: gateway.networking.k8s.io
       kind: TCPRoute
+      namespace: {{ $.Values.gateway.namespace }}
+    - group: gateway.networking.k8s.io
+      kind: GRPCRoute
       namespace: {{ $.Values.gateway.namespace }}
     {{- if or (hasKey $extAuthNamespaces $ns) (hasKey $oidcNamespaces $ns) }}
     - group: gateway.envoyproxy.io

@@ -82,6 +82,10 @@ multiple templates. All take a route map and return "<route.name>-<suffix>".
 {{- printf "%s-internal-tcproute" (required "name is required" .name) -}}
 {{- end }}
 
+{{- define "chorus-gateway.openGRPCRouteName" -}}
+{{- printf "%s-open-grpcroute" (required "name is required" .name) -}}
+{{- end }}
+
 {{- define "chorus-gateway.extAuthSecurityPolicyName" -}}
 {{- printf "%s-extauth-securitypolicy" (required "name is required" .name) -}}
 {{- end }}
