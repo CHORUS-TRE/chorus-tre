@@ -1,6 +1,6 @@
 apiVersion: v2
 name: chorus-gateway
-description: Envoy Gateway HTTPRoutes and SecurityPolicies for CHORUS services
+description: Envoy Gateway routes and SecurityPolicies for CHORUS services
 version: 0.0.18
 maintainers:
   - name: iDmple
