@@ -1,0 +1,34 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ printf "%s-ingress-restrict" .Release.Name | quote }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  # Scoped to this release so it doesn't collide with another keycloak chart
+  # briefly coexisting in the same namespace.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- if .Values.allowedIngressNamespaces }}
+  ingress:
+    - fromEndpoints:
+        {{- range .Values.allowedIngressNamespaces }}
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: {{ . | quote }}
+        {{- end }}
+      toPorts:
+        - ports:
+            # HTTP, management/metrics. Add 7800/TCP if replicas > 1 (jgroups).
+            - port: "8080"
+              protocol: TCP
+            - port: "9000"
+              protocol: TCP
+  {{- else }}
+  ingress: []
+  {{- end }}

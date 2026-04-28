@@ -1,0 +1,22 @@
+{{- $currentScope := . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-realm-config" .Release.Name | quote }}
+  namespace: {{ $currentScope.Release.Namespace }}
+data:
+{{- if .Values.client.chorus }}
+{{- range $path, $_ :=  .Files.Glob  "files/realm/remote/*-realm.yaml" }}
+  {{ base $path }}: |-
+{{- with $currentScope }}
+{{ .Files.Get $path | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- else }}
+{{- range $path, $_ :=  .Files.Glob  "files/realm/build/*-realm.yaml" }}
+  {{ base $path }}: |-
+{{- with $currentScope }}
+{{ .Files.Get $path | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}
