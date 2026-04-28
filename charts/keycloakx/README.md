@@ -8,6 +8,22 @@ Realm import is performed by a chart-owned `keycloak-config-cli` Job
 [keycloakx]: https://github.com/codecentric/helm-charts/tree/master/charts/keycloakx
 
 
+## Migrating from `charts/keycloak` (bitnami)
+
+- `keycloakConfigCli.*` is top-level here. The bitnami chart nested it under
+  `keycloak:` (the subchart alias), so any overrides need to be moved up one
+  level — silent fallthrough otherwise.
+- Admin and DB credentials are read from `keycloak-secret/adminPassword` and
+  `keycloak-db-secret/password`. chorus-tre envs already point at these names;
+  consumers porting from stock bitnami defaults (`keycloak-admin-postgres/...`)
+  need to rename or recreate.
+- Realm and client ConfigMaps are now release-prefixed
+  (`<release>-realm-config`, `<release>-client-config`) and consumed only by
+  this chart's templates.
+- `adminIngress` is gone. For separate admin URL routing, set
+  `KC_HOSTNAME_ADMIN` in `keycloak.extraEnv` (Keycloak 26 native).
+
+
 ## Required Secrets
 
 ### Client Credentials Secret
