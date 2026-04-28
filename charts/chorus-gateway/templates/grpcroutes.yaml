@@ -1,0 +1,24 @@
+{{- /*
+  Open gRPC routes — accessible from anywhere, no SecurityPolicy restriction.
+  Used for services that publish a gRPC API (e.g. argo-cd's gRPC server for
+  the `argocd` CLI) on a dedicated hostname. Backend Service must speak
+  gRPC over HTTP/2 (typical for argo-cd-server, gRPC microservices, etc.).
+*/}}
+{{- range .Values.openGrpcRoutes }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: {{ include "chorus-gateway.openGRPCRouteName" . }}
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $.Values.gateway.name }}
+  hostnames:
+    - {{ required "hostname is required" .hostname | quote }}
+  rules:
+    - backendRefs:
+        {{- include "chorus-gateway.backendRef" . | nindent 8 }}
+{{- end }}
