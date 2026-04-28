@@ -1,5 +1,5 @@
 apiVersion: v2
-description: Keycloak deployed via the codecentric/keycloakx chart, aliased to `keycloak`.
+description: Keycloak.X - Open Source Identity and Access Management for Modern Applications and Services
 name: keycloakx
 version: 0.0.1
 dependencies:
