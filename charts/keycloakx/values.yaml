@@ -77,8 +77,10 @@ keycloak:
     enabled: false
     ingressClassName: nginx
 
+  # Opt in per-env after `database.hostname` is set, otherwise the subchart's
+  # `required` check fails at render time.
   dbchecker:
-    enabled: true
+    enabled: false
 
 # Realm import as a Helm/Argo PostSync hook (keycloakx does not bundle one).
 keycloakConfigCli:
