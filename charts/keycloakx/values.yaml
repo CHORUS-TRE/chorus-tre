@@ -39,13 +39,13 @@ keycloak:
 
   priorityClassName: "high-priority"
 
-  # Single Micrometer endpoint on the management port (9000); per-realm
-  # metrics are exposed as labels on the same series.
+  # Opt in per-env. Single Micrometer endpoint on the management port
+  # (9000); per-realm metrics are exposed as labels on the same series.
   metrics:
-    enabled: true
+    enabled: false
 
   serviceMonitor:
-    enabled: true
+    enabled: false
 
   # `hostname` is the only required per-env override.
   database:
