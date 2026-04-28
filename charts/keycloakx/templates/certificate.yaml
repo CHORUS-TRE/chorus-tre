@@ -1,0 +1,33 @@
+{{- if .Values.certificate.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Release.Name }}-cert
+spec:
+  secretName: {{ .Values.certificate.secretName | default (printf "%s-secret" .Release.Name) | quote }}
+
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+
+  duration: {{ .Values.certificate.duration }}
+  renewBefore: {{ .Values.certificate.renewBefore }}
+
+  isCA: false
+  usages:
+    - server auth
+    - client auth
+
+  subject:
+    organizations:
+      - chorus
+
+  uris:
+    - spiffe://cluster.local/ns/{{ .Release.Namespace }}
+  privateKey:
+    rotationPolicy: Always
+
+  issuerRef:
+    name: {{ .Values.certificate.issuerRef.name }}
+    kind: {{ .Values.certificate.issuerRef.kind | default "Issuer" }}
+{{- end }}
