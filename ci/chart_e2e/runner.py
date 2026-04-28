@@ -47,6 +47,7 @@ class ChartE2ERunner(ChecksMixin, DeploymentMixin, RunnerBase):
                 self.info(f"  → {command}")
                 result = self.run_shell(str(command))
                 if result.returncode != 0:
+                    self.fail(f"Pre-install command failed for {self.chart_name} — aborting")
                     return result.returncode or 1
 
         if self.deploy_dependencies() != 0:
