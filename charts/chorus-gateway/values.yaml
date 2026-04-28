@@ -197,11 +197,9 @@ internalTcpRoutes: []
 
 # Open gRPC routes — accessible from anywhere, no SecurityPolicy restriction.
 # Each entry creates a GRPCRoute and ReferenceGrant. Backend Service must speak
-# gRPC over HTTP/2 (e.g. argo-cd-server, gRPC microservices). To make Envoy use
-# HTTP/2 to the backend, the Service port should advertise it via
-# `appProtocol: kubernetes.io/h2c` (cleartext) or `appProtocol: kubernetes.io/grpc`
-# (TLS) — without this Envoy may default to HTTP/1.1 and the backend will
-# reject framed gRPC.
+# gRPC over HTTP/2 (e.g. argo-cd-server, gRPC microservices). Envoy Gateway uses
+# HTTP/2 to the upstream automatically when the route is a GRPCRoute, so an
+# `appProtocol` on the Service port is not required.
 #
 # Example — argo-cd's gRPC API on a dedicated hostname (Build cluster, where CHORUS isn't deployed):
 #   openGrpcRoutes:
