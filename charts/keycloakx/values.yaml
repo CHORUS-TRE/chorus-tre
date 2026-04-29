@@ -210,8 +210,6 @@ certificate:
 
 # CiliumNetworkPolicy ingress allow-list. An empty list = deny-all ingress.
 allowedIngressNamespaces:
-  - envoy-gateway-system
-  - backend
-  - harbor
-  - prometheus
-  - keycloak
+  - envoy-gateway-system  # gateway's OIDC filter
+  - backend               # chorus backend in-cluster call
+  - keycloak              # intra-namespace (config-cli Job)
