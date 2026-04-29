@@ -57,7 +57,9 @@ keycloak:
     existingSecret: keycloak-db-secret
     existingSecretKey: password
 
-  # Per-env values can replace this entire block to add extra env vars.
+  # Per-env values can replace this entire block to add extra env vars. If
+  # replaced, copy the user-event-metrics flags below to keep parity with the
+  # legacy bitnami release's per-realm event counters.
   extraEnv: |
     - name: KC_LOG_CONSOLE_OUTPUT
       value: "json"
@@ -68,6 +70,10 @@ keycloak:
         secretKeyRef:
           name: keycloak-secret
           key: adminPassword
+    - name: KC_FEATURES
+      value: "user-event-metrics"
+    - name: KC_EVENT_METRICS_USER_ENABLED
+      value: "true"
 
   # We render our own CiliumNetworkPolicy below.
   networkPolicy:
