@@ -50,6 +50,7 @@ spec:
   endpointSelector:
     matchLabels:
       {{- include "networkPolicy.fluentBitSelector" . | nindent 6 }}
+      {{- include "networkPolicy.operatorSelector" . | nindent 6 }}
   egress:
   - toEntities:
     - kube-apiserver
