@@ -48,9 +48,12 @@ metadata:
     {{- include "networkPolicy.labels" . | nindent 4 }}
 spec:
   endpointSelector:
-    matchLabels:
-      {{- include "networkPolicy.fluentBitSelector" . | nindent 6 }}
-      {{- include "networkPolicy.operatorSelector" . | nindent 6 }}
+    matchExpressions:
+    - key: "app.kubernetes.io/name"
+      operator: In
+      values:
+      - fluent-bit
+      - fluent-operator
   egress:
   - toEntities:
     - kube-apiserver
