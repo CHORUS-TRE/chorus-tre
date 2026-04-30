@@ -5,6 +5,7 @@ keycloak:
 
   image:
     repository: quay.io/keycloak/keycloak
+    tag: "26.5.6"
 
   # The image entrypoint requires an explicit subcommand; defaults are empty.
   command:
@@ -17,7 +18,7 @@ keycloak:
 
   proxy:
     enabled: true
-    mode: forwarded
+    mode: xforwarded
     http:
       enabled: true
 
@@ -56,7 +57,9 @@ keycloak:
     existingSecret: keycloak-db-secret
     existingSecretKey: password
 
-  # Per-env values can replace this entire block to add extra env vars.
+  # Per-env values can replace this entire block to add extra env vars. If
+  # replaced, copy the user-event-metrics flags below to keep parity with the
+  # legacy bitnami release's per-realm event counters.
   extraEnv: |
     - name: KC_LOG_CONSOLE_OUTPUT
       value: "json"
@@ -67,6 +70,10 @@ keycloak:
         secretKeyRef:
           name: keycloak-secret
           key: adminPassword
+    - name: KC_FEATURES
+      value: "user-event-metrics"
+    - name: KC_EVENT_METRICS_USER_ENABLED
+      value: "true"
 
   # We render our own CiliumNetworkPolicy below.
   networkPolicy:
@@ -209,8 +216,6 @@ certificate:
 
 # CiliumNetworkPolicy ingress allow-list. An empty list = deny-all ingress.
 allowedIngressNamespaces:
-  - envoy-gateway-system
-  - backend
-  - harbor
-  - prometheus
-  - keycloak
+  - envoy-gateway-system  # gateway's OIDC filter
+  - backend               # chorus backend in-cluster call
+  - keycloak              # intra-namespace (config-cli Job)
