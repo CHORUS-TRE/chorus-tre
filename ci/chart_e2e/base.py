@@ -8,8 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .constants import CONNECT_TIMEOUT, CYAN, GREEN, NC, RED, TEST_IMAGE, YELLOW
-from .utils import helm_value_string, nested_get
+from .constants import CYAN, GREEN, NC, RED, TEST_IMAGE, YELLOW
+from .utils import config_bool, helm_value_string, nested_get
 
 
 class RunnerBase:
@@ -28,7 +28,7 @@ class RunnerBase:
 
         self.namespace = self.chart_config("namespace", self.defaults_config("namespace", "test"))
         self.timeout = int(self.chart_config("timeout", self.defaults_config("timeout", 120)))
-        self.skip_deploy = str(self.chart_config("skip_deploy", False)).lower() == "true"
+        self.skip_deploy = config_bool(self.chart_config("skip_deploy", False))
         self.values_file = self.chart_config("values_file", "")
         self.release_name = f"e2e-{self.chart_name}"
         self.fullname_override = self.chart_config("fullname_override", "")

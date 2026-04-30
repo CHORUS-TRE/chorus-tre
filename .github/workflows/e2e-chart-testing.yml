@@ -37,17 +37,18 @@ jobs:
     - name: Render chart test registry
       id: chart_registry
       run: |
-        REGISTRY_FILE="$PWD/.chart-tests.merged.yaml"
+        REGISTRY_FILE=$(mktemp "${RUNNER_TEMP:-/tmp}/chart-tests.merged.XXXXXX.yaml")
         yq eval-all '. as $item ireduce ({}; . * $item)' ci/chart-tests.yaml ci/chart-tests/charts/*.yaml > "$REGISTRY_FILE"
         echo "file=$REGISTRY_FILE" >> "$GITHUB_OUTPUT"
 
     - name: Identify modified charts
       id: modified_charts
       run: |
+        TARGET_FILE=$(mktemp "${RUNNER_TEMP:-/tmp}/chart-e2e-targets.XXXXXX.tsv")
         python3 ./ci/plan-chart-e2e.py \
           --registry-file "${{ steps.chart_registry.outputs.file }}" \
           --changed-files "${{ steps.changed-files.outputs.all_changed_files }}" \
-          --targets-file "$PWD/.chart-e2e-targets.tsv" \
+          --targets-file "$TARGET_FILE" \
           --github-output "$GITHUB_OUTPUT" \
           --step-summary "$GITHUB_STEP_SUMMARY"
 
@@ -106,7 +107,7 @@ jobs:
         OVERALL_EXIT=0
         WARNING_COUNT=0
         TARGET_FILE="${{ steps.modified_charts.outputs.targets_file }}"
-        WARNING_TARGET_FILE="$PWD/.chart-e2e-warning-targets.tsv"
+        WARNING_TARGET_FILE=$(mktemp "${RUNNER_TEMP:-/tmp}/chart-e2e-warning-targets.XXXXXX.tsv")
         : > "$WARNING_TARGET_FILE"
 
         cleanup_chart() {

@@ -6,6 +6,10 @@ import re
 from typing import Any
 
 
+TRUTHY_STRINGS = {"1", "true", "yes", "on"}
+FALSY_STRINGS = {"0", "false", "no", "off", ""}
+
+
 def nested_get(mapping: dict[str, Any], dotted_key: str, default: Any = None) -> Any:
     value: Any = mapping
     for part in dotted_key.split("."):
@@ -21,6 +25,25 @@ def helm_value_string(value: Any) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value)
+
+
+def config_bool(value: Any, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        if value in (0, 1):
+            return bool(value)
+        raise ValueError(f"Unsupported integer boolean value: {value!r}")
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in TRUTHY_STRINGS:
+            return True
+        if normalized in FALSY_STRINGS:
+            return False
+        raise ValueError(f"Unsupported string boolean value: {value!r}")
+    raise ValueError(f"Unsupported boolean value type: {type(value).__name__}")
 
 
 def lines_preview(text: str, limit: int = 20) -> str:

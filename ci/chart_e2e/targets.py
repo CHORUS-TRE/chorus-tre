@@ -9,6 +9,8 @@ from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
+from .utils import config_bool
+
 
 DIRECTLY_MODIFIED_REASON = "directly modified"
 CHART_TEST_CONFIG_REASON = "chart test config modified"
@@ -59,9 +61,7 @@ class TargetPlanner:
 
     def is_skipped(self, chart_name: str) -> bool:
         value = self.charts.get(chart_name, {}).get("skip_deploy", False)
-        if isinstance(value, bool):
-            return value
-        return str(value).lower() == "true"
+        return config_bool(value)
 
     def reverse_dependents_of(self, dependency_chart: str) -> list[str]:
         dependents: list[str] = []
