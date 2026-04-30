@@ -177,7 +177,9 @@ jobs:
           echo ""
         fi
 
-        while IFS=$'\t' read -r chart_path failure_mode chart_reason; do
+        # Read targets from a dedicated file descriptor so child commands in the runner
+        # cannot drain the remaining rows from the loop input.
+        while IFS=$'\t' read -r chart_path failure_mode chart_reason <&3; do
           [[ -z "$chart_path" ]] && continue
           chart_name=$(basename "$chart_path")
 
@@ -210,7 +212,7 @@ jobs:
 
           cleanup_chart "$chart_name"
           echo ""
-        done < "$TARGET_FILE"
+        done 3< "$TARGET_FILE"
 
         if [[ "$WARNING_COUNT" -gt 0 ]]; then
           echo "::warning::${WARNING_COUNT} reverse-dependent impacted-service warning(s) detected"

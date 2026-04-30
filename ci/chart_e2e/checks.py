@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import time
 
-from .constants import CONNECT_TIMEOUT
+from .constants import CONNECT_TIMEOUT, SMOKE_RETRY_INTERVAL, SMOKE_RETRY_MAX_WAIT
 from .utils import extract_block, lines_preview, nested_get
 
 
@@ -16,6 +16,8 @@ class ChecksMixin:
         if not services:
             self.info("No services defined in registry — skipping smoke test")
             return
+
+        smoke_wait = min(int(getattr(self, "timeout", SMOKE_RETRY_MAX_WAIT)), SMOKE_RETRY_MAX_WAIT)
 
         for index, service in enumerate(services):
             svc_port = str((service or {}).get("port"))
@@ -28,18 +30,21 @@ class ChecksMixin:
             if self.probe_labels:
                 self.info(f"  probe labels: {self.probe_labels}")
 
-            result = self.run_probe_command(
-                f"smoke-test-{index}",
-                self.probe_namespace,
-                self.probe_labels,
-                CONNECT_TIMEOUT,
-                ["wget", "-qO", "/dev/null", f"--timeout={CONNECT_TIMEOUT}", f"http://{svc_host}:{svc_port}/"],
-                suppress_stderr=True,
-            )
-            if result.returncode == 0:
-                self.pass_(f"Service {svc_name}:{svc_port} is reachable")
-                smoke_passed = True
-            else:
+            elapsed = 0
+            while elapsed <= smoke_wait and not smoke_passed:
+                result = self.run_probe_command(
+                    f"smoke-test-{index}",
+                    self.probe_namespace,
+                    self.probe_labels,
+                    CONNECT_TIMEOUT,
+                    ["wget", "-qO", "/dev/null", f"--timeout={CONNECT_TIMEOUT}", f"http://{svc_host}:{svc_port}/"],
+                    suppress_stderr=True,
+                )
+                if result.returncode == 0:
+                    self.pass_(f"Service {svc_name}:{svc_port} is reachable")
+                    smoke_passed = True
+                    break
+
                 tcp_check = self.run_probe_command(
                     f"smoke-tcp-{index}",
                     self.probe_namespace,
@@ -56,6 +61,13 @@ class ChecksMixin:
                 if "TCP_OK" in (tcp_check.stdout or ""):
                     self.pass_(f"Service {svc_name}:{svc_port} is reachable (TCP)")
                     smoke_passed = True
+                    break
+
+                if elapsed >= smoke_wait:
+                    break
+
+                time.sleep(SMOKE_RETRY_INTERVAL)
+                elapsed += SMOKE_RETRY_INTERVAL
 
             if not smoke_passed:
                 self.fail(f"Service {svc_name}:{svc_port} is not reachable")

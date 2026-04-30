@@ -34,7 +34,7 @@ class PlannedTarget:
     @property
     def failure_mode(self) -> str:
         has_reverse_reason = any("reverse dependent" in reason for reason in self.reasons)
-        is_direct = DIRECTLY_MODIFIED_REASON in self.reasons
+        is_direct = DIRECTLY_MODIFIED_REASON in self.reasons or CHART_TEST_CONFIG_REASON in self.reasons
         is_ci_sweep = CI_INFRA_CHANGED_REASON in self.reasons
         return "warning" if has_reverse_reason and not is_direct and not is_ci_sweep else "error"
 
