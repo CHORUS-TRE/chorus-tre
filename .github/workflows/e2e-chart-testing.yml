@@ -188,7 +188,7 @@ jobs:
           {
             echo "### Chart E2E Targets"
             echo
-            echo "Reverse dependents are included so dependency updates surface which services break; reverse-only impacted checks warn instead of failing the job."
+            echo "Reverse dependents are included so dependency updates show which services could break; reverse-only impacted checks warn instead of failing the job."
             echo
             while IFS=$'\t' read -r chart_path reason; do
               [[ -z "$chart_path" ]] && continue
@@ -322,12 +322,12 @@ jobs:
         if [[ -s "$WARNING_TARGET_FILE" ]]; then
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "Planned Warning-Only Impact Checks"
+          echo "Impact Checks"
           echo "These charts are being tested as reverse dependents. Failures here warn but do not fail the job."
           while IFS=$'\t' read -r warning_chart warning_reason; do
             [[ -z "$warning_chart" ]] && continue
             echo "  - ${warning_chart}: ${warning_reason}"
-            echo "::warning::Planned warning-only impacted-service check: ${warning_chart} (${warning_reason})"
+            echo "::warning::WARNING: impacted-service check: ${warning_chart} (${warning_reason})"
           done < "$WARNING_TARGET_FILE"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
