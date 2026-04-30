@@ -15,7 +15,11 @@ from .utils import config_bool
 DIRECTLY_MODIFIED_REASON = "directly modified"
 CHART_TEST_CONFIG_REASON = "chart test config modified"
 CI_INFRA_CHANGED_REASON = "CI infrastructure changed - full registered chart sweep"
-WORKFLOW_PATH = ".github/workflows/e2e-chart-testing.yml"
+CI_INFRA_CHANGED_PATHS = {
+    ".github/workflows/e2e-chart-testing.yml",
+    "charts/chorus-ci/templates/chart-e2e-sensor.yaml",
+    "charts/chorus-ci/values.yaml",
+}
 
 
 @dataclass
@@ -162,7 +166,7 @@ class TargetPlanner:
     @staticmethod
     def _has_ci_infra_changes(changed_files: list[str]) -> bool:
         for changed_file in changed_files:
-            if changed_file.startswith("ci/") or changed_file == WORKFLOW_PATH:
+            if changed_file.startswith("ci/") or changed_file in CI_INFRA_CHANGED_PATHS:
                 return True
         return False
 

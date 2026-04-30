@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ci"))
 
-from chart_e2e.targets import CHART_TEST_CONFIG_REASON, PlannedTarget
+from chart_e2e.targets import CHART_TEST_CONFIG_REASON, PlannedTarget, TargetPlanner
 
 
 class PlannedTargetFailureModeTests(unittest.TestCase):
@@ -25,6 +25,14 @@ class PlannedTargetFailureModeTests(unittest.TestCase):
         )
 
         self.assertEqual(target.failure_mode, "warning")
+
+
+class CiInfraPathTests(unittest.TestCase):
+    def test_chart_e2e_sensor_path_counts_as_ci_infra(self) -> None:
+        self.assertTrue(TargetPlanner._has_ci_infra_changes(["charts/chorus-ci/templates/chart-e2e-sensor.yaml"]))
+
+    def test_chorus_ci_values_path_counts_as_ci_infra(self) -> None:
+        self.assertTrue(TargetPlanner._has_ci_infra_changes(["charts/chorus-ci/values.yaml"]))
 
 
 if __name__ == "__main__":
