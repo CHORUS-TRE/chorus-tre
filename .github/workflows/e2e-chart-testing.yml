@@ -44,169 +44,12 @@ jobs:
     - name: Identify modified charts
       id: modified_charts
       run: |
-        REGISTRY_FILE="${{ steps.chart_registry.outputs.file }}"
-        MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
-        MODIFIED_DIRECT_CHARTS=$(echo "$MODIFIED_FILES" | grep -oE '(^|[[:space:]])charts/[^/[:space:]]+' | sed -E 's/^[[:space:]]+//' | sort -u || true)
-        MODIFIED_CHART_TESTS=$(echo "$MODIFIED_FILES" | grep -oE 'ci/chart-tests/charts/[^[:space:]]+\.ya?ml' | sed -E 's#^ci/chart-tests/charts/([^/]+)\.ya?ml$#charts/\1#' | sort -u || true)
-        MODIFIED_CHARTS=$(printf '%s\n%s\n' "$MODIFIED_DIRECT_CHARTS" "$MODIFIED_CHART_TESTS" | sed '/^$/d' | sort -u)
-        TARGET_FILE="$PWD/.chart-e2e-targets.tsv"
-        : > "$TARGET_FILE"
-
-        declare -A TARGET_REASONS
-        declare -A DIRECT_TARGET_REASONS
-
-        add_reason() {
-          local chart_path="$1"
-          local reason="$2"
-
-          if [[ -z "${TARGET_REASONS[$chart_path]:-}" ]]; then
-            TARGET_REASONS["$chart_path"]="$reason"
-          elif [[ "; ${TARGET_REASONS[$chart_path]}; " != *"; ${reason}; "* ]]; then
-            TARGET_REASONS["$chart_path"]+="; ${reason}"
-          fi
-        }
-
-        add_direct_reason() {
-          local chart_path="$1"
-          local reason="$2"
-
-          if [[ -z "${DIRECT_TARGET_REASONS[$chart_path]:-}" ]]; then
-            DIRECT_TARGET_REASONS["$chart_path"]="$reason"
-          elif [[ "; ${DIRECT_TARGET_REASONS[$chart_path]}; " != *"; ${reason}; "* ]]; then
-            DIRECT_TARGET_REASONS["$chart_path"]+="; ${reason}"
-          fi
-        }
-
-        chart_is_registered() {
-          local chart_name="$1"
-          yq -e ".charts.\"${chart_name}\"" "$REGISTRY_FILE" >/dev/null 2>&1
-        }
-
-        chart_is_skipped() {
-          local chart_name="$1"
-          [[ "$(yq -r ".charts.\"${chart_name}\".skip_deploy // false" "$REGISTRY_FILE" 2>/dev/null)" == "true" ]]
-        }
-
-        reverse_dependents_of() {
-          local dependency_chart="$1"
-          yq -r ".charts | to_entries[] | select((.value.depends_on // []) | contains([\"${dependency_chart}\"])) | .key" "$REGISTRY_FILE" 2>/dev/null || true
-        }
-
-        collect_impacted_targets() {
-          local modified_chart_path="$1"
-          local modified_chart_name
-          modified_chart_name=$(basename "$modified_chart_path")
-
-          add_reason "$modified_chart_path" "${DIRECT_TARGET_REASONS[$modified_chart_path]:-directly modified}"
-
-          if ! chart_is_registered "$modified_chart_name"; then
-            return
-          fi
-
-          local queue=("${modified_chart_name}|")
-          local seen="|${modified_chart_name}|"
-          local queue_item current_chart current_chain dependent_chart dependent_path reason next_chain
-
-          while [[ ${#queue[@]} -gt 0 ]]; do
-            queue_item="${queue[0]}"
-            queue=("${queue[@]:1}")
-
-            current_chart="${queue_item%%|*}"
-            current_chain="${queue_item#*|}"
-
-            while IFS= read -r dependent_chart; do
-              [[ -z "$dependent_chart" ]] && continue
-              [[ "$seen" == *"|${dependent_chart}|"* ]] && continue
-              seen+="${dependent_chart}|"
-
-              dependent_path="charts/${dependent_chart}"
-              if [[ -n "$current_chain" ]]; then
-                reason="reverse dependent of modified ${modified_chart_name} via ${current_chain}"
-                next_chain="${current_chain} -> ${dependent_chart}"
-              else
-                reason="reverse dependent of modified ${modified_chart_name}"
-                next_chain="${dependent_chart}"
-              fi
-
-              if ! chart_is_skipped "$dependent_chart"; then
-                add_reason "$dependent_path" "$reason"
-              fi
-
-              queue+=("${dependent_chart}|${next_chain}")
-            done < <(reverse_dependents_of "$current_chart")
-          done
-        }
-
-        # If CI infra changed but no charts, test all registered charts
-        if [ -z "$MODIFIED_CHARTS" ]; then
-          CI_CHANGED=$(echo "$MODIFIED_FILES" | grep -Ec '^(ci/|\.github/workflows/e2e-chart-testing\.yml$)' || true)
-          if [ "$CI_CHANGED" -gt 0 ]; then
-            echo "CI infra changed — testing all registered charts"
-            MODIFIED_CHARTS=$(yq -r '.charts | keys | .[]' "$REGISTRY_FILE" | \
-              while read -r name; do
-                skip=$(yq -r ".charts.\"${name}\".skip_deploy // false" "$REGISTRY_FILE")
-                [ "$skip" = "true" ] && continue
-                echo "charts/${name}"
-              done | sort -u)
-
-            while IFS= read -r chart_path; do
-              [[ -z "$chart_path" ]] && continue
-              add_reason "$chart_path" "CI infrastructure changed - full registered chart sweep"
-            done <<< "$MODIFIED_CHARTS"
-          fi
-        else
-          while IFS= read -r chart_path; do
-            [[ -z "$chart_path" ]] && continue
-            add_direct_reason "$chart_path" "directly modified"
-          done <<< "$MODIFIED_DIRECT_CHARTS"
-
-          while IFS= read -r chart_path; do
-            [[ -z "$chart_path" ]] && continue
-            add_direct_reason "$chart_path" "chart test config modified"
-          done <<< "$MODIFIED_CHART_TESTS"
-
-          while IFS= read -r chart_path; do
-            [[ -z "$chart_path" ]] && continue
-            collect_impacted_targets "$chart_path"
-          done <<< "$MODIFIED_CHARTS"
-        fi
-
-        if [ -n "$MODIFIED_CHARTS" ]; then
-          FINAL_CHARTS=$(printf '%s\n' "${!TARGET_REASONS[@]}" | sort -u)
-
-          while IFS= read -r chart_path; do
-            [[ -z "$chart_path" ]] && continue
-            printf '%s\t%s\n' "$chart_path" "${TARGET_REASONS[$chart_path]}" >> "$TARGET_FILE"
-          done <<< "$FINAL_CHARTS"
-
-          echo "Chart test target reasons:"
-          while IFS=$'\t' read -r chart_path reason; do
-            [[ -z "$chart_path" ]] && continue
-            echo "  - $(basename "$chart_path"): $reason"
-          done < "$TARGET_FILE"
-
-          {
-            echo "### Chart E2E Targets"
-            echo
-            echo "Reverse dependents are included so dependency updates show which services could break; reverse-only impacted checks warn instead of failing the job."
-            echo
-            while IFS=$'\t' read -r chart_path reason; do
-              [[ -z "$chart_path" ]] && continue
-              echo "- $(basename "$chart_path"): $reason"
-            done < "$TARGET_FILE"
-          } >> "$GITHUB_STEP_SUMMARY"
-        else
-          FINAL_CHARTS=""
-        fi
-
-        if [ -z "$FINAL_CHARTS" ]; then
-          echo "No charts to test."
-          echo "charts=" >> "$GITHUB_OUTPUT"
-        else
-          echo "Charts to test: $FINAL_CHARTS"
-          echo "charts=$(echo $FINAL_CHARTS | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
-          echo "targets_file=$TARGET_FILE" >> "$GITHUB_OUTPUT"
-        fi
+        python3 ./ci/plan-chart-e2e.py \
+          --registry-file "${{ steps.chart_registry.outputs.file }}" \
+          --changed-files "${{ steps.changed-files.outputs.all_changed_files }}" \
+          --targets-file "$PWD/.chart-e2e-targets.tsv" \
+          --github-output "$GITHUB_OUTPUT" \
+          --step-summary "$GITHUB_STEP_SUMMARY"
 
     # ── Install tools ───────────────────────────────────────────
     - name: Set up Helm
@@ -312,9 +155,9 @@ jobs:
           printf '%s' "$summary" | sed -E $'s/\x1B\[[0-9;]*[[:alpha:]]//g; s/[[:space:]]+/ /g; s/^ //; s/ $//'
         }
 
-        while IFS=$'\t' read -r chart_path chart_reason; do
+        while IFS=$'\t' read -r chart_path failure_mode chart_reason; do
           [[ -z "$chart_path" ]] && continue
-          if [[ "$chart_reason" == *"reverse dependent"* && "$chart_reason" != *"directly modified"* && "$chart_reason" != *"CI infrastructure changed"* ]]; then
+          if [[ "$failure_mode" == "warning" ]]; then
             printf '%s\t%s\n' "$(basename "$chart_path")" "$chart_reason" >> "$WARNING_TARGET_FILE"
           fi
         done < "$TARGET_FILE"
@@ -333,13 +176,9 @@ jobs:
           echo ""
         fi
 
-        while IFS=$'\t' read -r chart_path chart_reason; do
+        while IFS=$'\t' read -r chart_path failure_mode chart_reason; do
           [[ -z "$chart_path" ]] && continue
           chart_name=$(basename "$chart_path")
-          failure_mode="error"
-          if [[ "$chart_reason" == *"reverse dependent"* && "$chart_reason" != *"directly modified"* && "$chart_reason" != *"CI infrastructure changed"* ]]; then
-            failure_mode="warning"
-          fi
 
           echo ""
           echo "╔══════════════════════════════════════════════════════════╗"

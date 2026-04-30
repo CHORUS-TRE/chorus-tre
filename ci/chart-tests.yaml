@@ -17,6 +17,8 @@
 #     values_file:         Path to a CI-specific values file (relative to repo root)
 #     fullname_override:   Optional stable K8s object/service name for this chart
 #     skip_deploy:         If true, skip helm install (e.g., CRD-only charts)
+#                          Known caveat: CRD charts are not auto-detected from
+#                          a *-crds name yet; keep explicit skip_deploy entries.
 #     depends_on:          List of chart names that must be deployed first
 #                          Dependencies are deployed (not tested) before this chart.
 #                          They remain running so the chart under test can connect.

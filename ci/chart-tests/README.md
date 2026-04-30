@@ -49,3 +49,7 @@ Supported chart fields:
 - `mariadb`
 
 The workflow also uses the merged registry in reverse: when a dependency chart changes, dependent charts are retested as impacted services and reported as warning-only targets.
+
+Known caveat:
+
+- CRD charts are not auto-detected from a `*-crds` chart name. If a new CRD-only chart is added, it still needs an explicit `skip_deploy: true` entry in [ci/chart-tests.yaml](ci/chart-tests.yaml) until that convention is implemented in code.
