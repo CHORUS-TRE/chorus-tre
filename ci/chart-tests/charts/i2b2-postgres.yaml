@@ -1,0 +1,19 @@
+# i2b2-postgres: Database service reachability + health.
+# Uses the real i2b2-pg image and verifies schema availability.
+
+charts:
+  i2b2-postgres:
+    namespace: i2b2
+    timeout: 300
+    values_file: ci/test-values/i2b2-postgres.yaml
+    pre_install:
+      - kubectl create secret generic i2b2-postgres-secret --from-literal=postgres-password=testpass -n i2b2 --dry-run=client -o yaml | kubectl apply -f -
+    services:
+      - port: 5432
+    health_check:
+      protocol: pg
+      port: 5432
+      pg_user: i2b2
+      pg_db: i2b2
+      pg_password: demouser
+      query: "SELECT count(*) AS i2b2_tables FROM information_schema.tables WHERE table_schema LIKE 'i2b2%'"

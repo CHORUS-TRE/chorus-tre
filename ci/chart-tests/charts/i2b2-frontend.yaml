@@ -1,0 +1,39 @@
+# i2b2-frontend: Frontend service reachability + health.
+# Uses real i2b2-web image (Apache httpd) and depends on wildfly.
+
+charts:
+  i2b2-frontend:
+    namespace: i2b2
+    timeout: 180
+    values_file: ci/test-values/i2b2-frontend.yaml
+    depends_on:
+      - i2b2-wildfly
+    dependency_values:
+      cm.urlCellPM:
+        chart: i2b2-wildfly
+        attribute: httpUrl
+        path: /i2b2/services/PMService/
+      cm.pmURL:
+        chart: i2b2-wildfly
+        attribute: httpUrl
+        path: /i2b2/rest/PMService/getServices
+      cm.whiteListURL:
+        chart: i2b2-wildfly
+        attribute: httpBaseUrl
+      cm.ProxyPass:
+        chart: i2b2-wildfly
+        attribute: httpUrl
+        path: /i2b2/
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 80
+    health_check:
+      path: /webclient/
+      port: 80
+      expect_status: 200
+      expect_content_type_regex: 'text/html'
+      body_must_match: 'i2b2 Login|Forgot password|classic i2b2 webclient|js-i2b2|proxy.php'
+      body_must_not_match: 'error|Apache2 Ubuntu Default Page|Default welcome page|It works!?|404 Not Found|403 Forbidden|502 Bad Gateway|503 Service Unavailable'

@@ -1,0 +1,48 @@
+# i2b2-wildfly: Backend service reachability + health.
+# Uses real i2b2-wildfly image backed by a real i2b2-postgres dependency.
+
+charts:
+  i2b2-wildfly:
+    namespace: i2b2
+    timeout: 360
+    values_file: ci/test-values/i2b2-wildfly.yaml
+    depends_on:
+      - i2b2-postgres
+    dependency_values:
+      env.DS_WD_IP:
+        chart: i2b2-postgres
+      env.DS_WD_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+      env.DS_CRC_IP:
+        chart: i2b2-postgres
+      env.DS_CRC_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+      env.DS_ONT_IP:
+        chart: i2b2-postgres
+      env.DS_ONT_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+      env.DS_PM_IP:
+        chart: i2b2-postgres
+      env.DS_PM_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+      env.DS_HIVE_IP:
+        chart: i2b2-postgres
+      env.DS_HIVE_PORT:
+        chart: i2b2-postgres
+        attribute: servicePort
+    probe:
+      namespace: i2b2
+      labels:
+        app.kubernetes.io/name: i2b2-frontend
+    pre_install:
+      - kubectl create secret generic i2b2-wildfly-secret --from-literal=pg_pass=demouser --from-literal=ds_password=demouser --from-literal=ds_wd_pass=demouser --from-literal=ds_crc_pass=demouser --from-literal=ds_ont_pass=demouser --from-literal=ds_pm_pass=demouser --from-literal=ds_hive_pass=demouser -n i2b2 --dry-run=client -o yaml | kubectl apply -f -
+    services:
+      - port: 8080
+    health_check:
+      path: /
+      port: 8080
+      expect_status: 200

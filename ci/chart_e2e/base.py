@@ -19,7 +19,9 @@ class RunnerBase:
         self.script_dir = Path(__file__).resolve().parent.parent
         self.repo_root = self.script_dir.parent
         self.chart_path = self.repo_root / chart_path
-        self.registry_path = self.repo_root / "ci" / "chart-tests.yaml"
+        self.registry_dir = self.repo_root / "ci" / "chart-tests"
+        self.registry_index_path = self.repo_root / "ci" / "chart-tests.yaml"
+        self.registry_chart_dir = self.registry_dir / "charts"
         self.registry = self.load_registry()
         self.failures = 0
         self.tests_run = 0
@@ -35,13 +37,21 @@ class RunnerBase:
         self.probe_labels = self.probe_labels_for_chart(self.chart_name)
 
     def load_registry(self) -> dict[str, Any]:
+        registry_files = [str(self.registry_index_path)]
+        registry_files.extend(str(path) for path in sorted(self.registry_chart_dir.glob("*.yaml")))
         result = self.run_command(
-            ["yq", "-o=json", ".", str(self.registry_path)],
+            [
+                "yq",
+                "eval-all",
+                "-o=json",
+                ". as $item ireduce ({}; . * $item)",
+                *registry_files,
+            ],
             capture_output=True,
             merge_stderr=True,
         )
         if result.returncode != 0:
-            raise RuntimeError(result.stdout.strip() or "Failed to load ci/chart-tests.yaml with yq")
+            raise RuntimeError(result.stdout.strip() or "Failed to load merged ci/chart-tests registry with yq")
         return json.loads(result.stdout or "{}")
 
     def defaults_config(self, key: str, default: Any = "") -> Any:

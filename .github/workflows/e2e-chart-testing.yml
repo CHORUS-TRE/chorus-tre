@@ -34,15 +34,26 @@ jobs:
     - name: Install yq
       uses: mikefarah/yq@v4.44.6
 
+    - name: Render chart test registry
+      id: chart_registry
+      run: |
+        REGISTRY_FILE="$PWD/.chart-tests.merged.yaml"
+        yq eval-all '. as $item ireduce ({}; . * $item)' ci/chart-tests.yaml ci/chart-tests/charts/*.yaml > "$REGISTRY_FILE"
+        echo "file=$REGISTRY_FILE" >> "$GITHUB_OUTPUT"
+
     - name: Identify modified charts
       id: modified_charts
       run: |
+        REGISTRY_FILE="${{ steps.chart_registry.outputs.file }}"
         MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
-        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*' | sort -u || true)
+        MODIFIED_DIRECT_CHARTS=$(echo "$MODIFIED_FILES" | grep -oE '(^|[[:space:]])charts/[^/[:space:]]+' | sed -E 's/^[[:space:]]+//' | sort -u || true)
+        MODIFIED_CHART_TESTS=$(echo "$MODIFIED_FILES" | grep -oE 'ci/chart-tests/charts/[^[:space:]]+\.ya?ml' | sed -E 's#^ci/chart-tests/charts/([^/]+)\.ya?ml$#charts/\1#' | sort -u || true)
+        MODIFIED_CHARTS=$(printf '%s\n%s\n' "$MODIFIED_DIRECT_CHARTS" "$MODIFIED_CHART_TESTS" | sed '/^$/d' | sort -u)
         TARGET_FILE="$PWD/.chart-e2e-targets.tsv"
         : > "$TARGET_FILE"
 
         declare -A TARGET_REASONS
+        declare -A DIRECT_TARGET_REASONS
 
         add_reason() {
           local chart_path="$1"
@@ -55,19 +66,30 @@ jobs:
           fi
         }
 
+        add_direct_reason() {
+          local chart_path="$1"
+          local reason="$2"
+
+          if [[ -z "${DIRECT_TARGET_REASONS[$chart_path]:-}" ]]; then
+            DIRECT_TARGET_REASONS["$chart_path"]="$reason"
+          elif [[ "; ${DIRECT_TARGET_REASONS[$chart_path]}; " != *"; ${reason}; "* ]]; then
+            DIRECT_TARGET_REASONS["$chart_path"]+="; ${reason}"
+          fi
+        }
+
         chart_is_registered() {
           local chart_name="$1"
-          yq -e ".charts.\"${chart_name}\"" ci/chart-tests.yaml >/dev/null 2>&1
+          yq -e ".charts.\"${chart_name}\"" "$REGISTRY_FILE" >/dev/null 2>&1
         }
 
         chart_is_skipped() {
           local chart_name="$1"
-          [[ "$(yq -r ".charts.\"${chart_name}\".skip_deploy // false" ci/chart-tests.yaml 2>/dev/null)" == "true" ]]
+          [[ "$(yq -r ".charts.\"${chart_name}\".skip_deploy // false" "$REGISTRY_FILE" 2>/dev/null)" == "true" ]]
         }
 
         reverse_dependents_of() {
           local dependency_chart="$1"
-          yq -r ".charts | to_entries[] | select((.value.depends_on // []) | contains([\"${dependency_chart}\"])) | .key" ci/chart-tests.yaml 2>/dev/null || true
+          yq -r ".charts | to_entries[] | select((.value.depends_on // []) | contains([\"${dependency_chart}\"])) | .key" "$REGISTRY_FILE" 2>/dev/null || true
         }
 
         collect_impacted_targets() {
@@ -75,7 +97,7 @@ jobs:
           local modified_chart_name
           modified_chart_name=$(basename "$modified_chart_path")
 
-          add_reason "$modified_chart_path" "directly modified"
+          add_reason "$modified_chart_path" "${DIRECT_TARGET_REASONS[$modified_chart_path]:-directly modified}"
 
           if ! chart_is_registered "$modified_chart_name"; then
             return
@@ -120,9 +142,9 @@ jobs:
           CI_CHANGED=$(echo "$MODIFIED_FILES" | grep -Ec '^(ci/|\.github/workflows/e2e-chart-testing\.yml$)' || true)
           if [ "$CI_CHANGED" -gt 0 ]; then
             echo "CI infra changed — testing all registered charts"
-            MODIFIED_CHARTS=$(yq -r '.charts | keys | .[]' ci/chart-tests.yaml | \
+            MODIFIED_CHARTS=$(yq -r '.charts | keys | .[]' "$REGISTRY_FILE" | \
               while read -r name; do
-                skip=$(yq -r ".charts.\"${name}\".skip_deploy // false" ci/chart-tests.yaml)
+                skip=$(yq -r ".charts.\"${name}\".skip_deploy // false" "$REGISTRY_FILE")
                 [ "$skip" = "true" ] && continue
                 echo "charts/${name}"
               done | sort -u)
@@ -133,6 +155,16 @@ jobs:
             done <<< "$MODIFIED_CHARTS"
           fi
         else
+          while IFS= read -r chart_path; do
+            [[ -z "$chart_path" ]] && continue
+            add_direct_reason "$chart_path" "directly modified"
+          done <<< "$MODIFIED_DIRECT_CHARTS"
+
+          while IFS= read -r chart_path; do
+            [[ -z "$chart_path" ]] && continue
+            add_direct_reason "$chart_path" "chart test config modified"
+          done <<< "$MODIFIED_CHART_TESTS"
+
           while IFS= read -r chart_path; do
             [[ -z "$chart_path" ]] && continue
             collect_impacted_targets "$chart_path"
@@ -227,6 +259,7 @@ jobs:
     - name: Run chart e2e tests
       if: steps.modified_charts.outputs.charts != ''
       run: |
+        REGISTRY_FILE="${{ steps.chart_registry.outputs.file }}"
         OVERALL_EXIT=0
         WARNING_COUNT=0
         TARGET_FILE="${{ steps.modified_charts.outputs.targets_file }}"
@@ -237,23 +270,23 @@ jobs:
           local chart_name="$1"
           local chart_ns queue all_deps current sub_deps dep_name dep_ns
 
-          chart_ns=$(yq ".charts.\"${chart_name}\".namespace // .defaults.namespace // \"test\"" ci/chart-tests.yaml)
+          chart_ns=$(yq ".charts.\"${chart_name}\".namespace // .defaults.namespace // \"test\"" "$REGISTRY_FILE")
           helm uninstall "e2e-${chart_name}" -n "${chart_ns}" 2>/dev/null || true
 
-          queue=$(yq -r ".charts.\"${chart_name}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
+          queue=$(yq -r ".charts.\"${chart_name}\".depends_on // [] | .[]" "$REGISTRY_FILE" 2>/dev/null || true)
           all_deps=""
           while [ -n "$queue" ]; do
             current=$(echo "$queue" | head -1)
             queue=$(echo "$queue" | tail -n +2)
             echo "$all_deps" | grep -qx "$current" 2>/dev/null && continue
             all_deps=$(printf "%s\n%s" "$current" "$all_deps")
-            sub_deps=$(yq -r ".charts.\"${current}\".depends_on // [] | .[]" ci/chart-tests.yaml 2>/dev/null || true)
+            sub_deps=$(yq -r ".charts.\"${current}\".depends_on // [] | .[]" "$REGISTRY_FILE" 2>/dev/null || true)
             [ -n "$sub_deps" ] && queue=$(printf "%s\n%s" "$queue" "$sub_deps")
           done
 
           for dep_name in $all_deps; do
             [ -z "$dep_name" ] && continue
-            dep_ns=$(yq ".charts.\"${dep_name}\".namespace // \"${chart_ns}\"" ci/chart-tests.yaml)
+            dep_ns=$(yq ".charts.\"${dep_name}\".namespace // \"${chart_ns}\"" "$REGISTRY_FILE")
             echo "  Cleaning up dependency: ${dep_name}"
             helm uninstall "e2e-${dep_name}" -n "${dep_ns}" 2>/dev/null || true
           done
