@@ -1,0 +1,92 @@
+{{- if .Values.keycloakConfigCli.enabled }}
+{{- $relativePath := .Values.keycloak.http.relativePath | default "/" -}}
+{{- /* Mirror keycloak.fullname so KEYCLOAK_URL resolves the subchart's Service. */ -}}
+{{- $kcName := default "keycloak" .Values.keycloak.nameOverride -}}
+{{- $kcFullname := .Release.Name -}}
+{{- if not (contains $kcName .Release.Name) -}}
+{{- $kcFullname = printf "%s-%s" .Release.Name $kcName -}}
+{{- end -}}
+{{- if .Values.keycloak.fullnameOverride -}}
+{{- $kcFullname = .Values.keycloak.fullnameOverride -}}
+{{- end -}}
+{{- $defaultUrl := printf "http://%s-http.%s.svc.cluster.local%s" $kcFullname .Release.Namespace $relativePath -}}
+{{- $keycloakUrl := default $defaultUrl .Values.keycloakConfigCli.keycloakUrl -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-config-cli" .Release.Name | quote }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+    app.kubernetes.io/name: keycloak-config-cli
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  {{- with .Values.keycloakConfigCli.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  backoffLimit: {{ .Values.keycloakConfigCli.backoffLimit | default 3 }}
+  {{- if .Values.keycloakConfigCli.cleanupAfterFinished.enabled }}
+  ttlSecondsAfterFinished: {{ .Values.keycloakConfigCli.cleanupAfterFinished.seconds | default 600 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: keycloak-config-cli
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: Never
+      {{- with .Values.keycloakConfigCli.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: keycloak-config-cli
+          image: "{{ .Values.keycloakConfigCli.image.repository }}:{{ .Values.keycloakConfigCli.image.tag }}"
+          imagePullPolicy: {{ .Values.keycloakConfigCli.image.pullPolicy | default "IfNotPresent" }}
+          {{- with .Values.keycloakConfigCli.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: KEYCLOAK_URL
+              value: {{ $keycloakUrl | quote }}
+            - name: KEYCLOAK_USER
+              value: {{ .Values.keycloakConfigCli.adminUser | quote }}
+            - name: KEYCLOAK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloakConfigCli.adminPasswordSecret.name | quote }}
+                  key: {{ .Values.keycloakConfigCli.adminPasswordSecret.key | quote }}
+            - name: KEYCLOAK_SSLVERIFY
+              value: {{ .Values.keycloakConfigCli.sslVerify | quote }}
+            - name: IMPORT_FILES_LOCATIONS
+              value: "/realm/*.yaml"
+            - name: IMPORT_VARSUBSTITUTION_ENABLED
+              value: "true"
+            - name: IMPORT_CACHE_ENABLED
+              value: "false"
+            - name: IMPORT_REMOTESTATE_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-remotestate-encryption-key
+                  key: encryptionKey
+          envFrom:
+            - configMapRef:
+                name: {{ printf "%s-client-config" .Release.Name | quote }}
+            - secretRef:
+                name: {{ .Values.client.existingSecret | default "keycloak-client-secret" }}
+          volumeMounts:
+            - name: realm-config
+              mountPath: /realm/
+              readOnly: true
+          {{- with .Values.keycloakConfigCli.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: realm-config
+          configMap:
+            name: {{ printf "%s-realm-config" .Release.Name | quote }}
+{{- end }}

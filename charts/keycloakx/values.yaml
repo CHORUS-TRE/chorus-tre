@@ -1,0 +1,216 @@
+keycloak:
+  # No fullnameOverride — release name + chart helper produces resource names
+  # like `<release>-http`, matching the cluster's `<env>-<app>-...` convention.
+  nameOverride: keycloak
+
+  image:
+    repository: quay.io/keycloak/keycloak
+
+  # The image entrypoint requires an explicit subcommand; defaults are empty.
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+  args:
+    - "start"
+
+  http:
+    relativePath: "/"
+
+  proxy:
+    enabled: true
+    mode: forwarded
+    http:
+      enabled: true
+
+  podSecurityContext:
+    fsGroup: 1000
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+
+  replicas: 1
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "2560Mi"
+
+  priorityClassName: "high-priority"
+
+  # Opt in per-env. Single Micrometer endpoint on the management port
+  # (9000); per-realm metrics are exposed as labels on the same series.
+  metrics:
+    enabled: false
+
+  serviceMonitor:
+    enabled: false
+
+  # `hostname` is the only required per-env override.
+  database:
+    vendor: postgres
+    port: 5432
+    database: keycloak
+    username: keycloak
+    existingSecret: keycloak-db-secret
+    existingSecretKey: password
+
+  # Per-env values can replace this entire block to add extra env vars.
+  extraEnv: |
+    - name: KC_LOG_CONSOLE_OUTPUT
+      value: "json"
+    - name: KC_BOOTSTRAP_ADMIN_USERNAME
+      value: "admin"
+    - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: keycloak-secret
+          key: adminPassword
+
+  # We render our own CiliumNetworkPolicy below.
+  networkPolicy:
+    enabled: false
+
+  # Default disabled; env values supply rules + tls.
+  ingress:
+    enabled: false
+    ingressClassName: nginx
+
+  # Opt in per-env after `database.hostname` is set, otherwise the subchart's
+  # `required` check fails at render time.
+  dbchecker:
+    enabled: false
+
+# Realm import as a Helm/Argo PostSync hook (keycloakx does not bundle one).
+keycloakConfigCli:
+  enabled: true
+
+  image:
+    repository: docker.io/adorsys/keycloak-config-cli
+    # adorsys publishes tags as `<cli-version>-<kc-version>` on Docker Hub.
+    tag: "6.5.0-26.5.4"
+    pullPolicy: IfNotPresent
+
+  adminUser: admin
+  adminPasswordSecret:
+    name: keycloak-secret
+    key: adminPassword
+
+  # Override only if the in-cluster Keycloak URL needs to differ from the
+  # default `http://<release>-http.<namespace>.svc.cluster.local<relativePath>`.
+  keycloakUrl: ""
+
+  sslVerify: "false"
+
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+
+  backoffLimit: 3
+
+  cleanupAfterFinished:
+    enabled: true
+    seconds: 600
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+# Client configuration consumed by keycloak-config-cli via IMPORT_VARSUBSTITUTION.
+client:
+  existingSecret: keycloak-client-secret
+  # Build cluster clients
+  # argocd:
+  #   rootUrl: "http://argo-cd.local"
+  #   adminUrl: "http://argo-cd.local"
+  #   baseUrl: "/applications"
+  #   redirectUris: '["http://argo-cd.local/auth/callback"]'
+  #   webOrigins: '["http://argo-cd.local"]'
+  # argoWorkflows:
+  #   rootUrl: "http://argo-workflows.local"
+  #   adminUrl: "http://argo-workflows.local"
+  #   baseUrl: "/workflows/argo"
+  #   redirectUris: '["http://argo-workflows.local/oauth2/callback"]'
+  #   webOrigins: '["http://argo-workflows.local"]'
+  # Remote cluster clients
+  chorus:
+    rootUrl: "http://backend.local"
+    adminUrl: "http://backend.local"
+    baseUrl: "/"
+    redirectUris: '["http://backend.local/*","http://chorus.local/*"]'
+    webOrigins: '["http://backend.local/*","http://chorus.local/*"]'
+  matomo:
+    rootUrl: "http://makoto.local"
+    adminUrl: "http://makoto.local"
+    baseUrl: "/"
+    redirectUris: '["http://makoto.local/index.php?module=LoginOIDC&action=callback&provider=oidc","http://makoto.local"]'
+    webOrigins: '["http://makoto.local"]'
+  # Common clients
+  alertmanager:
+    rootUrl: "http://alertmanager.local"
+    adminUrl: "http://alertmanager.local"
+    baseUrl: "/"
+    redirectUris: '["http://alertmanager.local/*"]'
+    webOrigins: '["http://alertmanager.local"]'
+  grafana:
+    rootUrl: "http://grafana.local"
+    adminUrl: "http://grafana.local"
+    baseUrl: "/"
+    redirectUris: '["http://grafana.local/login/generic_oauth"]'
+    webOrigins: '["http://grafana.local"]'
+  harbor:
+    rootUrl: "http://harbor.local"
+    adminUrl: "http://harbor.local"
+    baseUrl: "/harbor/projects"
+    redirectUris: '["http://harbor.local/c/oidc/callback"]'
+    webOrigins: '["http://harbor.local"]'
+  juicefs-dashboard:
+    rootUrl: "http://juicefs-dashboard.local"
+    adminUrl: "http://juicefs-dashboard.local"
+    baseUrl: "/"
+    redirectUris: '["http://juicefs-dashboard.local/oauth2/callback"]'
+    webOrigins: '["http://juicefs-dashboard.local"]'
+  prometheus:
+    rootUrl: "http://prometheus.local"
+    adminUrl: "http://prometheus.local"
+    baseUrl: "/"
+    redirectUris: '["http://prometheus.local/*","http://alertmanager.local/*"]'
+    webOrigins: '["http://prometheus.local"]'
+
+# Optional workload-level cert; default path is edge TLS at the Ingress.
+certificate:
+  enabled: false
+
+  secretName: keycloak-tls
+
+  duration: 2169h # 90d
+  renewBefore: 360h # 15d
+
+  issuerRef:
+    name: CHANGEME-issuer
+
+# CiliumNetworkPolicy ingress allow-list. An empty list = deny-all ingress.
+allowedIngressNamespaces:
+  - envoy-gateway-system
+  - backend
+  - harbor
+  - prometheus
+  - keycloak

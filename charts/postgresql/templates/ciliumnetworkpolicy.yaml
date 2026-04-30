@@ -14,13 +14,21 @@ spec:
       app.kubernetes.io/name: postgresql
       app.kubernetes.io/instance: {{ .Release.Name }}
   ingress:
-  # Default: Allow ingress from same namespace only on PostgreSQL port
+  # Default: Allow ingress on PostgreSQL port from same namespace only
   - fromEndpoints:
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: {{ .Release.Namespace | quote }}
     toPorts:
     - ports:
       - port: "5432"
+        protocol: TCP
+  # Default: Allow Prometheus to scrape postgres_exporter
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: {{ .Values.chorusNetworkPolicy.prometheusNamespace | default "prometheus" }}
+    toPorts:
+    - ports:
+      - port: {{ .Values.chorusNetworkPolicy.metricsPort | default 9187 | quote }}
         protocol: TCP
   {{- with .Values.chorusNetworkPolicy.ingress }}
     {{- toYaml . | nindent 2 }}

@@ -17,7 +17,7 @@ spec:
   - Ingress
   - Egress
   ingress:
-  # Default: Allow ingress from same namespace only on PostgreSQL port
+  # Default: Allow ingress on PostgreSQL port from same namespace only
   - from:
     - namespaceSelector:
         matchLabels:
@@ -25,6 +25,14 @@ spec:
     ports:
     - protocol: TCP
       port: 5432
+  # Default: Allow Prometheus to scrape postgres_exporter
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: {{ .Values.chorusNetworkPolicy.prometheusNamespace | default "prometheus" }}
+    ports:
+    - protocol: TCP
+      port: {{ .Values.chorusNetworkPolicy.metricsPort | default 9187 }}
   {{- with .Values.chorusNetworkPolicy.ingress }}
     {{- toYaml . | nindent 2 }}
   {{- end }}
