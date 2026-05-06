@@ -63,6 +63,7 @@ gitlab:
         allowSingleSignOn: ["openid_connect"]
         blockAutoCreatedUsers: true
         autoLinkUser: ["openid_connect"]
+        autoSignInWithProvider: openid_connect
         providers:
           - secret: gitlab-oidc-secret
             key: provider
