@@ -50,7 +50,7 @@ chorusWorkbenchOperator:
     storageClassName: ""
     storageRequest: "40Gi"
   golang:
-    tag: "1.25-bookworm"
+    tag: "1.26-bookworm"
 
 chorusBackend:
   dockerDataStorage:
