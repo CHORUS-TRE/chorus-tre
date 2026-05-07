@@ -63,6 +63,9 @@ gitlab:
         allowSingleSignOn: ["openid_connect"]
         blockAutoCreatedUsers: true
         autoLinkUser: ["openid_connect"]
+        # Auto-redirect unauthenticated visitors to the OIDC provider.
+        # Recovery hatch on OIDC outage / for the root admin: /users/sign_in?auto_sign_in=false
+        autoSignInWithProvider: openid_connect
         providers:
           - secret: gitlab-oidc-secret
             key: provider
