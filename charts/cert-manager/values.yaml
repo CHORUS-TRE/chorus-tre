@@ -14,8 +14,9 @@ clusterissuer:
   # MUST be overridden in environment values to a real address for Let's Encrypt registration.
   email: no-reply@example.com
 
+  # Both issuers default to disabled — opt in per-env to whichever the cluster needs.
   http01:
-    enabled: true
+    enabled: false
     # By default the production environment is used.
     # server: https://acme-staging-v02.api.letsencrypt.org/directory
     name: letsencrypt-prod
