@@ -16,6 +16,20 @@ kube-prometheus-stack:
           hosts:
             - alertmanager.build.chorus-tre.local
 
+    # Defense-in-depth: auth is enforced only at the gateway (Envoy OIDC). Without
+    # this NetworkPolicy any cluster pod could reach :9093 directly and bypass it.
+    # Assumes replicas: 1 (no cluster mesh on port 9094).
+    networkPolicy:
+      enabled: true
+      policyTypes:
+        - Ingress
+      gateway:
+        namespace: envoy-gateway-system
+        podLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
+      monitoringRules:
+        prometheus: true  # Prometheus pushes alerts here.
+
     alertmanagerSpec:
       priorityClassName: high-priority
       logFormat: json
@@ -124,6 +138,32 @@ kube-prometheus-stack:
         - secretName: prometheus-general-tls
           hosts:
             - prometheus.build.chorus-tre.local
+
+    # Defense-in-depth: auth is enforced only at the gateway (Envoy OIDC). Without
+    # this NetworkPolicy any cluster pod could reach :9090 directly and bypass it.
+    # Egress is explicit because the upstream template hardcodes
+    # policyTypes: [Egress, Ingress] — Prometheus scrapes targets cluster-wide.
+    networkPolicy:
+      enabled: true
+      flavor: kubernetes
+      egress:
+        - {}  # Allow all egress (scrape targets are anywhere in the cluster).
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: envoy-gateway-system
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/managed-by: envoy-gateway
+          ports:
+            - port: 9090
+              protocol: TCP
+        - from:
+            - podSelector: {}  # Same-namespace pods (Grafana queries, Prometheus self-scrape).
+          ports:
+            - port: 9090
+              protocol: TCP
 
     prometheusSpec:
       priorityClassName: high-priority

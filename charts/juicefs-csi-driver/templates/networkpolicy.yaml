@@ -1,3 +1,6 @@
+# Defense-in-depth: if basic-auth is disabled (e.g. when gateway OIDC is the
+# auth mechanism), any cluster pod could otherwise reach :8088 directly and
+# bypass gateway-side auth.
 {{- if (index .Values "juicefs-csi-driver" "dashboard" "enabled") }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
