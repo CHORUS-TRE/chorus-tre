@@ -169,6 +169,7 @@ clients:
       - "offline_access"
       - "groups"
     access: {}
+{{- if hasKey .Values.client "juicefs-dashboard" }}
   - clientId: "juicefs-dashboard"
     name: "JuiceFS Dashboard"
     rootUrl: "$(JUICEFS_DASHBOARD_ROOT_URL)"
@@ -202,6 +203,7 @@ clients:
       - "offline_access"
       - "groups"
     access: {}
+{{- end }}
   - clientId: "prometheus"
     name: "Prometheus"
     rootUrl: "$(PROMETHEUS_ROOT_URL)"
