@@ -114,6 +114,11 @@ internalAccessDeniedHTML: |-
 #     # discovers them from the issuer's /.well-known/openid-configuration by
 #     # default. Set them explicitly only to override that discovery.
 #     # Set `enabled: false` to temporarily turn off OIDC without deleting the block.
+#     #
+#     # Defense-in-depth: native OIDC enforces auth only at the gateway. Without
+#     # a NetworkPolicy on the upstream, any cluster pod can reach its ClusterIP
+#     # directly and bypass OIDC. juicefs-csi-driver and kube-prometheus-stack
+#     # wrappers ship one — mirror that pattern for new OIDC routes.
 #     - name: juicefs-dashboard
 #       hostname: juicefs-dashboard.chorus-tre.local
 #       namespace: kube-system
