@@ -29,6 +29,17 @@ kube-prometheus-stack:
           app.kubernetes.io/managed-by: envoy-gateway
       monitoringRules:
         prometheus: true  # Prometheus pushes alerts here.
+      # Allow Prometheus to scrape the config-reloader sidecar metrics on port
+      # 8080 (the alertmanager Service exposes both 9093 and 8080, and the
+      # chart's monitoringRules.prometheus rule only covers 9093).
+      additionalIngress:
+        - from:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: prometheus
+          ports:
+            - port: 8080
+              protocol: TCP
 
     alertmanagerSpec:
       priorityClassName: high-priority
