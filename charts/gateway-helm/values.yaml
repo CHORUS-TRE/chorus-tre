@@ -42,3 +42,10 @@ listeners: []
 # tcpListeners:
 #   - port: 22
 tcpListeners: []
+
+# Extra annotations for the auto-created Envoy LoadBalancer Service
+# (EnvoyProxy spec.provider.kubernetes.envoyService.annotations). Use this to pass
+# load-balancer-implementation-specific Service annotations (e.g. health-check
+# tuning) when the underlying LB needs them. Leave empty when not required.
+# Set concrete values per environment.
+envoyServiceAnnotations: {}
