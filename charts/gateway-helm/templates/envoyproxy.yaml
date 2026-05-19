@@ -15,3 +15,7 @@ spec:
         # filter at the LB level would incorrectly block workspace pods.
         # Pod CIDR restriction is enforced at the application layer via SecurityPolicy.
         externalTrafficPolicy: Local
+        {{- with .Values.envoyServiceAnnotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
