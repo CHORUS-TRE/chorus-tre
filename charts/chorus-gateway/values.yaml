@@ -19,6 +19,7 @@ gateway:
 # Must be set in environment values.
 #
 # Optional: matches (path-restricted route, e.g. expose only /openid-connect/ internally).
+# Optional: timeouts (Gateway API HTTPRoute timeouts; see openRoutes for an example).
 #
 # Example:
 #   internalRoutes:
@@ -72,6 +73,7 @@ internalAccessDeniedHTML: |-
 #
 # Optional: matches (path-restricted, e.g. restrict only /admin on a hostname
 # that is otherwise served by an openRoute catch-all).
+# Optional: timeouts (Gateway API HTTPRoute timeouts; see openRoutes for an example).
 #
 # Example:
 #   externalRoutes:
@@ -144,6 +146,12 @@ externalRoutes: []
 #
 # Optional: matches (path-restricted, e.g. only /v2 and /service/token open
 # on a hostname that is otherwise served by an externalRoute catchall).
+# Optional: timeouts — Gateway API HTTPRoute timeouts. Both `request` and
+# `backendRequest` accept Go duration strings (e.g. "30s", "5m") or "0s" to
+# disable the wall-clock kill. When disabled, envoy's per-stream idle timeout
+# (default 5m, resets per byte) still protects against stalled streams. Use
+# this for endpoints that legitimately stream large bodies, e.g. a container
+# registry serving multi-GB image layers.
 #
 # Example:
 #   openRoutes:
@@ -154,6 +162,8 @@ externalRoutes: []
 #       servicePort: 80
 #     # Expose only /v2 and /service/token on a hostname otherwise served by
 #     # an externalRoute catchall (so pods can pull images, browsers get the UI).
+#     # timeouts.request "0s" disables the envoy 15s default so multi-GB image
+#     # layers can stream end-to-end; per-stream idle timeout still protects.
 #     - name: harbor-registry
 #       hostname: harbor.chorus-tre.local
 #       namespace: harbor
@@ -162,6 +172,9 @@ externalRoutes: []
 #       matches:
 #         - pathPrefix: /v2
 #         - pathPrefix: /service/token
+#       timeouts:
+#         request: "0s"
+#         backendRequest: "0s"
 #     # OIDC on an openRoute — for Build cluster, where CHORUS isn't deployed.
 #     # Envoy Gateway runs the full Keycloak login flow before any request reaches
 #     # prometheus. No podCIDR rule is emitted (no workspaces to isolate).

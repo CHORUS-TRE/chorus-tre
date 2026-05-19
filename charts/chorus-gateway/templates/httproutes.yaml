@@ -29,10 +29,18 @@ spec:
             value: {{ required "pathPrefix is required" .pathPrefix | quote }}
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
+      {{- with $route.timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- end }}
     {{- else }}
     - backendRefs:
         {{- include "chorus-gateway.backendRef" . | nindent 8 }}
+      {{- with .timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- end }}
 {{- end }}
 
@@ -69,10 +77,18 @@ spec:
             value: {{ required "pathPrefix is required" .pathPrefix | quote }}
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
+      {{- with $route.timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- end }}
     {{- else }}
     - backendRefs:
         {{- include "chorus-gateway.backendRef" . | nindent 8 }}
+      {{- with .timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- end }}
 {{- end }}
 
@@ -141,9 +157,17 @@ spec:
             value: {{ required "pathPrefix is required" .pathPrefix | quote }}
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
+      {{- with $route.timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- end }}
     {{- else }}
     - backendRefs:
         {{- include "chorus-gateway.backendRef" . | nindent 8 }}
+      {{- with .timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- end }}
 {{- end }}
