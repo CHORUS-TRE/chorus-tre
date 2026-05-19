@@ -1,6 +1,6 @@
 dependencies:
 - name: valkey
   repository: https://charts.bitnami.com/bitnami
-  version: 2.4.7
-digest: sha256:fc725d51d319402a43701c532733bdb4613d888b8a9373242b3b0746147cb21d
-generated: "2025-04-16T14:58:33.431619697Z"
+  version: 5.6.5
+digest: sha256:cfd96bdb069c0e8c38215474976778b024c351874d8e2f736b0e5aad4874bde5
+generated: "2026-05-19T14:33:55.718798127Z"
