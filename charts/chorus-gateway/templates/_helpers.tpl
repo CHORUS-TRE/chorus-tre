@@ -45,6 +45,17 @@ Argument: a route map with redirectPath.
 {{- end }}
 
 {{/*
+HTTPRoute spec.rules[].timeouts fragment. Caller is responsible for the
+conditional wrap (typically `{{- with .timeouts }}` around an `include` of
+this helper), mirroring the `chorus-gateway.redirectOnRoot` pattern.
+Argument: a timeouts map (Gateway API HTTPRoute timeouts).
+*/}}
+{{- define "chorus-gateway.routeTimeouts" -}}
+timeouts:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+
+{{/*
 SecurityPolicy authorization rule scoped to the cluster pod CIDR.
 Argument: dict with keys `name` (rule name), `action` ("Allow" or "Deny"),
 `podCIDR` (the cluster pod CIDR as a string).

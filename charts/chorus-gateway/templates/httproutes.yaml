@@ -30,16 +30,14 @@ spec:
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
       {{- with $route.timeouts }}
-      timeouts:
-        {{- toYaml . | nindent 8 }}
+      {{- include "chorus-gateway.routeTimeouts" . | nindent 6 }}
       {{- end }}
     {{- end }}
     {{- else }}
     - backendRefs:
         {{- include "chorus-gateway.backendRef" . | nindent 8 }}
       {{- with .timeouts }}
-      timeouts:
-        {{- toYaml . | nindent 8 }}
+      {{- include "chorus-gateway.routeTimeouts" . | nindent 6 }}
       {{- end }}
     {{- end }}
 {{- end }}
@@ -78,16 +76,14 @@ spec:
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
       {{- with $route.timeouts }}
-      timeouts:
-        {{- toYaml . | nindent 8 }}
+      {{- include "chorus-gateway.routeTimeouts" . | nindent 6 }}
       {{- end }}
     {{- end }}
     {{- else }}
     - backendRefs:
         {{- include "chorus-gateway.backendRef" . | nindent 8 }}
       {{- with .timeouts }}
-      timeouts:
-        {{- toYaml . | nindent 8 }}
+      {{- include "chorus-gateway.routeTimeouts" . | nindent 6 }}
       {{- end }}
     {{- end }}
 {{- end }}
@@ -158,16 +154,14 @@ spec:
       backendRefs:
         {{- include "chorus-gateway.backendRef" $route | nindent 8 }}
       {{- with $route.timeouts }}
-      timeouts:
-        {{- toYaml . | nindent 8 }}
+      {{- include "chorus-gateway.routeTimeouts" . | nindent 6 }}
       {{- end }}
     {{- end }}
     {{- else }}
     - backendRefs:
         {{- include "chorus-gateway.backendRef" . | nindent 8 }}
       {{- with .timeouts }}
-      timeouts:
-        {{- toYaml . | nindent 8 }}
+      {{- include "chorus-gateway.routeTimeouts" . | nindent 6 }}
       {{- end }}
     {{- end }}
 {{- end }}
