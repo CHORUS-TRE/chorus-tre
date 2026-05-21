@@ -69,6 +69,23 @@ Argument: dict with keys `name` (rule name), `action` ("Allow" or "Deny"),
 {{- end }}
 
 {{/*
+SecurityPolicy authorization rule that allows a list of CIDRs.
+Generalises podCIDRRule for the per-route case where podCIDR is augmented
+with extra source CIDRs (Part 12 `extraAllowedCIDRs` feature).
+Argument: dict with keys `name` (rule name), `action` ("Allow" or "Deny"),
+`cidrs` (list of CIDR strings, must be non-empty).
+*/}}
+{{- define "chorus-gateway.cidrAllowRule" -}}
+- name: {{ .name }}
+  action: {{ .action }}
+  principal:
+    clientCIDRs:
+      {{- range .cidrs }}
+      - {{ . | quote }}
+      {{- end }}
+{{- end }}
+
+{{/*
 Route-name helpers — centralize the naming convention so renaming a suffix
 is a one-line change in _helpers.tpl rather than chasing strings across
 multiple templates. All take a route map and return "<route.name>-<suffix>".
@@ -99,6 +116,10 @@ multiple templates. All take a route map and return "<route.name>-<suffix>".
 
 {{- define "chorus-gateway.extAuthSecurityPolicyName" -}}
 {{- printf "%s-extauth-securitypolicy" (required "name is required" .name) -}}
+{{- end }}
+
+{{- define "chorus-gateway.internalCIDRSecurityPolicyName" -}}
+{{- printf "%s-internal-securitypolicy" (required "name is required" .name) -}}
 {{- end }}
 
 {{- define "chorus-gateway.externalOIDCSecurityPolicyName" -}}

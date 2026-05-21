@@ -2,8 +2,19 @@
   Internal SecurityPolicy — allows podCIDR only (workspace pods).
   External clients are rejected (403 for HTTP routes, L4 connection close for TCP routes).
   Targets internal HTTPRoutes and TCPRoutes.
+
+  Routes that set `extraAllowedCIDRs` are EXCLUDED from this shared policy; each
+  such route gets its own per-route SecurityPolicy further below (podCIDR plus
+  the route's extra source CIDRs). Envoy Gateway forbids two SecurityPolicies
+  targeting the same HTTPRoute, so each route must be targeted by exactly one.
 */}}
-{{- if or .Values.internalRoutes .Values.internalTcpRoutes }}
+{{- $sharedInternalRoutes := list -}}
+{{- range .Values.internalRoutes }}
+{{- if not .extraAllowedCIDRs }}
+{{- $sharedInternalRoutes = append $sharedInternalRoutes . }}
+{{- end }}
+{{- end }}
+{{- if or $sharedInternalRoutes .Values.internalTcpRoutes }}
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
@@ -14,7 +25,7 @@ metadata:
     {{- include "chorus-gateway.labels" . | nindent 4 }}
 spec:
   targetRefs:
-    {{- range .Values.internalRoutes }}
+    {{- range $sharedInternalRoutes }}
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: {{ include "chorus-gateway.internalHTTPRouteName" . }}
@@ -28,6 +39,34 @@ spec:
     defaultAction: Deny
     rules:
       {{- include "chorus-gateway.podCIDRRule" (dict "name" "allow-workspace-pods" "action" "Allow" "podCIDR" .Values.podCIDR) | nindent 6 }}
+{{- end }}
+
+{{- /*
+  Per-route internal SecurityPolicies for routes that need additional source
+  CIDRs on top of podCIDR (e.g. an off-cluster service reaching an internal
+  endpoint). One SecurityPolicy per route to avoid expanding the allowlist of
+  unrelated internal routes.
+*/}}
+{{- range .Values.internalRoutes }}
+{{- if .extraAllowedCIDRs }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ include "chorus-gateway.internalCIDRSecurityPolicyName" . }}
+  namespace: {{ $.Values.gateway.namespace }}
+  labels:
+    {{- include "chorus-gateway.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ include "chorus-gateway.internalHTTPRouteName" . }}
+  authorization:
+    defaultAction: Deny
+    rules:
+      {{- include "chorus-gateway.cidrAllowRule" (dict "name" "allow-workspace-pods-and-extra" "action" "Allow" "cidrs" (prepend .extraAllowedCIDRs (required "podCIDR must be set" $.Values.podCIDR))) | nindent 6 }}
+{{- end }}
 {{- end }}
 
 {{- /*
