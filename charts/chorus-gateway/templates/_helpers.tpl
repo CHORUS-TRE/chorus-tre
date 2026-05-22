@@ -69,13 +69,13 @@ Argument: dict with keys `name` (rule name), `action` ("Allow" or "Deny"),
 {{- end }}
 
 {{/*
-SecurityPolicy authorization rule that allows a list of CIDRs.
-Generalises podCIDRRule for the per-route case where podCIDR is augmented
-with extra source CIDRs (Part 12 `extraAllowedCIDRs` feature).
+SecurityPolicy authorization rule for a list of CIDRs. Generalises
+podCIDRRule for the per-route case where podCIDR is augmented with the
+route's `extraAllowedCIDRs`.
 Argument: dict with keys `name` (rule name), `action` ("Allow" or "Deny"),
 `cidrs` (list of CIDR strings, must be non-empty).
 */}}
-{{- define "chorus-gateway.cidrAllowRule" -}}
+{{- define "chorus-gateway.cidrRule" -}}
 - name: {{ .name }}
   action: {{ .action }}
   principal:
