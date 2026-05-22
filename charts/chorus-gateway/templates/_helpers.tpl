@@ -56,16 +56,21 @@ timeouts:
 {{- end }}
 
 {{/*
-SecurityPolicy authorization rule scoped to the cluster pod CIDR.
+SecurityPolicy authorization rule for a list of CIDRs. Used for both the
+common "Allow/Deny podCIDR only" case (`cidrs: (list .Values.podCIDR)`) and
+the per-route case where podCIDR is augmented with `extraAllowedCIDRs`.
 Argument: dict with keys `name` (rule name), `action` ("Allow" or "Deny"),
-`podCIDR` (the cluster pod CIDR as a string).
+`cidrs` (list of CIDR strings, must be non-empty).
 */}}
-{{- define "chorus-gateway.podCIDRRule" -}}
+{{- define "chorus-gateway.cidrRule" -}}
+{{- if not .cidrs }}{{ fail "chorus-gateway.cidrRule: cidrs must be a non-empty list" }}{{ end -}}
 - name: {{ .name }}
   action: {{ .action }}
   principal:
     clientCIDRs:
-      - {{ required "podCIDR must be set to match the cluster's pod CIDR" .podCIDR | quote }}
+      {{- range .cidrs }}
+      - {{ . | quote }}
+      {{- end }}
 {{- end }}
 
 {{/*
@@ -99,6 +104,10 @@ multiple templates. All take a route map and return "<route.name>-<suffix>".
 
 {{- define "chorus-gateway.extAuthSecurityPolicyName" -}}
 {{- printf "%s-extauth-securitypolicy" (required "name is required" .name) -}}
+{{- end }}
+
+{{- define "chorus-gateway.internalCIDRSecurityPolicyName" -}}
+{{- printf "%s-internal-securitypolicy" (required "name is required" .name) -}}
 {{- end }}
 
 {{- define "chorus-gateway.externalOIDCSecurityPolicyName" -}}

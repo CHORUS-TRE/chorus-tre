@@ -20,6 +20,28 @@ gateway:
 #
 # Optional: matches (path-restricted route, e.g. expose only /openid-connect/ internally).
 # Optional: timeouts (Gateway API HTTPRoute timeouts; see openRoutes for an example).
+# Optional: extraAllowedCIDRs (list of source CIDRs allowed on this route in
+#   addition to the cluster podCIDR). When set, the route is pulled out of the
+#   shared internal-securitypolicy and given its own dedicated SecurityPolicy
+#   (defaultAction: Deny + Allow rule whose clientCIDRs = [podCIDR] +
+#   extraAllowedCIDRs). Use this for an internal endpoint that also needs to be
+#   reachable from a fixed set of off-cluster source IPs without exposing every
+#   other internal route to those IPs.
+#
+#   Use with caution — each entry widens the allowlist on this route:
+#
+#   - Source IP is the only barrier. The route's own authn/authz must be
+#     sufficient for any caller in the allowlist; the SecurityPolicy does not
+#     authenticate anyone.
+#   - Keep CIDRs as narrow as possible (prefer /32). A /24 is rarely justified.
+#   - Requires externalTrafficPolicy: Local on the Gateway so Envoy sees the
+#     real client IP. With Cluster, the LB SNATs to a node IP and the check is
+#     meaningless.
+#   - Never apply to a route serving an admin UI, an interactive login page, or
+#     anything not designed for a non-workspace caller. Split such surfaces
+#     into a separate internalRoute with a path match (matches:) and allowlist
+#     only the safe paths.
+#   - Source IPs drift; review periodically and remove stale entries.
 #
 # Example:
 #   internalRoutes:
@@ -41,6 +63,12 @@ gateway:
 #       servicePort: 5000
 #       matches:
 #         - pathPrefix: /openid-connect
+#       # Allowed on top of the cluster podCIDR. The values below are the
+#       # RFC 5737 TEST-NET-3 documentation range — replace with real source
+#       # CIDRs in environment values.
+#       extraAllowedCIDRs:
+#         - 198.51.100.10/32
+#         - 198.51.100.11/32
 internalRoutes: []
 
 # HTML body returned when an internal route denies an external client (SecurityPolicy 403).
