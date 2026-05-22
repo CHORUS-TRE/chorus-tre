@@ -56,26 +56,14 @@ timeouts:
 {{- end }}
 
 {{/*
-SecurityPolicy authorization rule scoped to the cluster pod CIDR.
-Argument: dict with keys `name` (rule name), `action` ("Allow" or "Deny"),
-`podCIDR` (the cluster pod CIDR as a string).
-*/}}
-{{- define "chorus-gateway.podCIDRRule" -}}
-- name: {{ .name }}
-  action: {{ .action }}
-  principal:
-    clientCIDRs:
-      - {{ required "podCIDR must be set to match the cluster's pod CIDR" .podCIDR | quote }}
-{{- end }}
-
-{{/*
-SecurityPolicy authorization rule for a list of CIDRs. Generalises
-podCIDRRule for the per-route case where podCIDR is augmented with the
-route's `extraAllowedCIDRs`.
+SecurityPolicy authorization rule for a list of CIDRs. Used for both the
+common "Allow/Deny podCIDR only" case (`cidrs: (list .Values.podCIDR)`) and
+the per-route case where podCIDR is augmented with `extraAllowedCIDRs`.
 Argument: dict with keys `name` (rule name), `action` ("Allow" or "Deny"),
 `cidrs` (list of CIDR strings, must be non-empty).
 */}}
 {{- define "chorus-gateway.cidrRule" -}}
+{{- if not .cidrs }}{{ fail "chorus-gateway.cidrRule: cidrs must be a non-empty list" }}{{ end -}}
 - name: {{ .name }}
   action: {{ .action }}
   principal:

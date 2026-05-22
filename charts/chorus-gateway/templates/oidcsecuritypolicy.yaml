@@ -59,7 +59,7 @@ spec:
   authorization:
     defaultAction: Allow
     rules:
-      {{- include "chorus-gateway.podCIDRRule" (dict "name" "deny-workspace-pods" "action" "Deny" "podCIDR" $.Values.podCIDR) | nindent 6 }}
+      {{- include "chorus-gateway.cidrRule" (dict "name" "deny-workspace-pods" "action" "Deny" "cidrs" (list (required "podCIDR must be set to match the cluster's pod CIDR" $.Values.podCIDR))) | nindent 6 }}
   {{- end }}
 {{- end }}
 {{- end }}
