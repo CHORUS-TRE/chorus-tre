@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5.0.1
+      uses: actions/checkout@v6.0.2
       with:
         fetch-depth: 0  # Fetch all history for all branches and tags
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v46.0.5
+      uses: tj-actions/changed-files@v47.0.6
 
     - name: Set up Helm
       uses: azure/setup-helm@v5.0.0
