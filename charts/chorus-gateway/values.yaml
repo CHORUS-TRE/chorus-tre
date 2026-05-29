@@ -19,6 +19,29 @@ gateway:
 # Must be set in environment values.
 #
 # Optional: matches (path-restricted route, e.g. expose only /openid-connect/ internally).
+# Optional: timeouts (Gateway API HTTPRoute timeouts; see openRoutes for an example).
+# Optional: extraAllowedCIDRs (list of source CIDRs allowed on this route in
+#   addition to the cluster podCIDR). When set, the route is pulled out of the
+#   shared internal-securitypolicy and given its own dedicated SecurityPolicy
+#   (defaultAction: Deny + Allow rule whose clientCIDRs = [podCIDR] +
+#   extraAllowedCIDRs). Use this for an internal endpoint that also needs to be
+#   reachable from a fixed set of off-cluster source IPs without exposing every
+#   other internal route to those IPs.
+#
+#   Use with caution — each entry widens the allowlist on this route:
+#
+#   - Source IP is the only barrier. The route's own authn/authz must be
+#     sufficient for any caller in the allowlist; the SecurityPolicy does not
+#     authenticate anyone.
+#   - Keep CIDRs as narrow as possible (prefer /32). A /24 is rarely justified.
+#   - Requires externalTrafficPolicy: Local on the Gateway so Envoy sees the
+#     real client IP. With Cluster, the LB SNATs to a node IP and the check is
+#     meaningless.
+#   - Never apply to a route serving an admin UI, an interactive login page, or
+#     anything not designed for a non-workspace caller. Split such surfaces
+#     into a separate internalRoute with a path match (matches:) and allowlist
+#     only the safe paths.
+#   - Source IPs drift; review periodically and remove stale entries.
 #
 # Example:
 #   internalRoutes:
@@ -40,6 +63,12 @@ gateway:
 #       servicePort: 5000
 #       matches:
 #         - pathPrefix: /openid-connect
+#       # Allowed on top of the cluster podCIDR. The values below are the
+#       # RFC 5737 TEST-NET-3 documentation range — replace with real source
+#       # CIDRs in environment values.
+#       extraAllowedCIDRs:
+#         - 198.51.100.10/32
+#         - 198.51.100.11/32
 internalRoutes: []
 
 # HTML body returned when an internal route denies an external client (SecurityPolicy 403).
@@ -72,6 +101,7 @@ internalAccessDeniedHTML: |-
 #
 # Optional: matches (path-restricted, e.g. restrict only /admin on a hostname
 # that is otherwise served by an openRoute catch-all).
+# Optional: timeouts (Gateway API HTTPRoute timeouts; see openRoutes for an example).
 #
 # Example:
 #   externalRoutes:
@@ -114,6 +144,11 @@ internalAccessDeniedHTML: |-
 #     # discovers them from the issuer's /.well-known/openid-configuration by
 #     # default. Set them explicitly only to override that discovery.
 #     # Set `enabled: false` to temporarily turn off OIDC without deleting the block.
+#     #
+#     # Defense-in-depth: native OIDC enforces auth only at the gateway. Without
+#     # a NetworkPolicy on the upstream, any cluster pod can reach its ClusterIP
+#     # directly and bypass OIDC. juicefs-csi-driver and kube-prometheus-stack
+#     # wrappers ship one — mirror that pattern for new OIDC routes.
 #     - name: juicefs-dashboard
 #       hostname: juicefs-dashboard.chorus-tre.local
 #       namespace: kube-system
@@ -139,6 +174,12 @@ externalRoutes: []
 #
 # Optional: matches (path-restricted, e.g. only /v2 and /service/token open
 # on a hostname that is otherwise served by an externalRoute catchall).
+# Optional: timeouts — Gateway API HTTPRoute timeouts. Both `request` and
+# `backendRequest` accept Go duration strings (e.g. "30s", "5m") or "0s" to
+# disable the wall-clock kill. When disabled, envoy's per-stream idle timeout
+# (default 5m, resets per byte) still protects against stalled streams. Use
+# this for endpoints that legitimately stream large bodies, e.g. a container
+# registry serving multi-GB image layers.
 #
 # Example:
 #   openRoutes:
@@ -149,6 +190,8 @@ externalRoutes: []
 #       servicePort: 80
 #     # Expose only /v2 and /service/token on a hostname otherwise served by
 #     # an externalRoute catchall (so pods can pull images, browsers get the UI).
+#     # timeouts.request "0s" disables the envoy 15s default so multi-GB image
+#     # layers can stream end-to-end; per-stream idle timeout still protects.
 #     - name: harbor-registry
 #       hostname: harbor.chorus-tre.local
 #       namespace: harbor
@@ -157,6 +200,9 @@ externalRoutes: []
 #       matches:
 #         - pathPrefix: /v2
 #         - pathPrefix: /service/token
+#       timeouts:
+#         request: "0s"
+#         backendRequest: "0s"
 #     # OIDC on an openRoute — for Build cluster, where CHORUS isn't deployed.
 #     # Envoy Gateway runs the full Keycloak login flow before any request reaches
 #     # prometheus. No podCIDR rule is emitted (no workspaces to isolate).

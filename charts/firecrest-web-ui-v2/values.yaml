@@ -6,7 +6,6 @@ firecrest-web-ui-v2:
   appName: "FirecREST Dashboard"
   customLogo: false
   redisActive: "true"
-  keycloakRealm: "chorus"
 
 ingress:
   enabled: true

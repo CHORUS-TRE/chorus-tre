@@ -189,12 +189,12 @@ client:
     baseUrl: "/harbor/projects"
     redirectUris: '["http://harbor.local/c/oidc/callback"]'
     webOrigins: '["http://harbor.local"]'
-  juicefs-dashboard:
-    rootUrl: "http://juicefs-dashboard.local"
-    adminUrl: "http://juicefs-dashboard.local"
-    baseUrl: "/"
-    redirectUris: '["http://juicefs-dashboard.local/oauth2/callback"]'
-    webOrigins: '["http://juicefs-dashboard.local"]'
+  # juicefs-dashboard: opt-in. Envs that expose a JuiceFS dashboard declare a
+  # client.juicefs-dashboard block here (rootUrl/adminUrl/baseUrl/redirectUris/
+  # webOrigins) and add JUICEFS_DASHBOARD_CLIENT_SECRET to keycloak-client-secret.
+  # When omitted, the client is gated out of infra-realm.yaml and config-cli
+  # skips it cleanly. Do not put placeholder defaults here — they would defeat
+  # the hasKey gate (chart defaults merge under env overrides).
   prometheus:
     rootUrl: "http://prometheus.local"
     adminUrl: "http://prometheus.local"
