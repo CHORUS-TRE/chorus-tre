@@ -1,0 +1,56 @@
+{{- if .Values.cronSync.enabled }}
+apiVersion: juicefs.io/v1
+kind: CronSync
+metadata:
+  name: {{ include "juicefs-operator.cronSyncName" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "juicefs-operator.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cronSync.schedule | quote }}
+  suspend: false
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  syncTemplate:
+    metadata:
+      labels:
+        juicefs.io/cronsync: {{ include "juicefs-operator.cronSyncName" . }}
+    spec:
+      image: {{ .Values.cronSync.image | quote }}
+      replicas: 1
+      options:
+        {{- range .Values.cronSync.options }}
+        - {{ . | quote }}
+        {{- end }}
+      managerResources:
+        {{- toYaml .Values.cronSync.managerResources | nindent 8 }}
+      workerResources:
+        {{- toYaml .Values.cronSync.workerResources | nindent 8 }}
+      from:
+        external:
+          uri: "s3://{{ required "cronSync.source.bucket is required" .Values.cronSync.source.bucket }}.{{ required "cronSync.source.host is required" .Values.cronSync.source.host }}"
+          accessKey:
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.cronSync.source.secretName | quote }}
+                key: access-key
+          secretKey:
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.cronSync.source.secretName | quote }}
+                key: secret-key
+      to:
+        external:
+          uri: "s3://{{ required "cronSync.replica.bucket is required" .Values.cronSync.replica.bucket }}.{{ required "cronSync.replica.host is required" .Values.cronSync.replica.host }}"
+          accessKey:
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.cronSync.replica.secretName | quote }}
+                key: access-key
+          secretKey:
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.cronSync.replica.secretName | quote }}
+                key: secret-key
+{{- end }}

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: juicefs-operator
+description: A Helm chart for JuiceFS Cache Group Operator
+version: 0.0.1
+dependencies:
+  - name: juicefs-operator
+    version: 0.8.1
+    repository: https://juicedata.github.io/charts/
+
+maintainers:
+  - name: iDmple
+    email: nathalie.casati@chuv.ch
+  - name: floriansipp
+    email: florian.sipp@chuv.ch

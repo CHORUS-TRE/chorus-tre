@@ -1,0 +1,6 @@
+dependencies:
+- name: juicefs-operator
+  repository: https://juicedata.github.io/charts/
+  version: 0.8.1
+digest: sha256:210dc2f3aa221a43c3bb202e2ebef663676e25cd227b816e88f228f74ae16be6
+generated: "2026-05-29T10:39:35.769713+02:00"

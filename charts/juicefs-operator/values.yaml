@@ -1,0 +1,75 @@
+# Upstream operator subchart config. Leaving defaults runs the controller with
+# its own namespace, cluster-wide watch, and the CronSync / Sync / CacheGroup /
+# Warmup CRDs installed.
+juicefs-operator: {}
+
+# Selects the pods the operator spawns from any Sync / CronSync CR
+# (app.kubernetes.io/managed-by: juicefs-operator).
+# enabled=false           → no policy
+# enabled_l7_waf=true     → CiliumNetworkPolicy (toFQDNs-restricted egress)
+# enabled_l7_waf=false    → plain NetworkPolicy (TCP 443 allow-any egress)
+chorusNetworkPolicy:
+  enabled: true
+  enabled_l7_waf: true
+
+# CronSync for daily S3-to-S3 replication of the JuiceFS chunk bucket.
+# When disabled, only the operator controller runs.
+#
+# 30-day retention is delivered by an S3 lifecycle policy on the replica
+# bucket's `<prefix>/meta/` set out-of-band (provider-side). The chunk pool
+# itself grows monotonically — no automatic chunk GC in this chart. A proper
+# multi-snapshot reachable-set GC against the replica is a future follow-up
+# (no published prior art for it; needs care around the JuiceFS metadata
+# `setting` blob and EncryptKey preservation).
+cronSync:
+  enabled: false
+
+  # Daily 04:00 UTC. Pick a time after the env's daily cluster-backup window
+  # and after the hourly JuiceFS metadata auto-backup, so the sync grabs a
+  # fresh consistent metadata snapshot alongside the chunks.
+  schedule: "0 4 * * *"
+
+  # juicefs sync image; matches the JuiceFS CSI driver image stream.
+  image: juicedata/juicefs:1.2.3
+
+  # juicefs sync options. --update skips target objects already present with
+  # matching size (incremental on every run after the first). No
+  # --decrypt-rsa-key — chunks are copied as ciphertext byte-for-byte.
+  options:
+    - "--update"
+    - "--threads=10"
+
+  managerResources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  workerResources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  # Source bucket (the live JuiceFS data bucket). Set per-env.
+  source:
+    # S3 endpoint host (no scheme).
+    host: ""
+    # Source bucket name.
+    bucket: ""
+    # Name of the existing Secret holding the source bucket credentials.
+    # Must carry keys: access-key, secret-key.
+    secretName: "juicefs-secret"
+
+  # Replica destination. Set per-env. For an in-bucket sub-prefix, set
+  # `bucket` to "<bucket-name>/<prefix>" — juicefs sync treats trailing path
+  # segments as a prefix.
+  replica:
+    host: ""
+    bucket: ""
+    # Name of the Secret holding the replica bucket credentials. Created
+    # out-of-band per env. Must carry keys: access-key, secret-key.
+    secretName: "juicefs-sync-replica"
