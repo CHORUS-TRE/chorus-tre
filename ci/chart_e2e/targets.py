@@ -16,7 +16,6 @@ DIRECTLY_MODIFIED_REASON = "directly modified"
 CHART_TEST_CONFIG_REASON = "chart test config modified"
 CI_INFRA_CHANGED_REASON = "CI infrastructure changed - full registered chart sweep"
 CI_INFRA_CHANGED_PATHS = {
-    ".github/workflows/e2e-chart-testing.yml",
     "charts/chorus-ci/templates/chart-e2e-sensor.yaml",
     "charts/chorus-ci/values.yaml",
 }
@@ -149,6 +148,10 @@ class TargetPlanner:
     def _extract_direct_chart_paths(changed_files: list[str]) -> list[str]:
         chart_paths = set()
         for changed_file in changed_files:
+            if TargetPlanner._is_ci_infra_change(changed_file):
+                continue
+            if changed_file.startswith("charts/chorus-ci/"):
+                continue
             path = PurePosixPath(changed_file)
             if len(path.parts) >= 3 and path.parts[0] == "charts":
                 chart_paths.add(f"charts/{path.parts[1]}")
@@ -166,9 +169,13 @@ class TargetPlanner:
     @staticmethod
     def _has_ci_infra_changes(changed_files: list[str]) -> bool:
         for changed_file in changed_files:
-            if changed_file.startswith("ci/") or changed_file in CI_INFRA_CHANGED_PATHS:
+            if TargetPlanner._is_ci_infra_change(changed_file):
                 return True
         return False
+
+    @staticmethod
+    def _is_ci_infra_change(changed_file: str) -> bool:
+        return changed_file in CI_INFRA_CHANGED_PATHS or changed_file.startswith("ci/")
 
 
 def write_targets_file(targets: list[PlannedTarget], target_file: Path) -> None:

@@ -73,6 +73,7 @@ chorusWebui:
     tag: "22-bookworm"
 
 chorusTreChartE2E:
+  activeDeadlineSeconds: 5400
   dockerDataStorage:
     storageClassName: ""
     storageRequest: "40Gi"

@@ -6,3 +6,5 @@
 .chart-tests.merged.yaml
 **/*.tgz
 .DS_Store
+__pycache__/
+*.py[cod]

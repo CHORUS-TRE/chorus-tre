@@ -48,6 +48,7 @@ class RepoChartE2EWorkflow:
 
             self.create_kind_cluster()
             self.install_cilium()
+            self.install_cluster_baseline()
             self.add_helm_repositories()
             status = self.run_targets(targets)
         except Exception as exc:  # pragma: no cover - defensive orchestration guard
@@ -162,6 +163,21 @@ class RepoChartE2EWorkflow:
         self.run_checked(["kubectl", "-n", "kube-system", "rollout", "status", "daemonset/cilium", "--timeout=300s"])
         self.run_checked(
             ["kubectl", "-n", "kube-system", "rollout", "status", "deployment/cilium-operator", "--timeout=300s"]
+        )
+
+    def install_cluster_baseline(self) -> None:
+        priority_class_chart = self.repo_root / "charts" / "chorus-priority-class"
+        self.run_checked(
+            [
+                "helm",
+                "install",
+                "e2e-chorus-priority-class",
+                str(priority_class_chart),
+                "--namespace",
+                "kube-system",
+                "--create-namespace",
+                "--wait",
+            ]
         )
 
     def add_helm_repositories(self) -> None:

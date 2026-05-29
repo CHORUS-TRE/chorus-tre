@@ -58,6 +58,10 @@ defaults:
   timeout: 120
 
 charts:
+  cert-manager:
+    timeout: 300
+    depends_on:
+      - cert-manager-crds
   cert-manager-crds:
     skip_deploy: true
   fluent-operator-crds:
@@ -68,5 +72,11 @@ charts:
     skip_deploy: true
   chorus-priority-class:
     skip_deploy: true
+  chorus-ci:
+    skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  juicefs-csi-driver:
+    timeout: 300
+    pre_install:
+      - kubectl create secret generic juicefs-dashboard-secret --from-literal=username=admin --from-literal=password=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
