@@ -12,29 +12,47 @@ chorusNetworkPolicy:
   enabled: true
   enabled_l7_waf: true
 
-# CronSync for daily S3-to-S3 replication of the JuiceFS chunk bucket.
-# When disabled, only the operator controller runs.
+# One CronSync replicates the whole source JuiceFS bucket (chunks/ + meta/) to
+# a dedicated replica bucket, daily, ciphertext-passthrough (no
+# --decrypt-rsa-key — chunks travel encrypted byte-for-byte).
 #
-# 30-day retention is delivered by an S3 lifecycle policy on the replica
-# bucket's `<prefix>/meta/` set out-of-band (provider-side). The chunk pool
-# itself grows monotonically — no automatic chunk GC in this chart. A proper
-# multi-snapshot reachable-set GC against the replica is a future follow-up
-# (no published prior art for it; needs care around the JuiceFS metadata
-# `setting` blob and EncryptKey preservation).
+# MONOTONIC by design: --update only, NEVER --delete.
+#   - --delete would make the replica a mirror, and mirrors propagate
+#     deletions. The primary threat is a source-bucket wipe (accidental
+#     object delete / key compromise scoped to source); with --delete the
+#     next run would replicate that wipe to the replica and destroy the
+#     backup. JuiceFS trash does NOT protect here — direct bucket-object
+#     deletion bypasses the filesystem trash entirely.
+#   - Monotonic also gives the strongest restore guarantee: because no chunk
+#     is ever removed from the replica, EVERY metadata dump on the replica is
+#     fully restorable (all the chunks it references are still present). No
+#     trash-days dependency, no "restore only from a settled dump" caveat.
+#
+# Retention is intentionally NOT enforced by any provider-side S3 lifecycle
+# policy (none required). Both chunks and metadata dumps accumulate on the
+# replica. The replica grows slowly (chunks for files deleted on source are
+# never pruned). A future follow-up adds an in-cluster chunk-GC CronJob to
+# bound it — see the plan's "Follow-up: chunk-replica GC". Until then, monitor
+# replica bucket size.
+#
+# Restore needs the source's RSA private key (juicefs-secret's
+# encrypt_rsa_key + passphrase): chunks are source-encrypted ciphertext, so
+# the key is mandatory to read them back. Escrow it in the secret vault — the
+# replica is worthless without it.
 cronSync:
   enabled: false
 
-  # Daily 04:00 UTC. Pick a time after the env's daily cluster-backup window
-  # and after the hourly JuiceFS metadata auto-backup, so the sync grabs a
-  # fresh consistent metadata snapshot alongside the chunks.
+  # Daily 04:00 UTC. After the env's daily cluster-backup window and after an
+  # hourly JuiceFS metadata auto-backup, so the walk grabs a fresh metadata
+  # dump alongside the chunks.
   schedule: "0 4 * * *"
 
   # juicefs sync image; matches the JuiceFS CSI driver image stream.
   image: juicedata/juicefs:1.2.3
 
-  # juicefs sync options. --update skips target objects already present with
-  # matching size (incremental on every run after the first). No
-  # --decrypt-rsa-key — chunks are copied as ciphertext byte-for-byte.
+  # juicefs sync options. --update skips destination objects already present
+  # with matching size (incremental after the first run). NO --delete (see the
+  # block comment above). NO --decrypt-rsa-key (ciphertext passthrough).
   options:
     - "--update"
     - "--threads=10"
@@ -60,13 +78,12 @@ cronSync:
     host: ""
     # Source bucket name.
     bucket: ""
-    # Name of the existing Secret holding the source bucket credentials.
-    # Must carry keys: access-key, secret-key.
+    # Name of the Secret holding the source bucket credentials in the release
+    # namespace. Must carry keys: access-key, secret-key.
     secretName: "juicefs-secret"
 
-  # Replica destination. Set per-env. For an in-bucket sub-prefix, set
-  # `bucket` to "<bucket-name>/<prefix>" — juicefs sync treats trailing path
-  # segments as a prefix.
+  # Replica destination. Set per-env. Use a dedicated bucket (not a prefix in a
+  # shared bucket) — keeps the s3 URI clean and per-workload billing separate.
   replica:
     host: ""
     bucket: ""
