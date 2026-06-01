@@ -18,8 +18,7 @@ spec:
   dependencies:
     # Repo-wide PR trigger. The Python planner keeps the exact chart-e2e target
     # selection logic and exits early when the PR does not touch chart-e2e scope.
-    # Temporarily runs on draft PRs too while the Argo migration is being validated.
-    # Restore a body.pull_request.draft == false filter once the migration is proven.
+    # Only trigger when a PR is opened ready or transitions from draft to ready.
     - name: chart-e2e
       eventSourceName: {{ $fullName }}-github
       eventName: ci
@@ -33,9 +32,11 @@ spec:
             type: string
             value:
               - opened
-              - synchronize
-              - reopened
               - ready_for_review
+          - path: body.pull_request.draft
+            type: bool
+            value:
+              - "false"
           - path: body.pull_request.base.ref
             type: string
             value:
