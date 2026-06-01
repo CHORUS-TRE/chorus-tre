@@ -1,4 +1,10 @@
 **/charts
 !/charts
+!ci/chart-tests/charts/
+!ci/chart-tests/charts/*.yaml
+.chart-e2e-*
+.chart-tests.merged.yaml
 **/*.tgz
 .DS_Store
+__pycache__/
+*.py[cod]

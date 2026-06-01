@@ -72,6 +72,19 @@ chorusWebui:
   node:
     tag: "22-bookworm"
 
+chorusTreChartE2E:
+  activeDeadlineSeconds: 5400
+  dockerDataStorage:
+    storageClassName: ""
+    storageRequest: "40Gi"
+  golang:
+    tag: "1.25-bookworm"
+  tools:
+    kindVersion: "v0.31.0"
+    kubectlVersion: "v1.35.0"
+    helmVersion: "v4.1.4"
+    yqVersion: "v4.44.6"
+
 chorusImages:
   dockerDataStorage:
     storageClassName: ""

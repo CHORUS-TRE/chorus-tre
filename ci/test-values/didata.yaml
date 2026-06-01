@@ -1,0 +1,9 @@
+# CI-specific values for running didata in the Kind-based chart e2e.
+# This file keeps only Kind compatibility overrides.
+
+priorityClassName: ""
+
+imagePullSecrets: []
+
+ingress:
+  enabled: false

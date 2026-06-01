@@ -31,10 +31,11 @@ jobs:
       id: modified_charts
       run: |
         # Extract the list of changed files from the action output
-        MODIFIED_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ',' '\n')
+        MODIFIED_FILES=$(printf '%s\n' "${{ steps.changed-files.outputs.all_changed_files }}" | sed 's/[[:space:],]/\n/g' | sed '/^$/d')
 
-        # Extract the chart directories from the modified files
-        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -o 'charts/[^/]*/' | sort -u | tr '\n' ' ')
+        # Extract only top-level chart directories from the modified files.
+        # This avoids treating ci/chart-tests/charts/*.yaml as real Helm charts.
+        MODIFIED_CHARTS=$(echo "$MODIFIED_FILES" | grep -oE '^charts/[^/]+/' | sort -u | tr '\n' ' ')
 
         # Check if any charts were modified
         if [ -z "$MODIFIED_CHARTS" ]; then
@@ -102,4 +103,3 @@ jobs:
             helm template $chart
           fi
         done
-
