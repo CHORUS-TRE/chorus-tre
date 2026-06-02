@@ -20,6 +20,9 @@ spec:
     # selection logic and exits early when the PR does not touch chart-e2e scope.
     # Run on non-draft PR open, non-draft updates, and draft-to-ready transitions
     # so the GitHub status stays attached to the current head SHA.
+    # The companion environment config still needs to register the chorus-tre
+    # repository on the `ci` webhookEvent and deliver pull_request events here;
+    # this sensor only filters events after the EventSource has received them.
     - name: chart-e2e
       eventSourceName: {{ $fullName }}-github
       eventName: ci
@@ -58,6 +61,10 @@ spec:
                 generateName: "-"
               spec:
                 serviceAccountName: {{ $serviceAccountName }}
+                # Combined with the retryStrategy below, a failed attempt can
+                # rebuild Kind and rerun the full chart-e2e suite up to three
+                # times total. This favors transient infrastructure recovery
+                # over shorter runtime for genuinely failing charts.
                 entrypoint: chart-e2e
                 activeDeadlineSeconds: {{ .Values.chorusTreChartE2E.activeDeadlineSeconds | default 5400 }}
 
@@ -130,6 +137,9 @@ spec:
                           template: run-chart-e2e
 
                   - name: run-chart-e2e
+                    # Retries rerun the whole template, including tool bootstrap,
+                    # Kind cluster creation, dependency installs, and all chart
+                    # targets.
                     retryStrategy:
                       limit: 2
                     inputs:
@@ -168,6 +178,9 @@ spec:
                           mountPath: /var/lib/docker
                       args:
                         - >-
+                          # Requires outbound access to download.docker.com,
+                          # kind.sigs.k8s.io, dl.k8s.io, get.helm.sh, and
+                          # github.com (for the yq release binary).
                           apt-get update &&
                           apt-get install -y --no-install-recommends ca-certificates curl git python3 &&
                           rm -rf /var/lib/apt/lists/* &&
