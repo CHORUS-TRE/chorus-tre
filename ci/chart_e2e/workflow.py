@@ -62,8 +62,9 @@ class RepoChartE2EWorkflow:
         return status
 
     def changed_files(self) -> list[str]:
+        diff_range = f"{self.base_sha}...{self.head_sha}"
         diff = self.run_command(
-            ["git", "diff", "--name-only", self.base_sha, self.head_sha],
+            ["git", "diff", "--name-only", diff_range],
             capture_output=True,
             merge_stderr=True,
         )
@@ -71,7 +72,7 @@ class RepoChartE2EWorkflow:
             raise RuntimeError(diff.stdout.strip() or "Failed to compute changed files")
 
         changed_files = [line.strip() for line in (diff.stdout or "").splitlines() if line.strip()]
-        print(f"Comparing changed files: {self.base_sha} -> {self.head_sha}")
+        print(f"Comparing changed files: {diff_range}")
         if self.base_ref:
             print(f"Base ref: {self.base_ref}")
         if not changed_files:
