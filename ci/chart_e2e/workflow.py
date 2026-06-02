@@ -300,12 +300,15 @@ class RepoChartE2EWorkflow:
 
     def cleanup_chart(self, chart_name: str) -> None:
         chart_namespace = self.chart_namespace(chart_name)
+        cleanup_namespaces = [chart_namespace]
         self.print_optional_output(
             self.run_command(["helm", "uninstall", f"e2e-{chart_name}", "-n", chart_namespace], capture_output=True, suppress_stderr=True)
         )
 
         for dependency_name in self.resolve_deps(chart_name):
             dependency_namespace = self.dependency_namespace(dependency_name, chart_namespace)
+            if dependency_namespace not in cleanup_namespaces:
+                cleanup_namespaces.append(dependency_namespace)
             print(f"  Cleaning up dependency: {dependency_name}")
             self.print_optional_output(
                 self.run_command(
@@ -315,11 +318,12 @@ class RepoChartE2EWorkflow:
                 )
             )
 
-        self.run_command(
-            ["kubectl", "delete", "pods", "--field-selector=status.phase!=Running", "-A"],
-            capture_output=True,
-            suppress_stderr=True,
-        )
+        for namespace in cleanup_namespaces:
+            self.run_command(
+                ["kubectl", "delete", "pods", "--field-selector=status.phase!=Running", "-n", namespace],
+                capture_output=True,
+                suppress_stderr=True,
+            )
 
     def chart_namespace(self, chart_name: str) -> str:
         planner = self.require_planner()
