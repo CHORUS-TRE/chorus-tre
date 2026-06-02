@@ -12,15 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install yq
         env:
+          # renovate: datasource=github-releases depName=mikefarah/yq
           YQ_VERSION: v4.47.2
         run: |
           sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
@@ -38,7 +39,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Run chart-releaser
-        uses: bitdeps/helm-oci-charts-releaser@v0.1.4
+        uses: bitdeps/helm-oci-charts-releaser@caedceea2a5ab997c7e5469a999811dbb3d5b070 # v0.1.5
         with:
           oci_registry: oci://harbor.build.chorus-tre.ch/charts
           oci_username: "robot\\$charts+chorus-tre"

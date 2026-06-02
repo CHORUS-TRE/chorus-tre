@@ -2,5 +2,54 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update workflow tool versions annotated with renovate metadata",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\s+(?:[A-Z_]+_VERSION|version):\\s*(?<currentValue>\\S+)"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Keep CI and workflow tool PR titles concise",
+      "matchFileNames": [
+        ".github/workflows/**"
+      ],
+      "commitMessageTopic": "{{depName}}"
+    },
+    {
+      "description": "Keep SHA GitHub Action digest PRs in digest-plus-version format with review context",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "commitMessageTopic": "{{depName}} digest",
+      "commitMessageExtra": "to {{{newDigestShort}}}{{#if newVersion}} # {{prettyNewVersion}}{{else}}{{#if currentVersion}} # {{{currentVersion}}}{{/if}}{{/if}}",
+      "prBodyColumns": [
+        "Package",
+        "Type",
+        "Update",
+        "Current value",
+        "New value",
+        "Action diff",
+        "References"
+      ],
+      "prBodyDefinitions": {
+        "Current value": "`{{{currentDigestShort}}}`{{#if currentVersion}} # {{{currentVersion}}}{{/if}}",
+        "New value": "`{{{newDigestShort}}}`{{#if newVersion}} # {{prettyNewVersion}}{{else}}{{#if currentVersion}} # {{{currentVersion}}}{{/if}}{{/if}}",
+        "Action diff": "{{#if (and sourceUrl currentDigest newDigest)}}[compare changes]({{{sourceUrl}}}/compare/{{{currentDigest}}}...{{{newDigest}}}){{else}}`{{{displayFrom}}}` → `{{{displayTo}}}`{{/if}}"
+      },
+      "prBodyNotes": [
+        "This keeps `{{{depName}}}` on `{{#if newVersion}}{{prettyNewVersion}}{{else}}{{#if currentVersion}}{{{currentVersion}}}{{else}}the same pinned release{{/if}}{{/if}}` and refreshes only the pinned commit. Review the Action diff column before merging."
+      ]
+    }
   ]
 }
