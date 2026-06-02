@@ -62,6 +62,7 @@ class RepoChartE2EWorkflow:
         return status
 
     def changed_files(self) -> list[str]:
+        self.ensure_base_commit_available()
         diff_range = f"{self.base_sha}...{self.head_sha}"
         diff = self.run_command(
             ["git", "diff", "--name-only", diff_range],
@@ -83,6 +84,46 @@ class RepoChartE2EWorkflow:
         for changed_file in changed_files:
             print(f"  - {changed_file}")
         return changed_files
+
+    def ensure_base_commit_available(self) -> None:
+        if self.has_commit(self.base_sha):
+            print(f"Verified base commit is present: {self.base_sha}")
+            return
+
+        print(f"Base commit {self.base_sha} is not present in the checkout.")
+        if not self.base_ref:
+            raise RuntimeError(
+                f"Base commit {self.base_sha} is not present in the checkout and no base ref was provided"
+            )
+
+        print(f"Fetching origin/{self.base_ref} to resolve base commit {self.base_sha}")
+        fetch = self.run_command(
+            ["git", "fetch", "--no-tags", "origin", self.base_ref],
+            capture_output=True,
+            merge_stderr=True,
+        )
+        fetch_output = (fetch.stdout or "").strip()
+        if fetch_output:
+            print(fetch_output)
+        if fetch.returncode != 0:
+            raise RuntimeError(
+                fetch_output or f"Failed to fetch origin/{self.base_ref} while resolving base commit {self.base_sha}"
+            )
+
+        if not self.has_commit(self.base_sha):
+            raise RuntimeError(
+                f"Base commit {self.base_sha} is not present in the checkout after fetching origin/{self.base_ref}"
+            )
+
+        print(f"Verified base commit is present after fetch: {self.base_sha}")
+
+    def has_commit(self, sha: str) -> bool:
+        result = self.run_command(
+            ["git", "cat-file", "-e", f"{sha}^{{commit}}"],
+            capture_output=True,
+            suppress_stderr=True,
+        )
+        return result.returncode == 0
 
     def render_registry_file(self) -> Path:
         registry_index = self.repo_root / "ci/chart-tests.yaml"
