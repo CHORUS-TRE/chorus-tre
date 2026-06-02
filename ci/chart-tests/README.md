@@ -33,6 +33,8 @@ Supported chart fields:
 - `services`: Service ports to probe after deployment.
 - `health_check`: Application-level verification.
 
+Deployable charts should define at least one downstream `services` or `health_check` check. If Helm `install --wait` fails and the runner has to retry without `--wait`, the run now fails when neither check type is configured because readiness would otherwise be unverified.
+
 `dependency_values` supports these attributes:
 
 - `serviceName`

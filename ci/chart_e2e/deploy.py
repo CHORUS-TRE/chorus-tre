@@ -5,8 +5,16 @@ from __future__ import annotations
 import shlex
 import time
 
+from .utils import nested_get
+
 
 class DeploymentMixin:
+    def has_downstream_checks(self) -> bool:
+        entry = self.chart_entry(self.chart_name)
+        services = entry.get("services") or []
+        health_port = nested_get(entry, "health_check.port", "")
+        return bool(services) or health_port not in (None, "")
+
     def deploy_dependencies(self) -> int:
         dep_list = self.resolve_deps(self.chart_name)
         if not dep_list:
@@ -141,7 +149,12 @@ class DeploymentMixin:
 
         retry = self.run_command(helm_cmd_nowait)
         if retry.returncode == 0:
-            self.info("Chart deployed (pods may not be fully ready — expected for apps needing backends)")
+            self.warn("Chart deployed without --wait; downstream smoke or health checks must confirm readiness")
+            if not self.has_downstream_checks():
+                self.fail(
+                    "Chart only deployed via --no-wait fallback and no downstream smoke or health checks are configured"
+                )
+                return 1
             time.sleep(10)
             return 0
 

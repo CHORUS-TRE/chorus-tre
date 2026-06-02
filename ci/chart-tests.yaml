@@ -38,6 +38,9 @@
 #     services:            List of services to check for reachability after deployment
 #       - port:            Port to check
 #     health_check:        Application-level health verification
+#                          Deployable charts should define services and/or a
+#                          health_check so a --no-wait Helm fallback still has
+#                          a downstream readiness signal.
 #       port:              Port to check
 #       protocol:          "http" (default), "pg", or "mariadb"
 #       path:              HTTP path to check (e.g., /) - http mode only
