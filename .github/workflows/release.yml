@@ -19,6 +19,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install yq
+        env:
+          YQ_VERSION: v4.47.2
+        run: |
+          sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      # Check that e2e test logic is still functional before releasing new versions
+      # so as to catch any regressions (< 1 sec test) at CI testing level.
+      - name: Run chart e2e unit tests
+        run: python3 -m unittest discover -s tests
+
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
