@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generic chart e2e test runner."""
+"""Single-chart chart e2e local debug entrypoint."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan chart e2e targets from changed files and registry metadata."""
+"""Local chart e2e planner entrypoint."""
 
 from __future__ import annotations
 

@@ -52,6 +52,12 @@ Deployable charts should define at least one downstream `services` or `health_ch
 
 The workflow also uses the merged registry in reverse: when a dependency chart changes, dependent charts are retested as impacted services and reported as warning-only targets.
 
+CLI entrypoints:
+
+- `../run-chart-e2e-workflow.py` is the live repo-level entrypoint used by the Argo sensor. It renders the merged registry, plans targets, creates the Kind cluster, and runs the full repo workflow.
+- `../plan-chart-e2e.py` is an intentional local/manual planner helper. It prints planned targets to stdout and can optionally write `--targets-file`, `--github-output`, and `--step-summary` files when a wrapper wants them.
+- `../run-chart-e2e.py` is an intentional local/manual single-chart runner for debugging one chart without going through the repo-level workflow.
+
 Known caveat:
 
 - CRD charts are not auto-detected from a `*-crds` chart name. If a new CRD-only chart is added, it still needs an explicit `skip_deploy: true` entry in [ci/chart-tests.yaml](ci/chart-tests.yaml) until that convention is implemented in code.
