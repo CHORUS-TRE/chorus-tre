@@ -18,7 +18,8 @@ spec:
   dependencies:
     # Repo-wide PR trigger. The Python planner keeps the exact chart-e2e target
     # selection logic and exits early when the PR does not touch chart-e2e scope.
-    # Only trigger when a PR is opened ready or transitions from draft to ready.
+    # Run on non-draft PR open, non-draft updates, and draft-to-ready transitions
+    # so the GitHub status stays attached to the current head SHA.
     - name: chart-e2e
       eventSourceName: {{ $fullName }}-github
       eventName: ci
@@ -32,6 +33,7 @@ spec:
             type: string
             value:
               - opened
+              - synchronize
               - ready_for_review
           - path: body.pull_request.draft
             type: bool
