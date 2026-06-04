@@ -1,4 +1,4 @@
-{{- if and .Values.chorusNetworkPolicy.enabled (not .Values.chorusNetworkPolicy.enabled_l7_waf) }}
+{{- if and .Values.cronSync.enabled .Values.chorusNetworkPolicy.enabled (not .Values.chorusNetworkPolicy.enabled_l7_waf) }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -7,6 +7,9 @@ metadata:
   labels:
     {{- include "juicefs-operator.labels" . | nindent 4 }}
 spec:
+  # Operator-set label on every spawned Sync pod (manager + workers), verified
+  # in the operator's pod builder. Do not AND-in syncTemplate labels here — the
+  # operator does not propagate those onto the pods, so they'd match nothing.
   podSelector:
     matchLabels:
       app.kubernetes.io/managed-by: juicefs-operator

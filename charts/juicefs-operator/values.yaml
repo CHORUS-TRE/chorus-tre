@@ -3,8 +3,9 @@
 # Warmup CRDs installed.
 juicefs-operator: {}
 
-# Selects the pods the operator spawns from any Sync / CronSync CR
-# (app.kubernetes.io/managed-by: juicefs-operator).
+# Egress policy for the CronSync's sync pods (app.kubernetes.io/managed-by:
+# juicefs-operator). Only rendered when cronSync.enabled is true — the policy
+# follows what the sync needs; operator-only installs get no policy.
 # enabled=false           → no policy
 # enabled_l7_waf=true     → CiliumNetworkPolicy (toFQDNs-restricted egress)
 # enabled_l7_waf=false    → plain NetworkPolicy (TCP 443 allow-any egress)
@@ -31,9 +32,8 @@ chorusNetworkPolicy:
 # Retention is intentionally NOT enforced by any provider-side S3 lifecycle
 # policy (none required). Both chunks and metadata dumps accumulate on the
 # replica. The replica grows slowly (chunks for files deleted on source are
-# never pruned). A future follow-up adds an in-cluster chunk-GC CronJob to
-# bound it — see the plan's "Follow-up: chunk-replica GC". Until then, monitor
-# replica bucket size.
+# never pruned). Monitor replica bucket size until GC lands.
+# TODO: add an in-cluster chunk-GC CronJob to bound replica growth.
 #
 # Restore needs the source's RSA private key (juicefs-secret's
 # encrypt_rsa_key + passphrase): chunks are source-encrypted ciphertext, so
