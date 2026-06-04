@@ -21,6 +21,20 @@ jobs:
         fetch-depth: 0  # Fetch all history for all branches and tags
         persist-credentials: false
 
+    - name: Install yq
+      env:
+        # renovate: datasource=github-releases depName=mikefarah/yq
+        YQ_VERSION: v4.47.2
+      run: |
+        sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+        sudo chmod +x /usr/local/bin/yq
+        yq --version
+
+    # Check that e2e test logic is still functional at PR time so planner
+    # and workflow regressions fail before merge.
+    - name: Run chart e2e unit tests
+      run: python3 -m unittest discover -s tests
+
     - name: Get changed files
       id: changed-files
       uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
@@ -29,7 +43,7 @@ jobs:
       uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
       with:
         # renovate: datasource=github-releases depName=helm/helm
-        version: v3.21.0
+        version: v4.1.4
 
     - name: Identify modified charts
       id: modified_charts
