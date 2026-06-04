@@ -21,9 +21,9 @@ spec:
       protocol: UDP
     - port: 53
       protocol: TCP
-  # S3 endpoints (source + replica). Plain k8s NP cannot match FQDNs and
-  # Exoscale SOS does not publish a stable CIDR list, so this is TCP 443 to
-  # any. The CiliumNetworkPolicy variant carries the tight toFQDNs restriction.
+  # S3 endpoints (source + replica). Plain k8s NP cannot match FQDNs and the
+  # object-store endpoint has no stable CIDR list, so this is TCP 443 to any.
+  # The CiliumNetworkPolicy variant carries the tight toFQDNs restriction.
   - ports:
     - port: 443
       protocol: TCP

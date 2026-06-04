@@ -11,19 +11,27 @@ spec:
     matchLabels:
       app.kubernetes.io/managed-by: juicefs-operator
   egress:
-  # In-cluster CoreDNS (clusters without node-local-dns).
+  # DNS to in-cluster kube-dns / CoreDNS pods. The L7 rules.dns block routes
+  # queries through Cilium's DNS proxy so the toFQDNs egress below can learn
+  # the S3 endpoint's resolved IPs — without it, toFQDNs never matches and the
+  # sync is dropped. (Mirrors the operator's FQDNAllowlist CNP, field-tested on
+  # these clusters.)
   - toEndpoints:
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: kube-system
-        app: coredns
     toPorts:
     - ports:
       - port: "53"
         protocol: UDP
       - port: "53"
         protocol: TCP
+      rules:
+        dns:
+        - matchPattern: "*"
   # node-local-dns runs hostNetwork=true on a link-local IP (169.254.x.x);
-  # Cilium classifies that as the "world" entity. Bounded to port 53 only.
+  # Cilium classifies that as the "world" entity. No L7 dns rule — the DNS proxy
+  # doesn't intercept world destinations; FQDN policies resolve via the kube-dns
+  # rule above. Bounded to port 53.
   - toEntities:
     - world
     toPorts:
@@ -32,10 +40,19 @@ spec:
         protocol: UDP
       - port: "53"
         protocol: TCP
+  # Source + replica S3 endpoints. Each host gets both selectors so the rule is
+  # S3-access-style agnostic (no per-provider config):
+  #   - matchPattern "*.<host>" covers virtual-hosted style: the pod resolves
+  #     <bucket>.<host>.
+  #   - matchName "<host>" covers path-style: the pod resolves the bare <host>
+  #     with the bucket in the request path.
+  {{- $src := required "cronSync.source.host is required when chorusNetworkPolicy is enabled" .Values.cronSync.source.host }}
   - toFQDNs:
-    - matchName: {{ required "cronSync.source.host is required when chorusNetworkPolicy is enabled" .Values.cronSync.source.host | quote }}
-    {{- if and .Values.cronSync.replica.host (ne .Values.cronSync.replica.host .Values.cronSync.source.host) }}
+    - matchName: {{ $src | quote }}
+    - matchPattern: {{ printf "*.%s" $src | quote }}
+    {{- if and .Values.cronSync.replica.host (ne .Values.cronSync.replica.host $src) }}
     - matchName: {{ .Values.cronSync.replica.host | quote }}
+    - matchPattern: {{ printf "*.%s" .Values.cronSync.replica.host | quote }}
     {{- end }}
     toPorts:
     - ports:
