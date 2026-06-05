@@ -6,7 +6,7 @@ metadata:
   namespace: {{ $currentScope.Release.Namespace }}
 data:
 {{- range $path, $_ := .Files.Glob "files/realm/*-realm.yaml" }}
-  {{- $rendered := tpl (.Files.Get $path) $currentScope | trim }}
+  {{- $rendered := tpl ($.Files.Get $path) $currentScope | trim }}
   {{- if $rendered }}
   {{ base $path }}: |-
 {{ $rendered | nindent 4 }}
