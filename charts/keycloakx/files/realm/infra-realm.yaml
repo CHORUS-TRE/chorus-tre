@@ -7,6 +7,7 @@ enabled: true
 registrationAllowed: false
 roles:
   client:
+{{- if hasKey .Values.client "grafana" }}
     grafana:
       - name: editor
         description: ""
@@ -18,16 +19,24 @@ roles:
         composite: false
         clientRole: true
         attributes: {}
+{{- end }}
 groups:
+{{- if hasKey .Values.client "argocd" }}
   - name: "ArgoCDAdmins"
     path: "/ArgoCDAdmins"
     subGroups: []
+{{- end }}
+{{- if hasKey .Values.client "argo-workflows" }}
   - name: "ArgoWorkflowsAdmins"
     path: "/ArgoWorkflowsAdmins"
     subGroups: []
+{{- end }}
+{{- if hasKey .Values.client "harbor" }}
   - name: "HarborAdmins"
     path: "/HarborAdmins"
     subGroups: []
+{{- end }}
+{{- if hasKey .Values.client "grafana" }}
   - name: "Grafana"
     path: "/Grafana"
     subGroups:
@@ -45,6 +54,7 @@ groups:
         clientRoles:
           grafana:
             - editor
+{{- end }}
 passwordPolicy: "length(8) and specialChars(1) and upperCase(1) and lowerCase(1) and\
   \ digits(1) and notUsername and notEmail and notContainsUsername"
 webAuthnPolicySignatureAlgorithms:
@@ -94,6 +104,7 @@ clients:
     fullScopeAllowed: false
     nodeReRegistrationTimeout: 0
     access: {}
+{{- if hasKey .Values.client "grafana" }}
   - clientId: "grafana"
     name: "Grafana"
     rootUrl: "$(GRAFANA_ROOT_URL)"
@@ -142,6 +153,8 @@ clients:
       - "offline_access"
       - "groups"
     access: {}
+{{- end }}
+{{- if hasKey .Values.client "harbor" }}
   - clientId: "harbor"
     name: "Harbor"
     rootUrl: "$(HARBOR_ROOT_URL)"
@@ -175,6 +188,43 @@ clients:
       - "offline_access"
       - "groups"
     access: {}
+{{- end }}
+{{- if hasKey .Values.client "juicefs-dashboard" }}
+  - clientId: "juicefs-dashboard"
+    name: "JuiceFS Dashboard"
+    rootUrl: "$(JUICEFS_DASHBOARD_ROOT_URL)"
+    adminUrl: "$(JUICEFS_DASHBOARD_ADMIN_URL)"
+    baseUrl: "$(JUICEFS_DASHBOARD_BASE_URL)"
+    secret: "$(JUICEFS_DASHBOARD_CLIENT_SECRET)"
+    redirectUris: $(JUICEFS_DASHBOARD_REDIRECT_URIS)
+    webOrigins: $(JUICEFS_DASHBOARD_WEB_ORIGINS)
+    implicitFlowEnabled: true
+    directAccessGrantsEnabled: true
+    publicClient: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "false"
+      exclude.issuer.from.auth.response: "false"
+      backchannel.logout.session.required: "true"
+      client_credentials.use_refresh_token: "false"
+      display.on.consent.screen: "false"
+      oauth2.device.authorization.grant.enabled: "false"
+      backchannel.logout.revoke.offline.tokens: "false"
+      use.refresh.tokens: "true"
+      exclude.session.state.from.auth.response: "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
+    optionalClientScopes:
+      - "offline_access"
+      - "groups"
+    access: {}
+{{- end }}
+{{- if hasKey .Values.client "prometheus" }}
   - clientId: "prometheus"
     name: "Prometheus"
     rootUrl: "$(PROMETHEUS_ROOT_URL)"
@@ -217,14 +267,16 @@ clients:
       - "offline_access"
       - "groups"
     access: {}
-  - clientId: "argocd"
-    name: "Argo CD"
-    rootUrl: "$(ARGO_CD_ROOT_URL)"
-    adminUrl: "$(ARGO_CD_ADMIN_URL)"
-    baseUrl: "$(ARGO_CD_BASE_URL)"
-    secret: "$(ARGO_CD_CLIENT_SECRET)"
-    redirectUris: $(ARGO_CD_REDIRECT_URIS)
-    webOrigins: $(ARGO_CD_WEB_ORIGINS)
+{{- end }}
+{{- if hasKey .Values.client "matomo" }}
+  - clientId: "matomo"
+    name: "Matomo"
+    rootUrl: "$(MATOMO_ROOT_URL)"
+    adminUrl: "$(MATOMO_ADMIN_URL)"
+    baseUrl: "$(MATOMO_BASE_URL)"
+    secret: "$(MATOMO_CLIENT_SECRET)"
+    redirectUris: $(MATOMO_REDIRECT_URIS)
+    webOrigins: $(MATOMO_WEB_ORIGINS)
     publicClient: false
     protocol: "openid-connect"
     attributes:
@@ -247,42 +299,13 @@ clients:
       - basic
       - email
     optionalClientScopes:
+      - "address"
+      - "phone"
       - "offline_access"
-      - "groups"
+      - "microprofile-jwt"
     access: {}
-  - clientId: "argo-workflows"
-    name: "Argo Workflows"
-    rootUrl: "$(ARGO_WORKFLOWS_ROOT_URL)"
-    adminUrl: "$(ARGO_WORKFLOWS_ADMIN_URL)"
-    baseUrl: "$(ARGO_WORKFLOWS_BASE_URL)"
-    secret: "$(ARGO_WORKFLOWS_CLIENT_SECRET)"
-    redirectUris: $(ARGO_WORKFLOWS_REDIRECT_URIS)
-    webOrigins: $(ARGO_WORKFLOWS_WEB_ORIGINS)
-    publicClient: false
-    protocol: "openid-connect"
-    attributes:
-      realm_client: "false"
-      oidc.ciba.grant.enabled: "false"
-      exclude.issuer.from.auth.response: "false"
-      backchannel.logout.session.required: "true"
-      client_credentials.use_refresh_token: "false"
-      frontchannel.logout.session.required: "true"
-      display.on.consent.screen: "false"
-      oauth2.device.authorization.grant.enabled: "false"
-      backchannel.logout.revoke.offline.tokens: "false"
-      use.refresh.tokens: "true"
-      exclude.session.state.from.auth.response: "false"
-    defaultClientScopes:
-      - web-origins
-      - acr
-      - profile
-      - roles
-      - basic
-      - email
-    optionalClientScopes:
-      - "offline_access"
-      - "groups"
-    access: {}
+{{- end }}
+{{- if hasKey .Values.client "alertmanager" }}
   - clientId: "alertmanager"
     name: "Alertmanager"
     rootUrl: "$(ALERTMANAGER_ROOT_URL)"
@@ -325,6 +348,77 @@ clients:
       - "offline_access"
       - "groups"
     access: {}
+{{- end }}
+{{- if hasKey .Values.client "argocd" }}
+  - clientId: "argocd"
+    name: "Argo CD"
+    rootUrl: "$(ARGO_CD_ROOT_URL)"
+    adminUrl: "$(ARGO_CD_ADMIN_URL)"
+    baseUrl: "$(ARGO_CD_BASE_URL)"
+    secret: "$(ARGO_CD_CLIENT_SECRET)"
+    redirectUris: $(ARGO_CD_REDIRECT_URIS)
+    webOrigins: $(ARGO_CD_WEB_ORIGINS)
+    publicClient: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "false"
+      oidc.ciba.grant.enabled: "false"
+      exclude.issuer.from.auth.response: "false"
+      backchannel.logout.session.required: "true"
+      client_credentials.use_refresh_token: "false"
+      frontchannel.logout.session.required: "true"
+      display.on.consent.screen: "false"
+      oauth2.device.authorization.grant.enabled: "false"
+      backchannel.logout.revoke.offline.tokens: "false"
+      use.refresh.tokens: "true"
+      exclude.session.state.from.auth.response: "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
+    optionalClientScopes:
+      - "offline_access"
+      - "groups"
+    access: {}
+{{- end }}
+{{- if hasKey .Values.client "argo-workflows" }}
+  - clientId: "argo-workflows"
+    name: "Argo Workflows"
+    rootUrl: "$(ARGO_WORKFLOWS_ROOT_URL)"
+    adminUrl: "$(ARGO_WORKFLOWS_ADMIN_URL)"
+    baseUrl: "$(ARGO_WORKFLOWS_BASE_URL)"
+    secret: "$(ARGO_WORKFLOWS_CLIENT_SECRET)"
+    redirectUris: $(ARGO_WORKFLOWS_REDIRECT_URIS)
+    webOrigins: $(ARGO_WORKFLOWS_WEB_ORIGINS)
+    publicClient: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "false"
+      oidc.ciba.grant.enabled: "false"
+      exclude.issuer.from.auth.response: "false"
+      backchannel.logout.session.required: "true"
+      client_credentials.use_refresh_token: "false"
+      frontchannel.logout.session.required: "true"
+      display.on.consent.screen: "false"
+      oauth2.device.authorization.grant.enabled: "false"
+      backchannel.logout.revoke.offline.tokens: "false"
+      use.refresh.tokens: "true"
+      exclude.session.state.from.auth.response: "false"
+    defaultClientScopes:
+      - web-origins
+      - acr
+      - profile
+      - roles
+      - basic
+      - email
+    optionalClientScopes:
+      - "offline_access"
+      - "groups"
+    access: {}
+{{- end }}
 clientScopes:
   - name: "acr"
     description: "OpenID Connect scope for add acr (authentication context class reference)\
@@ -478,6 +572,7 @@ clientScopes:
           claim.name: "groups"
           userinfo.token.claim: "true"
 identityProviders:
+{{- if hasKey .Values.identityProviders "google" }}
   - alias: "google"
     displayName: ""
     providerId: "google"
@@ -499,6 +594,9 @@ identityProviders:
       clientSecret: "$(GOOGLE_CLIENT_SECRET)"
       caseSensitiveOriginalUsername: "false"
       defaultScope: "email openid"
+{{- else }}
+  []
+{{- end }}
 defaultLocale: ""
 attributes: {}
 keycloakVersion: "26.1.5"

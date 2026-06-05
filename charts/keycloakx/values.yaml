@@ -202,6 +202,11 @@ client:
     redirectUris: '["http://prometheus.local/*","http://alertmanager.local/*"]'
     webOrigins: '["http://prometheus.local"]'
 
+# Identity providers to configure in Keycloak realms.
+# Add an entry to enable the corresponding provider (e.g. google: {}).
+identityProviders:
+  google: {}
+
 # Optional workload-level cert; default path is edge TLS at the Ingress.
 certificate:
   enabled: false

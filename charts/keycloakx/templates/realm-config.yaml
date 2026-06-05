@@ -5,18 +5,10 @@ metadata:
   name: {{ printf "%s-realm-config" .Release.Name | quote }}
   namespace: {{ $currentScope.Release.Namespace }}
 data:
-{{- if .Values.client.chorus }}
-{{- range $path, $_ :=  .Files.Glob  "files/realm/remote/*-realm.yaml" }}
+{{- range $path, $_ := .Files.Glob "files/realm/*-realm.yaml" }}
+  {{- $rendered := tpl (.Files.Get $path) $currentScope | trim }}
+  {{- if $rendered }}
   {{ base $path }}: |-
-{{- with $currentScope }}
-{{ tpl (.Files.Get $path) . | nindent 4 }}
-{{- end }}
-{{- end }}
-{{- else }}
-{{- range $path, $_ :=  .Files.Glob  "files/realm/build/*-realm.yaml" }}
-  {{ base $path }}: |-
-{{- with $currentScope }}
-{{ .Files.Get $path | nindent 4 }}
-{{- end }}
-{{- end }}
+{{ $rendered | nindent 4 }}
+  {{- end }}
 {{- end }}
