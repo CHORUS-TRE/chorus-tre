@@ -21,11 +21,12 @@ spec:
     # Run on non-draft PR open, non-draft updates, and draft-to-ready transitions
     # so the GitHub status stays attached to the current head SHA.
     # The companion environment config still needs to register the chorus-tre
-    # repository on the `ci` webhookEvent and deliver pull_request events here;
-    # this sensor only filters events after the EventSource has received them.
+    # repository on the `chorus-tre` webhookEvent and deliver pull_request
+    # events here; this sensor only filters events after the EventSource has
+    # received them.
     - name: chart-e2e
       eventSourceName: {{ $fullName }}-github
-      eventName: ci
+      eventName: chorus-tre
       filters:
         data:
           - path: headers.X-Github-Event
