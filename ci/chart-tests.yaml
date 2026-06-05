@@ -1,0 +1,85 @@
+# ci/chart-tests.yaml — Chart e2e registry index
+#
+# Keeps the common defaults and small/simple chart entries in one place.
+# Larger chart-specific test definitions live under ci/chart-tests/charts/ and
+# are merged on top of this file at runtime by the workflow and Python runner.
+#
+# Structure:
+#   defaults:              Global defaults applied to all charts
+#   charts.<name>:         Per-chart configuration
+#                          Small/simple entries can stay in this file.
+#                          Larger chart configs can live in
+#                          ci/chart-tests/charts/<name>.yaml.
+#                          All files are merged into one registry at runtime.
+#     namespace:           K8s namespace (default: "test")
+#     timeout:             Seconds to wait for pods Ready (default: 120)
+#     values:              Inline --set overrides (key: value)
+#     values_file:         Path to a CI-specific values file (relative to repo root)
+#     fullname_override:   Optional stable K8s object/service name for this chart
+#     skip_deploy:         If true, skip helm install (e.g., CRD-only charts)
+#                          Known caveat: CRD charts are not auto-detected from
+#                          a *-crds name yet; keep explicit skip_deploy entries.
+#     depends_on:          List of chart names that must be deployed first
+#                          Dependencies are deployed (not tested) before this chart.
+#                          They remain running so the chart under test can connect.
+#                          The workflow also uses this graph in reverse: when a
+#                          dependency chart changes, its dependents are retested
+#                          as impacted services and the reason is printed in CI.
+#     dependency_values:   Dynamic --set overrides resolved from dependency charts
+#       <helm.value.key>:
+#         chart:          Dependency chart name referenced by depends_on
+#         attribute:      Resolved field: serviceName (default), releaseName, namespace,
+#                         servicePort, httpBaseUrl, or httpUrl
+#         path:           Optional suffix appended for httpUrl
+#     probe:               Optional source identity for reachability and HTTP health checks
+#       namespace:         Namespace where the probe pod should run
+#       labels:            Pod labels applied to the probe pod
+#     pre_install:         Commands to run before installing the chart under test
+#     services:            List of services to check for reachability after deployment
+#       - port:            Port to check
+#     health_check:        Application-level health verification
+#                          Deployable charts should define services and/or a
+#                          health_check so a --no-wait Helm fallback still has
+#                          a downstream readiness signal.
+#       port:              Port to check
+#       protocol:          "http" (default), "pg", or "mariadb"
+#       path:              HTTP path to check (e.g., /) - http mode only
+#       expect_status:     Expected HTTP status code (default: 200) - http mode only
+#       expect_content_type_regex: Case-insensitive regex for Content-Type - http mode only
+#       body_must_match:   Case-insensitive regex that must appear in the body - http mode only
+#       body_must_not_match: Case-insensitive regex that must not appear in the body - http mode only
+#       pg_user:           PostgreSQL user - pg mode only
+#       pg_db:             PostgreSQL database - pg mode only
+#       pg_password:       PostgreSQL password (plaintext, CI-only) - pg mode only
+#       query:             SQL query to execute - pg/mariadb mode (default: SELECT 1)
+#       mariadb_user:      MariaDB user - mariadb mode only
+#       mariadb_db:        MariaDB database - mariadb mode only
+#       mariadb_password:  MariaDB password (plaintext, CI-only) - mariadb mode only
+
+defaults:
+  namespace: test
+  timeout: 120
+
+charts:
+  cert-manager:
+    timeout: 300
+    depends_on:
+      - cert-manager-crds
+  cert-manager-crds:
+    skip_deploy: true
+  fluent-operator-crds:
+    skip_deploy: true
+  prometheus-operator-crds:
+    skip_deploy: true
+  trivy-operator-crds:
+    skip_deploy: true
+  chorus-priority-class:
+    skip_deploy: true
+  chorus-ci:
+    skip_deploy: true
+  self-signed-issuer:
+    skip_deploy: true
+  juicefs-csi-driver:
+    timeout: 300
+    pre_install:
+      - kubectl create secret generic juicefs-dashboard-secret --from-literal=username=admin --from-literal=password=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
