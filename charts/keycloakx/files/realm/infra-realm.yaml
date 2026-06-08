@@ -26,7 +26,7 @@ groups:
     path: "/ArgoCDAdmins"
     subGroups: []
 {{- end }}
-{{- if hasKey .Values.client "argo-workflows" }}
+{{- if hasKey .Values.client "argoWorkflows" }}
   - name: "ArgoWorkflowsAdmins"
     path: "/ArgoWorkflowsAdmins"
     subGroups: []
@@ -384,8 +384,8 @@ clients:
       - "groups"
     access: {}
 {{- end }}
-{{- if hasKey .Values.client "argo-workflows" }}
-  - clientId: "argo-workflows"
+{{- if hasKey .Values.client "argoWorkflows" }}
+  - clientId: "argoWorkflows"
     name: "Argo Workflows"
     rootUrl: "$(ARGO_WORKFLOWS_ROOT_URL)"
     adminUrl: "$(ARGO_WORKFLOWS_ADMIN_URL)"
