@@ -36,6 +36,27 @@ roles:
             - "manage-identity-providers"
             - "manage-authorization"
             - "view-identity-providers"
+{{- if hasKey .Values.client "chorus" }}
+          chorus-realm:
+            - "manage-authorization"
+            - "manage-realm"
+            - "view-identity-providers"
+            - "manage-users"
+            - "query-groups"
+            - "view-clients"
+            - "view-authorization"
+            - "manage-events"
+            - "create-client"
+            - "view-realm"
+            - "query-clients"
+            - "impersonation"
+            - "manage-clients"
+            - "manage-identity-providers"
+            - "query-users"
+            - "query-realms"
+            - "view-events"
+            - "view-users"
+{{- end }}
           master-realm:
             - "query-clients"
             - "view-clients"
@@ -139,12 +160,95 @@ roles:
         description: "${role_query-users}"
         composite: false
         clientRole: true
+{{- if hasKey .Values.client "chorus" }}
+    chorus-realm:
+      - name: "manage-authorization"
+        description: "${role_manage-authorization}"
+        composite: false
+        clientRole: true
+      - name: "manage-realm"
+        description: "${role_manage-realm}"
+        composite: false
+        clientRole: true
+      - name: "impersonation"
+        description: "${role_impersonation}"
+        composite: false
+        clientRole: true
+      - name: "query-clients"
+        description: "${role_query-clients}"
+        composite: false
+        clientRole: true
+      - name: "query-realms"
+        description: "${role_query-realms}"
+        composite: false
+        clientRole: true
+      - name: "manage-clients"
+        description: "${role_manage-clients}"
+        composite: false
+        clientRole: true
+      - name: "view-identity-providers"
+        description: "${role_view-identity-providers}"
+        composite: false
+        clientRole: true
+      - name: "manage-users"
+        description: "${role_manage-users}"
+        composite: false
+        clientRole: true
+      - name: "query-groups"
+        description: "${role_query-groups}"
+        composite: false
+        clientRole: true
+      - name: "manage-identity-providers"
+        description: "${role_manage-identity-providers}"
+        composite: false
+        clientRole: true
+      - name: "view-clients"
+        description: "${role_view-clients}"
+        composite: true
+        composites:
+          client:
+            chorus-realm:
+              - "query-clients"
+        clientRole: true
+      - name: "create-client"
+        description: "${role_create-client}"
+        composite: false
+        clientRole: true
+      - name: "view-realm"
+        description: "${role_view-realm}"
+        composite: false
+        clientRole: true
+      - name: "view-events"
+        description: "${role_view-events}"
+        composite: false
+        clientRole: true
+      - name: "view-users"
+        description: "${role_view-users}"
+        composite: true
+        composites:
+          client:
+            chorus-realm:
+              - "query-groups"
+              - "query-users"
+        clientRole: true
+      - name: "view-authorization"
+        description: "${role_view-authorization}"
+        composite: false
+        clientRole: true
+      - name: "manage-events"
+        description: "${role_manage-events}"
+        composite: false
+        clientRole: true
+      - name: "query-users"
+        description: "${role_query-users}"
+        composite: false
+        clientRole: true
+{{- end }}
     master-realm:
       - name: "manage-events"
         description: "${role_manage-events}"
         composite: false
         clientRole: true
-        containerId: "8bb6c065-c25a-40c9-8d6c-97742283a54b"
       - name: "query-groups"
         description: "${role_query-groups}"
         composite: false
@@ -277,6 +381,23 @@ clients:
     defaultClientScopes: []
     optionalClientScopes: []
     access: {}
+{{- if hasKey .Values.client "chorus" }}
+  - clientId: "chorus-realm"
+    name: "chorus Realm"
+    redirectUris: []
+    webOrigins: []
+    bearerOnly: true
+    publicClient: false
+    frontchannelLogout: false
+    protocol: "openid-connect"
+    attributes:
+      realm_client: "true"
+    fullScopeAllowed: false
+    nodeReRegistrationTimeout: 0
+    defaultClientScopes: []
+    optionalClientScopes: []
+    access: {}
+{{- end }}
   - clientId: "master-realm"
     name: "master Realm"
     redirectUris: []
@@ -423,6 +544,7 @@ clientScopes:
           claim.name: "clientHost"
           jsonType.label: "String"
 identityProviders:
+{{- if and .Values.identityProviders (dig "google" "enabled" false .Values.identityProviders) }}
   - alias: "google"
     displayName: ""
     providerId: "google"
@@ -444,5 +566,8 @@ identityProviders:
       clientSecret: "$(GOOGLE_CLIENT_SECRET)"
       caseSensitiveOriginalUsername: "false"
       defaultScope: "email openid"
+{{- else }}
+  []
+{{- end }}
 attributes: {}
 keycloakVersion: "26.1.5"
