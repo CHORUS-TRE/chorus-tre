@@ -203,9 +203,11 @@ client:
     webOrigins: '["http://prometheus.local"]'
 
 # Identity providers to configure in Keycloak realms.
-# Add an entry to enable the corresponding provider (e.g. google: {}).
+# Set enabled: false or omit the key entirely to disable a provider.
+# Set identityProviders: null to skip IDP configuration entirely.
 identityProviders:
-  google: {}
+  google:
+    enabled: true
 
 # Optional workload-level cert; default path is edge TLS at the Ingress.
 certificate:

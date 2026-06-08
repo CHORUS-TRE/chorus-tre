@@ -543,8 +543,9 @@ clientScopes:
           access.token.claim: "true"
           claim.name: "clientHost"
           jsonType.label: "String"
+{{- if .Values.identityProviders }}
 identityProviders:
-{{- if hasKey .Values.identityProviders "google" }}
+{{- if dig "google" "enabled" false .Values.identityProviders }}
   - alias: "google"
     displayName: ""
     providerId: "google"
@@ -566,8 +567,7 @@ identityProviders:
       clientSecret: "$(GOOGLE_CLIENT_SECRET)"
       caseSensitiveOriginalUsername: "false"
       defaultScope: "email openid"
-{{- else }}
-  []
+{{- end }}
 {{- end }}
 attributes: {}
 keycloakVersion: "26.1.5"
