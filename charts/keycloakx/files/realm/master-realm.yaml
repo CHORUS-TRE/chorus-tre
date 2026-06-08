@@ -567,6 +567,8 @@ identityProviders:
       clientSecret: "$(GOOGLE_CLIENT_SECRET)"
       caseSensitiveOriginalUsername: "false"
       defaultScope: "email openid"
+{{- else }}
+  []
 {{- end }}
 {{- end }}
 attributes: {}
