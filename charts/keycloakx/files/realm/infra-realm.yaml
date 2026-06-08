@@ -189,7 +189,7 @@ clients:
       - "groups"
     access: {}
 {{- end }}
-{{- if hasKey .Values.client "juicefs-dashboard" }}
+{{- if hasKey .Values.client "juicefsDashboard" }}
   - clientId: "juicefs-dashboard"
     name: "JuiceFS Dashboard"
     rootUrl: "$(JUICEFS_DASHBOARD_ROOT_URL)"

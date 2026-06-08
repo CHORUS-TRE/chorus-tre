@@ -142,9 +142,12 @@ keycloakConfigCli:
         - ALL
 
 # Client configuration consumed by keycloak-config-cli via IMPORT_VARSUBSTITUTION.
+# The typical scenarios are:
+# build-cluster: alertmanager, argocd, argoWorkflows, grafana, harbor, prometheus
+# chorus-instance-cluster: alertmanager, chorus, grafana, harbor, juicefsDashboard, matomo, prometheus
+# single-cluster: alertmanager, argocd, chorus, grafana, harbor, juicefsDashboard, matomo, prometheus
 client:
   existingSecret: keycloak-client-secret
-  # Build cluster clients
   # argocd:
   #   rootUrl: "http://argo-cd.local"
   #   adminUrl: "http://argo-cd.local"
@@ -157,7 +160,6 @@ client:
   #   baseUrl: "/workflows/argo"
   #   redirectUris: '["http://argo-workflows.local/oauth2/callback"]'
   #   webOrigins: '["http://argo-workflows.local"]'
-  # Remote cluster clients
   chorus:
     rootUrl: "http://backend.local"
     adminUrl: "http://backend.local"
@@ -170,7 +172,6 @@ client:
     baseUrl: "/"
     redirectUris: '["http://makoto.local/index.php?module=LoginOIDC&action=callback&provider=oidc","http://makoto.local"]'
     webOrigins: '["http://makoto.local"]'
-  # Common clients
   alertmanager:
     rootUrl: "http://alertmanager.local"
     adminUrl: "http://alertmanager.local"
@@ -189,12 +190,12 @@ client:
     baseUrl: "/harbor/projects"
     redirectUris: '["http://harbor.local/c/oidc/callback"]'
     webOrigins: '["http://harbor.local"]'
-  # juicefs-dashboard: opt-in. Envs that expose a JuiceFS dashboard declare a
-  # client.juicefs-dashboard block here (rootUrl/adminUrl/baseUrl/redirectUris/
-  # webOrigins) and add JUICEFS_DASHBOARD_CLIENT_SECRET to keycloak-client-secret.
-  # When omitted, the client is gated out of infra-realm.yaml and config-cli
-  # skips it cleanly. Do not put placeholder defaults here — they would defeat
-  # the hasKey gate (chart defaults merge under env overrides).
+  # juicefsDashboard:
+  #   rootUrl: "https://juicefs-dashboard.local"
+  #   adminUrl: "https://juicefs-dashboard.local"
+  #   baseUrl: "/"
+  #   redirectUris: '["https://juicefs-dashboard.local/oauth2/callback"]'
+  #   webOrigins: '["https://juicefs-dashboard.local"]'
   prometheus:
     rootUrl: "http://prometheus.local"
     adminUrl: "http://prometheus.local"

@@ -18,12 +18,12 @@ data:
   ARGO_CD_REDIRECT_URIS: {{ .Values.client.argocd.redirectUris | quote }}
   ARGO_CD_WEB_ORIGINS: {{ .Values.client.argocd.webOrigins | quote }}
 {{- end }}
-{{- if hasKey .Values.client "argo-workflows" }}
-  ARGO_WORKFLOWS_ROOT_URL: {{ index .Values.client "argo-workflows" "rootUrl" | quote }}
-  ARGO_WORKFLOWS_ADMIN_URL: {{ index .Values.client "argo-workflows" "adminUrl" | quote }}
-  ARGO_WORKFLOWS_BASE_URL: {{ index .Values.client "argo-workflows" "baseUrl" | quote }}
-  ARGO_WORKFLOWS_REDIRECT_URIS: {{ index .Values.client "argo-workflows" "redirectUris" | quote }}
-  ARGO_WORKFLOWS_WEB_ORIGINS: {{ index .Values.client "argo-workflows" "webOrigins" | quote }}
+{{- if hasKey .Values.client "argoWorkflows" }}
+  ARGO_WORKFLOWS_ROOT_URL: {{ .Values.client.argoWorkflows.rootUrl | quote }}
+  ARGO_WORKFLOWS_ADMIN_URL: {{ .Values.client.argoWorkflows.adminUrl | quote }}
+  ARGO_WORKFLOWS_BASE_URL: {{ .Values.client.argoWorkflows.baseUrl | quote }}
+  ARGO_WORKFLOWS_REDIRECT_URIS: {{ .Values.client.argoWorkflows.redirectUris | quote }}
+  ARGO_WORKFLOWS_WEB_ORIGINS: {{ .Values.client.argoWorkflows.webOrigins | quote }}
 {{- end }}
 {{- if hasKey .Values.client "chorus" }}
   CHORUS_ROOT_URL: {{ .Values.client.chorus.rootUrl | quote }}
@@ -46,12 +46,12 @@ data:
   HARBOR_REDIRECT_URIS: {{ .Values.client.harbor.redirectUris | quote }}
   HARBOR_WEB_ORIGINS: {{ .Values.client.harbor.webOrigins | quote }}
 {{- end }}
-{{- if hasKey .Values.client "juicefs-dashboard" }}
-  JUICEFS_DASHBOARD_ROOT_URL: {{ index .Values.client "juicefs-dashboard" "rootUrl" | quote }}
-  JUICEFS_DASHBOARD_ADMIN_URL: {{ index .Values.client "juicefs-dashboard" "adminUrl" | quote }}
-  JUICEFS_DASHBOARD_BASE_URL: {{ index .Values.client "juicefs-dashboard" "baseUrl" | quote }}
-  JUICEFS_DASHBOARD_REDIRECT_URIS: {{ index .Values.client "juicefs-dashboard" "redirectUris" | quote }}
-  JUICEFS_DASHBOARD_WEB_ORIGINS: {{ index .Values.client "juicefs-dashboard" "webOrigins" | quote }}
+{{- if hasKey .Values.client "juicefsDashboard" }}
+  JUICEFS_DASHBOARD_ROOT_URL: {{ .Values.client.juicefsDashboard.rootUrl | quote }}
+  JUICEFS_DASHBOARD_ADMIN_URL: {{ .Values.client.juicefsDashboard.adminUrl | quote }}
+  JUICEFS_DASHBOARD_BASE_URL: {{ .Values.client.juicefsDashboard.baseUrl | quote }}
+  JUICEFS_DASHBOARD_REDIRECT_URIS: {{ .Values.client.juicefsDashboard.redirectUris | quote }}
+  JUICEFS_DASHBOARD_WEB_ORIGINS: {{ .Values.client.juicefsDashboard.webOrigins | quote }}
 {{- end }}
 {{- if hasKey .Values.client "matomo" }}
   MATOMO_ROOT_URL: {{ .Values.client.matomo.rootUrl | quote }}
