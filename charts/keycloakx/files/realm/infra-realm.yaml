@@ -571,9 +571,8 @@ clientScopes:
           access.token.claim: "true"
           claim.name: "groups"
           userinfo.token.claim: "true"
-{{- if .Values.identityProviders }}
 identityProviders:
-{{- if dig "google" "enabled" false .Values.identityProviders }}
+{{- if and .Values.identityProviders (dig "google" "enabled" false .Values.identityProviders) }}
   - alias: "google"
     displayName: ""
     providerId: "google"
@@ -597,7 +596,6 @@ identityProviders:
       defaultScope: "email openid"
 {{- else }}
   []
-{{- end }}
 {{- end }}
 defaultLocale: ""
 attributes: {}

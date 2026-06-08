@@ -204,8 +204,8 @@ client:
     webOrigins: '["http://prometheus.local"]'
 
 # Identity providers to configure in Keycloak realms.
-# Set enabled: false or omit the key entirely to disable a provider.
-# Set identityProviders: null to skip IDP configuration entirely.
+# identityProviders: null or google.enabled: false renders identityProviders: []
+# which instructs keycloak-config-cli to delete any existing IDPs in Keycloak.
 identityProviders:
   google:
     enabled: true

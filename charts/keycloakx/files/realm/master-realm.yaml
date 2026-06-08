@@ -543,9 +543,8 @@ clientScopes:
           access.token.claim: "true"
           claim.name: "clientHost"
           jsonType.label: "String"
-{{- if .Values.identityProviders }}
 identityProviders:
-{{- if dig "google" "enabled" false .Values.identityProviders }}
+{{- if and .Values.identityProviders (dig "google" "enabled" false .Values.identityProviders) }}
   - alias: "google"
     displayName: ""
     providerId: "google"
@@ -569,7 +568,6 @@ identityProviders:
       defaultScope: "email openid"
 {{- else }}
   []
-{{- end }}
 {{- end }}
 attributes: {}
 keycloakVersion: "26.1.5"
