@@ -179,9 +179,6 @@ spec:
                           mountPath: /var/lib/docker
                       args:
                         - >-
-                          # Requires outbound access to download.docker.com,
-                          # kind.sigs.k8s.io, dl.k8s.io, get.helm.sh, and
-                          # github.com (for the yq release binary).
                           apt-get update &&
                           apt-get install -y --no-install-recommends ca-certificates curl git python3 &&
                           rm -rf /var/lib/apt/lists/* &&
