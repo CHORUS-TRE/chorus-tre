@@ -39,21 +39,41 @@ valkey:
     podMonitor:
       enabled: true
 
-  # Default-deny ingress: only pods in the release's own namespace may reach
-  # Redis (6379), and only Prometheus may scrape metrics (9121).
-  # `allowExternal: false` drops the chart's permit-all rule; the empty
-  # podSelector below then admits the whole own namespace without hardcoding
-  # its name. A cache whose consumers live in another namespace overrides
-  # `networkPolicy.extraIngress` to add a namespaceSelector for that namespace.
+  # Default-deny ingress: only pods in the release's own namespace reach Redis
+  # (6379), and only Prometheus scrapes metrics (9121).
+  #
+  # `allowExternal: false` drops the chart's permit-all rule. The empty
+  # podSelector in extraIngress admits the whole own namespace without
+  # hardcoding its name — this is the chart's job, leave it untouched.
+  #
+  # To grant a consumer in ANOTHER namespace, a release sets
+  #   networkPolicy.ingressNSMatchLabels: {kubernetes.io/metadata.name: <ns>}
+  # which appends a namespaceSelector to the built-in 6379 rule additively, so
+  # the own-namespace rule is preserved automatically (no need to restate it).
+  # This admits ONE extra namespace (matchLabels is a single AND-combined set);
+  # for 2+, override extraIngress instead and restate `podSelector: {}` — which
+  # re-introduces the restate-own-ns footgun, so treat it as a rare exception.
+  #
+  # networkPolicy.ingressNSMatchLabels (cache port) and
+  # networkPolicy.metrics.ingressNSMatchLabels are independent — overriding one
+  # leaves the other untouched. Both apply only while the matching allowExternal
+  # is false (the default here).
   networkPolicy:
     enabled: true
     allowExternal: false
     extraIngress:
+      # 6379 is literal and must match primary.containerPorts.valkey (its
+      # default). Don't template it: in a values list the scalar must be quoted,
+      # so it renders as a string, which NetworkPolicy reads as a *named* port
+      # and would match nothing. Update both together if the cache port changes.
       - ports:
           - port: 6379
             protocol: TCP
         from:
           - podSelector: {}
+    # The metrics namespace below assumes Prometheus runs in `prometheus`
+    # (true for current envs); override per-env if yours differs, or metrics
+    # scraping silently stops after a release adopts this default.
     metrics:
       allowExternal: false
       ingressNSMatchLabels:
