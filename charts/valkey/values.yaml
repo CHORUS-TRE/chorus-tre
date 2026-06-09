@@ -38,3 +38,23 @@ valkey:
 
     podMonitor:
       enabled: true
+
+  # Default-deny ingress: only pods in the release's own namespace may reach
+  # Redis (6379), and only Prometheus may scrape metrics (9121).
+  # `allowExternal: false` drops the chart's permit-all rule; the empty
+  # podSelector below then admits the whole own namespace without hardcoding
+  # its name. A cache whose consumers live in another namespace overrides
+  # `networkPolicy.extraIngress` to add a namespaceSelector for that namespace.
+  networkPolicy:
+    enabled: true
+    allowExternal: false
+    extraIngress:
+      - ports:
+          - port: 6379
+            protocol: TCP
+        from:
+          - podSelector: {}
+    metrics:
+      allowExternal: false
+      ingressNSMatchLabels:
+        kubernetes.io/metadata.name: prometheus
