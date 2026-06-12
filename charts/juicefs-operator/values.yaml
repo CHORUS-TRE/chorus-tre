@@ -17,13 +17,22 @@ chorusNetworkPolicy:
 # a dedicated replica bucket, daily, ciphertext-passthrough (no
 # --decrypt-rsa-key — chunks travel encrypted byte-for-byte).
 #
-# MONOTONIC by design: --update only, NEVER --delete.
+# MONOTONIC by design: plain default sync — NEVER --delete, NEVER --update.
 #   - --delete would make the replica a mirror, and mirrors propagate
 #     deletions. The primary threat is a source-bucket wipe (accidental
 #     object delete / key compromise scoped to source); with --delete the
 #     next run would replicate that wipe to the replica and destroy the
 #     backup. JuiceFS trash does NOT protect here — direct bucket-object
 #     deletion bypasses the filesystem trash entirely.
+#   - --update is deliberately OFF (it is opt-in; the default sync never
+#     overwrites an object already on the replica). JuiceFS chunk objects are
+#     immutable and metadata dumps use unique timestamped keys, so nothing is
+#     ever legitimately rewritten in place — there is no object --update would
+#     correctly refresh. What it WOULD do is propagate an in-place overwrite at
+#     the source (e.g. a compromised source-scoped key rewriting chunks with
+#     newer mtimes) onto the replica. Without it the replica keeps the original
+#     good bytes: append-only, strictly stronger against that same key-compromise
+#     threat.
 #   - Monotonic also gives the strongest restore guarantee: because no chunk
 #     is ever removed from the replica, EVERY metadata dump on the replica is
 #     fully restorable (all the chunks it references are still present). No
@@ -50,11 +59,12 @@ cronSync:
   # juicefs sync image; matches the JuiceFS CSI driver image stream.
   image: juicedata/juicefs:1.2.3
 
-  # juicefs sync options. --update skips destination objects already present
-  # with matching size (incremental after the first run). NO --delete (see the
-  # block comment above). NO --decrypt-rsa-key (ciphertext passthrough).
+  # juicefs sync options. Plain default sync is incremental and append-only:
+  # it copies new / size-differing objects and skips ones already on the
+  # replica, never overwriting them. NO --update (it would propagate in-place
+  # source overwrites — see the block comment above). NO --delete. NO
+  # --decrypt-rsa-key (ciphertext passthrough).
   options:
-    - "--update"
     - "--threads=10"
 
   managerResources:

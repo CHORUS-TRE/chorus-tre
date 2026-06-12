@@ -18,6 +18,10 @@ spec:
         juicefs.io/cronsync: {{ include "juicefs-operator.cronSyncName" . }}
     spec:
       image: {{ .Values.cronSync.image | quote }}
+      # Single sync pod on purpose. The egress CNP/NetworkPolicy allows only DNS
+      # + S3; raising this introduces manager↔worker pod-to-pod traffic that the
+      # policy would silently drop. If you ever need >1 for throughput, also add
+      # an intra-namespace egress rule in ciliumnetworkpolicy.yaml/networkpolicy.yaml.
       replicas: 1
       options:
         {{- range .Values.cronSync.options }}
