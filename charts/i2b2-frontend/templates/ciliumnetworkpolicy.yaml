@@ -4,7 +4,7 @@
   is the L3/L4 baseline; this CNP layers HTTP/DNS L7 rules on top for
   Cilium-backed clusters.
 */ -}}
-{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.enabledL7Waf -}}
+{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.enabledL7 -}}
 {{- $l7 := .Values.networkPolicy.l7 | default dict -}}
 {{- if or $l7.ingress $l7.egress }}
 apiVersion: cilium.io/v2

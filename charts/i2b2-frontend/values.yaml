@@ -129,18 +129,18 @@ networkPolicy:
   #     the K8s NetworkPolicy API (Cilium, Calico, vanilla kube-network, ...).
   #   * networkPolicy.l7.ingress / networkPolicy.l7.egress (further below) hold
   #     L7 (HTTP / DNS) rules in CiliumNetworkPolicy syntax. They are ONLY
-  #     consulted on Cilium clusters and only when enabledL7Waf is true.
+  #     consulted on Cilium clusters and only when enabledL7 is true.
   #
-  # enabledL7Waf is an explicit opt-in switch for the L7 layer. It does NOT
+  # enabledL7 is an explicit opt-in switch for the L7 layer. It does NOT
   # by itself produce any L7 filtering — the CiliumNetworkPolicy is rendered
   # only when BOTH conditions hold:
-  #     enabledL7Waf == true   AND   at least one of l7.ingress / l7.egress
+  #     enabledL7 == true   AND   at least one of l7.ingress / l7.egress
   #                                  contains rules.
-  # Flipping enabledL7Waf to true while leaving l7.{ingress,egress} empty is a
+  # Flipping enabledL7 to true while leaving l7.{ingress,egress} empty is a
   # no-op: only the K8s NetworkPolicy below will exist, giving L3/L4 enforcement
   # but NO HTTP-path / method / DNS filtering.
   # -----------------------------------------------------------------------------
-  enabledL7Waf: false
+  enabledL7: false
   # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
   # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
   ingress:
@@ -166,7 +166,7 @@ networkPolicy:
     - protocol: TCP
       port: 8080
   # L7 HTTP rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
-  # Only consulted when enabledL7Waf is true. Leave empty to skip the CNP entirely.
+  # Only consulted when enabledL7 is true. Leave empty to skip the CNP entirely.
   l7:
     ingress: []
     egress: []
