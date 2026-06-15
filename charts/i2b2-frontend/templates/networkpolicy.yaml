@@ -17,14 +17,14 @@ spec:
   {{- if .Values.networkPolicy.ingress }}
   {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
   {{- else }}
-  # Default Deny Ingress: Empty ingress list means deny all unless explicitly allowed
+  {{- /* Default deny: empty ingress list means deny all unless explicitly allowed */}}
   []
   {{- end }}
   egress:
   {{- with .Values.networkPolicy.egress }}
   {{- toYaml . | nindent 4 }}
   {{- end }}
-    # Always allow DNS resolution to kube-system
+    {{- /* Always allow DNS resolution to kube-system */}}
     - to:
       - namespaceSelector:
           matchLabels:
