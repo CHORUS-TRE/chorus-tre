@@ -13,9 +13,6 @@ spec:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   syncTemplate:
-    metadata:
-      labels:
-        juicefs.io/cronsync: {{ include "juicefs-operator.cronSyncName" . }}
     spec:
       image: {{ .Values.cronSync.image | quote }}
       # Single sync pod on purpose. The egress CNP/NetworkPolicy allows only DNS

@@ -17,22 +17,23 @@ chorusNetworkPolicy:
 # a dedicated replica bucket, daily, ciphertext-passthrough (no
 # --decrypt-rsa-key — chunks travel encrypted byte-for-byte).
 #
-# MONOTONIC by design: plain default sync — NEVER --delete, NEVER --update.
+# MONOTONIC + APPEND-ONLY by design: NEVER --delete, NEVER --update, ALWAYS --ignore-existing.
 #   - --delete would make the replica a mirror, and mirrors propagate
 #     deletions. The primary threat is a source-bucket wipe (accidental
 #     object delete / key compromise scoped to source); with --delete the
 #     next run would replicate that wipe to the replica and destroy the
 #     backup. JuiceFS trash does NOT protect here — direct bucket-object
 #     deletion bypasses the filesystem trash entirely.
-#   - --update is deliberately OFF (it is opt-in; the default sync never
-#     overwrites an object already on the replica). JuiceFS chunk objects are
-#     immutable and metadata dumps use unique timestamped keys, so nothing is
-#     ever legitimately rewritten in place — there is no object --update would
-#     correctly refresh. What it WOULD do is propagate an in-place overwrite at
-#     the source (e.g. a compromised source-scoped key rewriting chunks with
-#     newer mtimes) onto the replica. Without it the replica keeps the original
-#     good bytes: append-only, strictly stronger against that same key-compromise
-#     threat.
+#   - --ignore-existing makes the replica TRULY append-only: it skips ANY key
+#     already on the replica, regardless of size. This matters because plain
+#     juicefs sync (no flag) still OVERWRITES an existing key when the source
+#     object's SIZE differs — which would propagate an in-place source rewrite
+#     (e.g. a compromised source-scoped key) onto the replica. We never want
+#     that, and it costs nothing legitimate: JuiceFS data objects are immutable
+#     by key — a file edit writes NEW blocks under NEW keys and metadata dumps
+#     use unique timestamped keys, so a real change always arrives as a new key
+#     and is copied normally. --ignore-existing only ever skips keys whose bytes
+#     are immutable by design. (--update, the opt-in mtime-overwrite, is OFF too.)
 #   - Monotonic also gives the strongest restore guarantee: because no chunk
 #     is ever removed from the replica, EVERY metadata dump on the replica is
 #     fully restorable (all the chunks it references are still present). No
@@ -59,12 +60,14 @@ cronSync:
   # juicefs sync image; matches the JuiceFS CSI driver image stream.
   image: juicedata/juicefs:1.2.3
 
-  # juicefs sync options. Plain default sync is incremental and append-only:
-  # it copies new / size-differing objects and skips ones already on the
-  # replica, never overwriting them. NO --update (it would propagate in-place
-  # source overwrites — see the block comment above). NO --delete. NO
+  # juicefs sync options. --ignore-existing = true append-only: skip EVERY key
+  # already on the replica (plain sync would still overwrite an existing key
+  # when the source size differs — see the block comment above). Safe for a
+  # JuiceFS source: data objects are immutable by key, so real changes arrive
+  # as new keys and are copied normally. NO --update. NO --delete. NO
   # --decrypt-rsa-key (ciphertext passthrough).
   options:
+    - "--ignore-existing"
     - "--threads=10"
 
   managerResources:
