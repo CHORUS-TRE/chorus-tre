@@ -121,26 +121,52 @@ cm:
 
 networkPolicy:
   enabled: true
-  # Enable L7 Web Application Firewall for advanced HTTP traffic control
-  enabledL7Waf: true
+  # -----------------------------------------------------------------------------
+  # Two-layer model:
+  #   * networkPolicy.ingress / networkPolicy.egress (below) define L3/L4 rules
+  #     in standard K8s NetworkPolicy syntax. They are ALWAYS rendered when
+  #     networkPolicy.enabled is true, and they work on any CNI that implements
+  #     the K8s NetworkPolicy API (Cilium, Calico, vanilla kube-network, ...).
+  #   * networkPolicy.l7.ingress / networkPolicy.l7.egress (further below) hold
+  #     L7 (HTTP / DNS) rules in CiliumNetworkPolicy syntax. They are ONLY
+  #     consulted on Cilium clusters and only when enabledL7Waf is true.
+  #
+  # enabledL7Waf is an explicit opt-in switch for the L7 layer. It does NOT
+  # by itself produce any L7 filtering — the CiliumNetworkPolicy is rendered
+  # only when BOTH conditions hold:
+  #     enabledL7Waf == true   AND   at least one of l7.ingress / l7.egress
+  #                                  contains rules.
+  # Flipping enabledL7Waf to true while leaving l7.{ingress,egress} empty is a
+  # no-op: only the K8s NetworkPolicy below will exist, giving L3/L4 enforcement
+  # but NO HTTP-path / method / DNS filtering.
+  # -----------------------------------------------------------------------------
+  enabledL7Waf: false
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
   ingress:
   # Allow ingress only from Envoy Gateway. Frontend exposure is expected
   # to be handled through chorus-gateway rather than a chart-local Ingress.
-  - fromEndpoints:
-    - matchLabels:
-        k8s:io.kubernetes.pod.namespace: envoy-gateway-system
-        app.kubernetes.io/managed-by: envoy-gateway
-    toPorts:
-    - ports:
-      - port: "80"
-        protocol: TCP
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
+    ports:
+    - protocol: TCP
+      port: 80
   egress:
   # Allow egress to i2b2-wildfly
-  - toEndpoints:
-    - matchLabels:
-        app.kubernetes.io/name: i2b2-wildfly
-        # io.kubernetes.pod.namespace: i2b2-wildfly
-    toPorts:
-    - ports:
-      - port: "8080"
-        protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: i2b2-wildfly
+    ports:
+    - protocol: TCP
+      port: 8080
+  # L7 HTTP rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
+  # Only consulted when enabledL7Waf is true. Leave empty to skip the CNP entirely.
+  l7:
+    ingress: []
+    egress: []
