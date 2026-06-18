@@ -157,7 +157,10 @@ networkPolicy:
     - protocol: TCP
       port: 80
   egress:
-  # Allow egress to i2b2-wildfly
+  # Allow egress to i2b2-wildfly. Assumes i2b2-frontend and i2b2-wildfly are
+  # co-located in the same namespace (the case for every chorus-tre env today);
+  # if they ever split, add a `namespaceSelector` here or wildfly is silently
+  # denied.
   - to:
     - podSelector:
         matchLabels:
@@ -167,6 +170,12 @@ networkPolicy:
       port: 8080
   # L7 HTTP rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
   # Only consulted when enabledL7 is true. Leave empty to skip the CNP entirely.
+  #
+  # IMPORTANT — Cilium L4/L7 shadowing: if a port is opened unconditionally in
+  # the K8s NetworkPolicy above (networkPolicy.ingress/egress), the broader
+  # L4 grant wins and any L7 rule you add here for that same port is silently
+  # NOT enforced. To get L7 filtering on a port, that port must NOT also be
+  # opened in the K8s NP for the same direction — let the CNP own it.
   l7:
     ingress: []
     egress: []
