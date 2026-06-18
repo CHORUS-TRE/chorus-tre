@@ -385,7 +385,7 @@ clients:
     access: {}
 {{- end }}
 {{- if hasKey .Values.client "argoWorkflows" }}
-  - clientId: "argoWorkflows"
+  - clientId: "argo-workflows"
     name: "Argo Workflows"
     rootUrl: "$(ARGO_WORKFLOWS_ROOT_URL)"
     adminUrl: "$(ARGO_WORKFLOWS_ADMIN_URL)"
