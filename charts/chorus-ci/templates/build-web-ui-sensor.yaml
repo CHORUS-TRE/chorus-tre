@@ -266,7 +266,6 @@ spec:
                                   passwordSecret:
                                     name: {{ $githubSecretName }}
                                     key: {{ $githubSecretPasswordKey }}
-                                  depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
                       - - name: helm-publish
@@ -294,7 +293,6 @@ spec:
                                   passwordSecret:
                                     name: {{ $githubSecretName }}
                                     key: {{ $githubSecretPasswordKey }}
-                                  depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
 
           parameters:
