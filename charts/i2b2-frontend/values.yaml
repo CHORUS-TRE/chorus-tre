@@ -143,6 +143,7 @@ networkPolicy:
   enabledL7: false
   # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
   # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # Set `ingress: []` to lock the pod down with a default-deny (no traffic in).
   ingress:
   # Allow ingress only from Envoy Gateway. Frontend exposure is expected
   # to be handled through chorus-gateway rather than a chart-local Ingress.
