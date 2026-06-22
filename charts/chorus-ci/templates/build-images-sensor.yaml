@@ -98,7 +98,6 @@ spec:
                             passwordSecret:
                               name: {{ $githubSecretName }}
                               key: {{ $githubSecretPasswordKey }}
-                            depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     script:
                       image: {{ .Values.chorusImages.python.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusImages.python.imageNamespace | default .Values.global.imageNamespace }}/python:{{ .Values.chorusImages.python.tag | default "latest" }}
@@ -223,7 +222,6 @@ spec:
                             passwordSecret:
                               name: {{ $githubSecretName }}
                               key: {{ $githubSecretPasswordKey }}
-                            depth: 1
                             ref: "{{`{{workflow.parameters.ref}}`}}"
                     volumes:
                       - name: docker-data

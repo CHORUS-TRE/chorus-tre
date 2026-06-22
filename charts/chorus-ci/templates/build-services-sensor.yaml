@@ -88,7 +88,6 @@ spec:
                                   passwordSecret:
                                     name: {{ $githubSecretName }}
                                     key: {{ $githubSecretPasswordKey }}
-                                  depth: 1
                                   ref: "{{`{{workflow.parameters.ref}}`}}"
                           # This loops over the service names from get-paths
                           withParam: "{{`{{steps.get-paths.outputs.result}}`}}"
