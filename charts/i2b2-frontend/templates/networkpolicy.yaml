@@ -24,11 +24,24 @@ spec:
   {{- with .Values.networkPolicy.egress }}
   {{- toYaml . | nindent 4 }}
   {{- end }}
-    {{- /* Always allow DNS resolution to kube-system */}}
+    {{- /* Always allow DNS resolution to CoreDNS in .Values.networkPolicy.dnsNamespace
+           (default kube-system). Two podSelectors OR'd: `k8s-app: kube-dns` is the
+           upstream CoreDNS label, `app: coredns` is the variant some chorus-tre
+           clusters ship. node-local-dns is intentionally not covered — its
+           hostNetwork pods can't be matched by K8s NP podSelector. */}}
     - to:
       - namespaceSelector:
           matchLabels:
-            kubernetes.io/metadata.name: kube-system
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            app: coredns
       ports:
       - protocol: UDP
         port: 53

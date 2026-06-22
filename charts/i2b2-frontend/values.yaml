@@ -141,6 +141,9 @@ networkPolicy:
   # but NO HTTP-path / method / DNS filtering.
   # -----------------------------------------------------------------------------
   enabledL7: false
+  # Namespace where CoreDNS lives. Override per-env if the cluster runs DNS
+  # outside kube-system (e.g. OpenShift uses `openshift-dns`).
+  dnsNamespace: kube-system
   # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
   # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
   # Set `ingress: []` to lock the pod down with a default-deny (no traffic in).
