@@ -1,8 +1,9 @@
 {{- /*
   Render a CiliumNetworkPolicy only when L7 inspection is requested AND at
   least one L7 rule is provided. The K8s NetworkPolicy in networkpolicy.yaml
-  is the L3/L4 baseline; this CNP layers HTTP/DNS L7 rules on top for
-  Cilium-backed clusters.
+  is the L3/L4 baseline; this CNP layers L7 rules on top for ports not
+  already opened in the K8s NetworkPolicy (see the L4/L7-shadowing note
+  in values.yaml). Cilium-backed clusters only.
 */ -}}
 {{- if and .Values.networkPolicy.enabled .Values.networkPolicy.enabledL7 -}}
 {{- $l7 := .Values.networkPolicy.l7 | default dict -}}
