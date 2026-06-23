@@ -1,0 +1,105 @@
+# Upstream operator subchart config. Leaving defaults runs the controller with
+# its own namespace, cluster-wide watch, and the CronSync / Sync / CacheGroup /
+# Warmup CRDs installed.
+juicefs-operator: {}
+
+# Egress policy for the CronSync's sync pods (app.kubernetes.io/managed-by:
+# juicefs-operator). Only rendered when cronSync.enabled is true — the policy
+# follows what the sync needs; operator-only installs get no policy.
+# enabled=false           → no policy
+# enabled_l7_waf=true     → CiliumNetworkPolicy (toFQDNs-restricted egress)
+# enabled_l7_waf=false    → plain NetworkPolicy (TCP 443 allow-any egress)
+chorusNetworkPolicy:
+  enabled: true
+  enabled_l7_waf: true
+
+# One CronSync replicates the whole source JuiceFS bucket (chunks/ + meta/) to
+# a dedicated replica bucket, daily, ciphertext-passthrough (no
+# --decrypt-rsa-key — chunks travel encrypted byte-for-byte).
+#
+# MONOTONIC + APPEND-ONLY by design: NEVER --delete, NEVER --update, ALWAYS --ignore-existing.
+#   - --delete would make the replica a mirror, and mirrors propagate
+#     deletions. The primary threat is a source-bucket wipe (accidental
+#     object delete / key compromise scoped to source); with --delete the
+#     next run would replicate that wipe to the replica and destroy the
+#     backup. JuiceFS trash does NOT protect here — direct bucket-object
+#     deletion bypasses the filesystem trash entirely.
+#   - --ignore-existing makes the replica TRULY append-only: it skips ANY key
+#     already on the replica, regardless of size. This matters because plain
+#     juicefs sync (no flag) still OVERWRITES an existing key when the source
+#     object's SIZE differs — which would propagate an in-place source rewrite
+#     (e.g. a compromised source-scoped key) onto the replica. We never want
+#     that, and it costs nothing legitimate: JuiceFS data objects are immutable
+#     by key — a file edit writes NEW blocks under NEW keys and metadata dumps
+#     use unique timestamped keys, so a real change always arrives as a new key
+#     and is copied normally. --ignore-existing only ever skips keys whose bytes
+#     are immutable by design. (--update, the opt-in mtime-overwrite, is OFF too.)
+#   - Monotonic also gives the strongest restore guarantee: because no chunk
+#     is ever removed from the replica, EVERY metadata dump on the replica is
+#     fully restorable (all the chunks it references are still present). No
+#     trash-days dependency, no "restore only from a settled dump" caveat.
+#
+# Retention is intentionally NOT enforced by any provider-side S3 lifecycle
+# policy (none required). Both chunks and metadata dumps accumulate on the
+# replica. The replica grows slowly (chunks for files deleted on source are
+# never pruned). Monitor replica bucket size until GC lands.
+# TODO: add an in-cluster chunk-GC CronJob to bound replica growth.
+#
+# Restore needs the source's RSA private key (juicefs-secret's
+# encrypt_rsa_key + passphrase): chunks are source-encrypted ciphertext, so
+# the key is mandatory to read them back. Escrow it in the secret vault — the
+# replica is worthless without it.
+cronSync:
+  enabled: false
+
+  # Daily 04:00 UTC. After the env's daily cluster-backup window and after an
+  # hourly JuiceFS metadata auto-backup, so the walk grabs a fresh metadata
+  # dump alongside the chunks.
+  schedule: "0 4 * * *"
+
+  # juicefs sync image; matches the JuiceFS CSI driver image stream.
+  image: juicedata/juicefs:1.2.3
+
+  # juicefs sync options. --ignore-existing = true append-only: skip EVERY key
+  # already on the replica (plain sync would still overwrite an existing key
+  # when the source size differs — see the block comment above). Safe for a
+  # JuiceFS source: data objects are immutable by key, so real changes arrive
+  # as new keys and are copied normally. NO --update. NO --delete. NO
+  # --decrypt-rsa-key (ciphertext passthrough).
+  options:
+    - "--ignore-existing"
+    - "--threads=10"
+
+  managerResources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  workerResources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  # Source bucket (the live JuiceFS data bucket). Set per-env.
+  source:
+    # S3 endpoint host (no scheme).
+    host: ""
+    # Source bucket name.
+    bucket: ""
+    # Name of the Secret holding the source bucket credentials in the release
+    # namespace. Must carry keys: access-key, secret-key.
+    secretName: "juicefs-secret"
+
+  # Replica destination. Set per-env. Use a dedicated bucket (not a prefix in a
+  # shared bucket) — keeps the s3 URI clean and per-workload billing separate.
+  replica:
+    host: ""
+    bucket: ""
+    # Name of the Secret holding the replica bucket credentials. Created
+    # out-of-band per env. Must carry keys: access-key, secret-key.
+    secretName: "juicefs-sync-replica"
