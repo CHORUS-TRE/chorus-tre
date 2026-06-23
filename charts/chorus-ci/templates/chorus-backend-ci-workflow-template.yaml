@@ -137,7 +137,6 @@ spec:
                     passwordSecret:
                       name: {{ $githubSecretName }}
                       key: {{ $githubSecretPasswordKey }}
-                    depth: 1
                     ref: "{{`{{workflow.parameters.ref}}`}}"
         - - name: backend-acceptance-tests
             templateRef:
@@ -179,5 +178,4 @@ spec:
                     passwordSecret:
                       name: {{ $githubSecretName }}
                       key: {{ $githubSecretPasswordKey }}
-                    depth: 1
                     ref: "{{`{{workflow.parameters.ref}}`}}"

@@ -1,3 +1,4 @@
+{{- if hasKey .Values.client "chorus" }}
 ---
 realm: "chorus"
 displayName: ""
@@ -245,3 +246,4 @@ clientScopes:
 defaultLocale: ""
 attributes: {}
 keycloakVersion: "26.1.5"
+{{- end }}

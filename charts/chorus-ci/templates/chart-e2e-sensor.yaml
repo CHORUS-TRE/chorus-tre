@@ -1,0 +1,259 @@
+{{- $fullName := include "chorus-ci.fullname" . -}}
+{{- $serviceAccountName := include "chorus-ci.serviceAccountName" . -}}
+{{- $githubSecretName := .Values.gitCredentials.secretName | default "argo-workflows-github-pat" }}
+{{- $githubSecretUsernameKey := .Values.gitCredentials.usernameKey | default "username" }}
+{{- $githubSecretPasswordKey := .Values.gitCredentials.passwordKey | default "password" }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: {{ $fullName }}-chart-e2e
+  labels:
+    {{- include "chorus-ci.labels" . | nindent 4 }}
+spec:
+  eventBusName: {{ $fullName }}-default
+  template:
+    serviceAccountName: {{ $serviceAccountName }}
+
+  dependencies:
+    # Repo-wide PR trigger. The Python planner keeps the exact chart-e2e target
+    # selection logic and exits early when the PR does not touch chart-e2e scope.
+    # Run on non-draft PR open, non-draft updates, and draft-to-ready transitions
+    # so the GitHub status stays attached to the current head SHA.
+    # The companion environment config still needs to register the chorus-tre
+    # repository on the `chorus-tre` webhookEvent and deliver pull_request
+    # events here; this sensor only filters events after the EventSource has
+    # received them.
+    - name: chart-e2e
+      eventSourceName: {{ $fullName }}-github
+      eventName: chorus-tre
+      filters:
+        data:
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              - pull_request
+          - path: body.action
+            type: string
+            value:
+              - opened
+              - synchronize
+              - ready_for_review
+          - path: body.pull_request.draft
+            type: bool
+            value:
+              - "false"
+          - path: body.pull_request.base.ref
+            type: string
+            value:
+              - master
+
+  triggers:
+    - template:
+        conditions: chart-e2e
+        name: github-workflow-trigger-chart-e2e
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: "-"
+              spec:
+                serviceAccountName: {{ $serviceAccountName }}
+                # Combined with the retryStrategy below, a failed attempt can
+                # rebuild Kind and rerun the full chart-e2e suite up to three
+                # times total. This favors transient infrastructure recovery
+                # over shorter runtime for genuinely failing charts.
+                entrypoint: chart-e2e
+                activeDeadlineSeconds: {{ .Values.chorusTreChartE2E.activeDeadlineSeconds | default 5400 }}
+
+                volumeClaimTemplates:
+                  - metadata:
+                      name: docker-data
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: {{ .Values.chorusTreChartE2E.dockerDataStorage.storageRequest | default .Values.workflow.dockerDataStorage.storageRequest | quote }}
+                      storageClassName: {{ .Values.chorusTreChartE2E.dockerDataStorage.storageClassName | default .Values.workflow.dockerDataStorage.storageClassName | quote }}
+
+                arguments:
+                  parameters:
+                    - name: repoUrl
+                    - name: repoFullName
+                    - name: ref
+                    - name: sha
+                    - name: baseRef
+                    - name: baseSha
+
+                hooks:
+                  running:
+                    expression: workflow.status == "Running"
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                        - name: contextSuffix
+                          value: "chart-e2e"
+                  exit:
+                    templateRef:
+                      name: {{ $fullName }}-github-notify-template
+                      template: github-notify
+                    arguments:
+                      parameters:
+                        - name: repoFullName
+                          value: "{{`{{workflow.parameters.repoFullName}}`}}"
+                        - name: sha
+                          value: "{{`{{workflow.parameters.sha}}`}}"
+                        - name: githubSecret
+                          value: {{ $githubSecretName }}
+                        - name: contextSuffix
+                          value: "chart-e2e"
+
+                templates:
+                  - name: chart-e2e
+                    steps:
+                      - - name: stop-previous-workflows
+                          templateRef:
+                            name: {{ $fullName }}-stop-previous-workflows-template
+                            template: stop-previous-workflows
+                          arguments:
+                            parameters:
+                              - name: repo
+                                value: "{{`{{workflow.labels.repo}}`}}"
+                              - name: ref
+                                value: "{{`{{workflow.labels.ref}}`}}"
+                              - name: type
+                                value: "{{`{{workflow.labels.type}}`}}"
+                      - - name: run-chart-e2e
+                          template: run-chart-e2e
+
+                  - name: run-chart-e2e
+                    # Retries rerun the whole template, including tool bootstrap,
+                    # Kind cluster creation, dependency installs, and all chart
+                    # targets.
+                    retryStrategy:
+                      limit: 2
+                    inputs:
+                      artifacts:
+                        - name: git
+                          path: "/src"
+                          git:
+                            repo: "{{`{{workflow.parameters.repoUrl}}`}}"
+                            revision: "{{`{{workflow.parameters.sha}}`}}"
+                            usernameSecret:
+                              name: {{ $githubSecretName }}
+                              key: {{ $githubSecretUsernameKey }}
+                            passwordSecret:
+                              name: {{ $githubSecretName }}
+                              key: {{ $githubSecretPasswordKey }}
+                            ref: "{{`{{workflow.parameters.ref}}`}}"
+                    sidecars:
+                      - name: dind
+                        image: {{ .Values.template.docker.imageDomain | default .Values.global.imageDomain }}/{{ .Values.template.docker.imageNamespace | default .Values.global.imageNamespace }}/docker:{{ .Values.template.docker.tag | default "stable" }}-dind
+                        command: ["sh", "-c"]
+                        args: ["apk add --no-cache fuse-overlayfs && sysctl -w fs.inotify.max_user_watches=1048576; sysctl -w fs.inotify.max_user_instances=512; exec dockerd-entrypoint.sh --default-cgroupns-mode=host --storage-driver=fuse-overlayfs"]
+                        env:
+                          - name: DOCKER_TLS_CERTDIR
+                            value: ""
+                        securityContext:
+                          privileged: true
+                        mirrorVolumeMounts: true
+                    container:
+                      image: {{ .Values.chorusTreChartE2E.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusTreChartE2E.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusTreChartE2E.golang.tag | default "1.25-bookworm" }}
+                      command: [sh, -e, -c]
+                      env:
+                        - name: DOCKER_HOST
+                          value: "tcp://127.0.0.1:2375"
+                      volumeMounts:
+                        - name: docker-data
+                          mountPath: /var/lib/docker
+                      args:
+                        - >-
+                          apt-get update &&
+                          apt-get install -y --no-install-recommends ca-certificates curl git python3 &&
+                          rm -rf /var/lib/apt/lists/* &&
+                          curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-{{ .Values.template.docker.tag | default "28.1.1" }}.tgz | tar xz -C /tmp &&
+                          mv /tmp/docker/docker /usr/local/bin/ &&
+                          curl -fsSL https://kind.sigs.k8s.io/dl/{{ .Values.chorusTreChartE2E.tools.kindVersion | default "v0.31.0" }}/kind-linux-amd64 -o /usr/local/bin/kind &&
+                          chmod +x /usr/local/bin/kind &&
+                          curl -fsSL https://dl.k8s.io/release/{{ .Values.chorusTreChartE2E.tools.kubectlVersion | default "v1.35.0" }}/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl &&
+                          chmod +x /usr/local/bin/kubectl &&
+                          curl -fsSL https://get.helm.sh/helm-{{ .Values.chorusTreChartE2E.tools.helmVersion | default "v4.1.4" }}-linux-amd64.tar.gz | tar xz -C /tmp &&
+                          mv /tmp/linux-amd64/helm /usr/local/bin/ &&
+                          curl -fsSL https://github.com/mikefarah/yq/releases/download/{{ .Values.chorusTreChartE2E.tools.yqVersion | default "v4.44.6" }}/yq_linux_amd64 -o /usr/local/bin/yq &&
+                          chmod +x /usr/local/bin/yq &&
+                          until docker info >/dev/null 2>&1; do sleep 3; done;
+                          echo "=== Docker info ===";
+                          docker info;
+                          echo "=== Disk usage ===";
+                          df -h /var/lib/docker;
+                          echo "=== Tool versions ===";
+                          python3 --version;
+                          helm version --short;
+                          kind version;
+                          kubectl version --client;
+                          yq --version;
+                          echo "=====================";
+                          python3 ./ci/run-chart-e2e-workflow.py --base-sha "{{`{{workflow.parameters.baseSha}}`}}" --head-sha "{{`{{workflow.parameters.sha}}`}}" --base-ref "{{`{{workflow.parameters.baseRef}}`}}"
+                      workingDir: "/src"
+
+          parameters:
+            - src:
+                dependencyName: chart-e2e
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: chart-e2e
+                dataKey: body.repository.full_name
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: chart-e2e
+                dataKey: body.pull_request.head.ref
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: chart-e2e
+                dataKey: body.pull_request.head.sha
+              dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: chart-e2e
+                dataKey: body.pull_request.base.ref
+              dest: spec.arguments.parameters.4.value
+            - src:
+                dependencyName: chart-e2e
+                dataKey: body.pull_request.base.sha
+              dest: spec.arguments.parameters.5.value
+            - src:
+                dependencyName: chart-e2e
+                dataTemplate: "chart-e2e-pr{{`{{ .Input.body.pull_request.number }}`}}"
+              dest: metadata.generateName
+              operation: prepend
+            - src:
+                dependencyName: chart-e2e
+                dataTemplate: "chart-e2e {{`{{ .Input.body.repository.full_name }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/title
+            - src:
+                dependencyName: chart-e2e
+                dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
+              dest: metadata.annotations.workflows\.argoproj\.io/description
+            - src:
+                dependencyName: chart-e2e
+                dataTemplate: '{{`{{ .Input.body.repository.full_name | replace "/" "-" }}`}}'
+              dest: metadata.labels.repo
+            - src:
+                dependencyName: chart-e2e
+                dataTemplate: '{{`{{ .Input.body.pull_request.head.ref | replace "/" "-" }}`}}'
+              dest: metadata.labels.ref
+            - src:
+                dependencyName: chart-e2e
+                dataTemplate: "chart-e2e"
+              dest: metadata.labels.type
