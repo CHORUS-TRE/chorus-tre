@@ -8,9 +8,10 @@
   hostNetwork pods). Cilium-backed clusters only.
 */ -}}
 {{- $l7 := .Values.networkPolicy.l7 | default dict -}}
-{{- $l7Active := and .Values.networkPolicy.enabledL7 (or $l7.ingress $l7.egress) -}}
+{{- $l7ing := and .Values.networkPolicy.enabledL7 $l7.ingress -}}
+{{- $l7eg := and .Values.networkPolicy.enabledL7 $l7.egress -}}
 {{- $nld := .Values.networkPolicy.nodeLocalDns -}}
-{{- if and .Values.networkPolicy.enabled (or $l7Active $nld) }}
+{{- if and .Values.networkPolicy.enabled (or $l7ing $l7eg $nld) }}
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -22,11 +23,11 @@ spec:
   endpointSelector:
     matchLabels:
       {{- include "i2b2-frontend.selectorLabels" . | nindent 6 }}
-  {{- with $l7.ingress }}
+  {{- with $l7ing }}
   ingress:
     {{- toYaml . | nindent 2 }}
   {{- end }}
-  {{- if or $nld $l7.egress }}
+  {{- if or $nld $l7eg }}
   egress:
   {{- if $nld }}
   - toCIDR:
@@ -38,7 +39,7 @@ spec:
       - port: "53"
         protocol: TCP
   {{- end }}
-  {{- with $l7.egress }}
+  {{- with $l7eg }}
   {{- toYaml . | nindent 2 }}
   {{- end }}
   {{- end }}
