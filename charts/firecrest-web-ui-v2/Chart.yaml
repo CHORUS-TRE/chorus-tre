@@ -8,5 +8,5 @@ version: 0.0.2
 appVersion: "2.6.1"
 dependencies:
   - name: firecrest-web-ui-v2
-    version: 2.6.1
+    version: 2.6.9
     repository: https://eth-cscs.github.io/firecrest-ui/helm/
