@@ -145,11 +145,13 @@ networkPolicy:
   # outside kube-system (e.g. OpenShift uses `openshift-dns`).
   dnsNamespace: kube-system
   # When true, additionally render a CiliumNetworkPolicy egress rule allowing
-  # port-53 traffic to the node-local-dns link-local IP (169.254.20.10).
-  # Cilium-only: K8s NetworkPolicy cannot match hostNetwork pods like
-  # node-local-dns. Set to true on clusters that run node-local-dns; safe to
-  # leave false otherwise.
+  # port-53 traffic to the node-local-dns link-local IP. Cilium-only: K8s
+  # NetworkPolicy cannot match hostNetwork pods like node-local-dns. Set to
+  # true on clusters that run node-local-dns; safe to leave false otherwise.
   nodeLocalDns: false
+  # Link-local IP where node-local-dns listens. The upstream default is
+  # 169.254.20.10; override if your cluster uses a different address.
+  nodeLocalDnsIp: 169.254.20.10
   # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
   # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
   # Set `ingress: []` to lock the pod down with a default-deny (no traffic in).

@@ -30,7 +30,7 @@ spec:
   egress:
   {{- if $nld }}
   - toCIDR:
-    - "169.254.20.10/32"
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
     toPorts:
     - ports:
       - port: "53"
