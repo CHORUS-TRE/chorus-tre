@@ -1,0 +1,33 @@
+{{- if and .Values.cronSync.enabled .Values.chorusNetworkPolicy.enabled (not .Values.chorusNetworkPolicy.enabled_l7_waf) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-sync-egress
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "juicefs-operator.labels" . | nindent 4 }}
+spec:
+  # Operator-set label on every spawned Sync pod (manager + workers), verified
+  # in the operator's pod builder. Do not AND-in syncTemplate labels here — the
+  # operator does not propagate those onto the pods, so they'd match nothing.
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: juicefs-operator
+  policyTypes:
+  - Egress
+  egress:
+  # DNS to anywhere on port 53 only. Cannot restrict by selector because
+  # node-local-dns runs hostNetwork on a link-local IP outside the cluster
+  # namespace/pod model.
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+  # S3 endpoints (source + replica). Plain k8s NP cannot match FQDNs and the
+  # object-store endpoint has no stable CIDR list, so this is TCP 443 to any.
+  # The CiliumNetworkPolicy variant carries the tight toFQDNs restriction.
+  - ports:
+    - port: 443
+      protocol: TCP
+{{- end }}
