@@ -1,0 +1,50 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "i2b2-frontend.fullname" . }}-policy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "i2b2-frontend.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "i2b2-frontend.selectorLabels" . | nindent 6 }}
+  policyTypes:
+  - Ingress
+  - Egress
+  {{- if .Values.networkPolicy.ingress }}
+  ingress:
+  {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+  {{- else }}
+  {{- /* Default deny: empty ingress list means deny all unless explicitly allowed */}}
+  ingress: []
+  {{- end }}
+  egress:
+  {{- with .Values.networkPolicy.egress }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+    {{- /* Always allow DNS resolution to CoreDNS in .Values.networkPolicy.dnsNamespace
+           (default kube-system). Two podSelectors OR'd: `k8s-app: kube-dns` is the
+           upstream CoreDNS label, `app: coredns` is the variant some chorus-tre
+           clusters ship. node-local-dns is intentionally not covered — its
+           hostNetwork pods can't be matched by K8s NP podSelector. */}}
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            app: coredns
+      ports:
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 53
+{{- end }}

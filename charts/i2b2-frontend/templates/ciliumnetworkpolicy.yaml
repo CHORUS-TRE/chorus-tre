@@ -1,0 +1,46 @@
+{{- /*
+  Render a CiliumNetworkPolicy when either (a) L7 inspection is requested and at
+  least one L7 rule is provided, or (b) nodeLocalDns is enabled. The K8s
+  NetworkPolicy in networkpolicy.yaml is the L3/L4 baseline; this CNP layers
+  L7 rules on top for ports not already opened there (see the L4/L7-shadowing
+  note in values.yaml), and adds a Cilium-only port-53 egress to the
+  node-local-dns link-local IP when nodeLocalDns is true (K8s NP cannot match
+  hostNetwork pods). Cilium-backed clusters only.
+*/ -}}
+{{- $l7 := .Values.networkPolicy.l7 | default dict -}}
+{{- $l7ing := and .Values.networkPolicy.enabledL7 $l7.ingress -}}
+{{- $l7eg := and .Values.networkPolicy.enabledL7 $l7.egress -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- if and .Values.networkPolicy.enabled (or $l7ing $l7eg $nld) }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "i2b2-frontend.fullname" . }}-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "i2b2-frontend.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "i2b2-frontend.selectorLabels" . | nindent 6 }}
+  {{- with $l7ing }}
+  ingress:
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- if or $nld $l7eg }}
+  egress:
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  {{- end }}
+  {{- with $l7eg }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- end }}
+{{- end }}
