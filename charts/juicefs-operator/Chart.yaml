@@ -1,7 +1,7 @@
 apiVersion: v2
 name: juicefs-operator
 description: A Helm chart for JuiceFS Cache Group Operator
-version: 0.0.1
+version: 0.0.2
 dependencies:
   - name: juicefs-operator
     version: 0.8.1
