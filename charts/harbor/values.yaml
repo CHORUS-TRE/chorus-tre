@@ -82,6 +82,16 @@ harbor:
 
   database:
     type: external
+    # Connection pool sized for an EXTERNAL Postgres, not Harbor's bundled DB.
+    # The goharbor defaults (maxIdleConns=100, maxOpenConns=900) are applied PER POD
+    # to BOTH core and exporter — they assume the bundled DB (max_connections~1024)
+    # and will saturate a smaller external DB with idle connections.
+    # These values target a stock Postgres (max_connections=100). Keep this invariant
+    # true if you raise them or scale core/exporter replicas:
+    #   (core.replicas + exporter.replicas) * maxOpenConns + ~40 overhead < max_connections
+    # Envs with a larger, tuned DB may override maxOpenConns upward per environment.
+    maxIdleConns: 10
+    maxOpenConns: 30
     external:
       host: "chorus-local-harbor-db-postgresql"
       port: "5432"
