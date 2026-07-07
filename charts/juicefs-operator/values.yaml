@@ -57,8 +57,10 @@ cronSync:
   # dump alongside the chunks.
   schedule: "0 4 * * *"
 
-  # juicefs sync image; matches the JuiceFS CSI driver image stream (csi-driver ceMountImage ce-v1.3.1).
-  image: juicedata/juicefs:1.3.1
+  # juicefs sync image: juicedata/mount ships the juicefs binary (incl. sync), same stream as the
+  # CSI driver's ceMountImage. Not juicedata/juicefs — that's a Docker volume plugin, not a
+  # container image.
+  image: juicedata/mount:ce-v1.3.1
 
   # Optional pull secrets for the sync pods.
   imagePullSecrets: []
