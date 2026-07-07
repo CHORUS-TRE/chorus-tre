@@ -35,7 +35,7 @@ copying the **whole source bucket (chunks + `meta/` dumps)** to a dedicated **re
 cronSync:
   enabled: true
   schedule: "0 4 * * *"            # daily; align after the metadata auto-backup window
-  image: juicedata/juicefs:1.3.1   # any image carrying the juicefs binary (incl. `sync`)
+  image: juicedata/mount:ce-v1.3.1 # juicedata/mount — carries the juicefs binary incl. `sync`
   imagePullSecrets: []             # e.g. [{name: <pull-secret>}] when pulling from a private/proxy registry
   source:
     host: <s3-endpoint>            # e.g. s3.example.com (no scheme)
@@ -51,6 +51,9 @@ chorusNetworkPolicy:
 ```
 
 The sync URI is built path-style as `s3://<host>/<bucket>` for both source and replica.
+
+> **Image:** use `juicedata/mount` (it ships the `juicefs` binary, including `sync`), not
+> `juicedata/juicefs` — the latter is a Docker *volume plugin*, not a container image.
 
 ## Mandatory Secrets
 
@@ -100,7 +103,7 @@ create the pull secret in the namespace and reference it:
 
 ```yaml
 cronSync:
-  image: <registry>/juicedata/juicefs:1.3.1
+  image: <registry>/juicedata/mount:ce-v1.3.1
   imagePullSecrets:
     - name: <pull-secret>
 ```
