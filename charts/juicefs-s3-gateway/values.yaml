@@ -1,22 +1,138 @@
-juicefs-s3-gateway:
-  replicaCount: 1
+replicaCount: 1
 
-  image:
-    repository: juicedata/mount
-    pullPolicy: IfNotPresent
-    # -- Overrides the image tag which defaults to the chart appVersion.
-    # For JuiceFS Community Edition, use ce-vx.x.x style tags
-    # For JuiceFS Enterprise Edition, use ee-vx.x.x style tags
-    # Find the latest built images in our docker image repo: https://hub.docker.com/r/juicedata/mount
-    tag: "ce-v1.3.1"
+image:
+  repository: juicedata/mount
+  pullPolicy: IfNotPresent
+  # -- For JuiceFS Community Edition, use ce-vx.x.x style tags
+  # For JuiceFS Enterprise Edition, use ee-vx.x.x style tags
+  # Find the latest built images in our docker image repo: https://hub.docker.com/r/juicedata/mount
+  tag: "ce-v1.3.1"
 
-  secret:
-    enabled: false
+port: 9000
+metricsPort: 9567
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
 
-  # -- Gateway Options. Separated by spaces
-  # Example: "--get-timeout=60 --put-timeout=60"
-  # CE Ref: https://juicefs.com/docs/community/command_reference#gateway
-  # EE Ref: https://juicefs.com/docs/cloud/reference/command_reference/#gateway
-  options: "--umask 000"
+podAnnotations: {}
 
-  priorityClassName: "high-priority"
+# -- The gateway stamps ownership of every file and directory it creates from
+# its own process uid/gid (JuiceFS has no per-request identity mapping), so it
+# must NOT run as root: backend-written files would land root:root and
+# workbench users could never chown/chmod them. uid 1000 is a dedicated
+# service identity below the Chorus user uid range (2001+); gid 1001 is the
+# shared group every workbench container runs with, which is what makes
+# backend-written files group-accessible inside workbenches.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1001
+  fsGroup: 1001
+
+# -- Applied to both the format init container and the gateway container.
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+  limits:
+    cpu: 5000m
+    memory: 5Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+hostNetwork: false
+nodeSelector: {}
+priorityClassName: "high-priority"
+tolerations: []
+affinity: {}
+
+# -- Environment variables for init containers
+# HOME: the juicedata/mount image has no passwd entry for uid 1000, so give
+# the juicefs CLI a writable home directory.
+initEnvs:
+  - name: HOME
+    value: /tmp
+
+# -- Environment variables for the gateway container
+envs:
+  - name: HOME
+    value: /tmp
+
+# -- Extra volumes for the mount pod, used when JuiceFS Client relies on extra config files
+# jfs-cache: /var/jfsCache is the JuiceFS default cache location but is not
+# writable by a non-root gateway, so back it with an emptyDir (fsGroup 1001
+# makes it group-writable).
+extraVolumes:
+  - name: jfs-cache
+    emptyDir: {}
+extraVolumeMounts:
+  - name: jfs-cache
+    mountPath: /var/jfsCache
+
+secret:
+  # -- The juicefs-secret (metaurl, storage, bucket, access/secret keys) is
+  # managed outside this chart.
+  enabled: false
+  # -- The JuiceFS file system name.
+  name: ""
+  # -- JuiceFS Enterprise Edition file system token, if this token is specified,
+  # this helm chart then assumes JuiceFS EE and neglect all CE configurations
+  token: ""
+  # -- Connection URL for metadata engine (e.g. Redis)
+  # Ref: https://juicefs.com/docs/community/databases_for_metadata
+  metaurl: ""
+  # -- Object storage type, such as `s3`, `gs`, `oss`
+  # Ref: https://juicefs.com/docs/community/how_to_setup_object_storage
+  storage: ""
+  # -- Access key for object storage
+  accessKey: ""
+  # -- Secret key for object storage
+  secretKey: ""
+  # -- Object storage bucket or full endpoint
+  # CE Ref: https://juicefs.com/docs/community/how_to_setup_object_storage
+  # EE Ref (see --bucket): https://juicefs.com/docs/cloud/reference/command_reference/#auth
+  bucket: ""
+  # -- Encryption settings
+  # JFS_RSA_PASSPHRASE: xxx
+  # encrypt_rsa_key: |
+  #   -----BEGIN RSA PRIVATE KEY-----
+  #   ...
+  #   -----END RSA PRIVATE KEY-----
+
+
+# -- JuiceFS format options. Separated by spaces
+# Example: "--inodes=1000000 --block-size=4M"
+# Ref: https://juicefs.com/docs/community/command_reference#format
+formatOptions: ""
+
+# -- Gateway Options. Separated by spaces
+# CE Ref: https://juicefs.com/docs/community/command_reference#gateway
+# EE Ref: https://juicefs.com/docs/cloud/reference/command_reference/#gateway
+# umask 007: files 0660 / dirs 0770 — owner rw + group (1001) rw, nothing for
+# other, replacing the previous world-writable umask 000.
+# cache-dir: point the local block cache at the jfs-cache emptyDir (see
+# extraVolumes), reachable by the non-root gateway.
+options: "--umask 007 --cache-dir=/var/jfsCache"

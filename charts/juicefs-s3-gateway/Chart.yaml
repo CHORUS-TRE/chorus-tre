@@ -1,11 +1,15 @@
 apiVersion: v2
 name: juicefs-s3-gateway
 description: A Helm chart for JuiceFS S3 Gateway.
-version: 0.0.7
-dependencies:
-  - name: juicefs-s3-gateway
-    version: 0.11.4
-    repository: https://juicedata.github.io/charts/
+version: 0.0.8
+appVersion: "ce-v1.3.1"
+
+# Templates are vendored from juicedata/charts juicefs-s3-gateway 0.11.4
+# (https://github.com/juicedata/charts/tree/main/charts/juicefs-s3-gateway):
+# the upstream chart exposes no securityContext, and the gateway must run as a
+# specific uid/gid because JuiceFS stamps file ownership from the gateway
+# process identity. The only template diff vs upstream is the securityContext
+# support in templates/deployment.yaml (plus our templates/networkpolicy.yaml).
 
 maintainers:
   - name: iDmple
