@@ -79,6 +79,20 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  prometheus-blackbox-exporter:
+    # The probe pod carries the prometheus identity — the only peer the
+    # chart's NetworkPolicy admits on 9115.
+    timeout: 180
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 9115
+    health_check:
+      path: /metrics
+      port: 9115
+      expect_status: 200
   juicefs-csi-driver:
     timeout: 300
     pre_install:
