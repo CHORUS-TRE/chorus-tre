@@ -34,3 +34,64 @@ clusterissuer:
     #         key: api-token
     # See: https://cert-manager.io/docs/configuration/acme/dns01/
     solver:
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend. Covers all three
+# cert-manager deployments (controller, webhook, cainjector) via the release
+# instance label.
+networkPolicy:
+  enabled: true
+  # L7 stub — rendered only with rules present.
+  enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace. DNS01 self-checks also go through the
+  # cluster resolvers by default (no direct external :53 needed unless
+  # --dns01-recursive-nameservers is pointed elsewhere).
+  dnsEgress: true
+  # Namespace where CoreDNS lives.
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only apiserver rules (default true), in BOTH directions: egress
+  # toEntities for the controllers watching the API, and ingress fromEntities
+  # on the webhook port — the admission webhook is CALLED BY the apiserver,
+  # whose hostNetwork static pods no K8s NP peer can select. Without it,
+  # default-deny ingress would block admission calls cluster-wide and
+  # certificate operations would fail. On non-Cilium clusters set this to
+  # false and manage the webhook exposure explicitly.
+  kubeApiServer: true
+  # Webhook TLS port the apiserver calls (upstream default).
+  webhookPort: 10250
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below.
+  ingress:
+  # Prometheus scrapes the metrics listeners (9402 on all three components).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 9402
+  # Default egress: ACME traffic — the Let's Encrypt directory over HTTPS and
+  # HTTP01 self-checks against the certificate domains' public URLs on 80.
+  # K8s NP cannot scope egress by hostname; narrowing is L7/CNP work.
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
+  # true. See the L4/L7-shadowing caveat in the reference chart.
+  l7:
+    ingress: []
+    egress: []
