@@ -141,6 +141,13 @@ networkPolicy:
   # but NO HTTP-path / method / DNS filtering.
   # -----------------------------------------------------------------------------
   enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace. Set to false either for workloads that never
+  # resolve names (with egress left empty this yields a full deny-all egress),
+  # or to let a CiliumNetworkPolicy own port 53: an unconditional L4 grant here
+  # would shadow any L7 DNS rules (rules.dns / toFQDNs) in the CNP — see the
+  # L4/L7-shadowing note below.
+  dnsEgress: true
   # Namespace where CoreDNS lives. Override per-env if the cluster runs DNS
   # outside kube-system (e.g. OpenShift uses `openshift-dns`).
   dnsNamespace: kube-system
