@@ -1,0 +1,22 @@
+# loki: log store reachability through the gateway behind the chart's
+# NetworkPolicies. The probe pod carries fluent-bit labels in the fluent
+# namespace — exactly the peer the gateway-scoped policy admits — and the
+# query path (gateway → loki) exercises the intra-namespace rules of the
+# main policy.
+
+charts:
+  loki:
+    timeout: 420
+    values_file: ci/test-values/loki.yaml
+    fullname_override: e2e-loki-gateway
+    probe:
+      namespace: fluent
+      labels:
+        app.kubernetes.io/name: fluent-bit
+    services:
+      - port: 80
+    health_check:
+      path: /loki/api/v1/labels
+      port: 80
+      expect_status: 200
+      expect_content_type_regex: 'application/json'

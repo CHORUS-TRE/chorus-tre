@@ -1,136 +1,102 @@
-{{- if and (.Values.networkPolicy.enabled) (eq .Values.networkPolicy.flavor "kubernetes") }}
+{{- if .Values.networkPolicy.enabled }}
 ---
+{{- /*
+  Main policy: selects every pod carrying the loki selector labels (loki
+  components, gateway, memcached caches). The gateway's cross-namespace
+  ingress lives in the second, component-scoped policy below — a single
+  object cannot restrict a target to gateway pods only.
+*/}}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "loki.name" . }}-namespace-only
+  name: {{ include "loki.name" . }}-policy
   namespace: {{ include "loki.namespace" . }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
 spec:
-  policyTypes:
-    - Ingress
-    - Egress
   podSelector:
     matchLabels:
       {{- include "loki.selectorLabels" . | nindent 6 }}
-  egress:
-    - to:
-        - podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  {{- if .Values.networkPolicy.ingress }}
   ingress:
-    - from:
-        - podSelector: {}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "loki.name" . }}-egress-dns
-  namespace: {{ include "loki.namespace" . }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  policyTypes:
-    - Egress
-  podSelector:
-    matchLabels:
-      {{- include "loki.selectorLabels" . | nindent 6 }}
+  {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+  {{- else }}
+  {{- /* Default deny: empty ingress list means deny all unless explicitly allowed */}}
+  ingress: []
+  {{- end }}
   egress:
+  {{- with .Values.networkPolicy.egress }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if gt (len .Values.networkPolicy.externalStorage.cidrs) 0 }}
+    {{- /* Object-storage egress (chunks/ruler buckets) to the provider's IP
+           ranges, HTTPS only. */}}
     - ports:
-        - port: 53
-          protocol: UDP
-        - port: 53
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: kube-system
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "loki.name" . }}-ingress
-  namespace: {{ include "loki.namespace" . }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  policyTypes:
-    - Ingress
-  podSelector:
-    matchExpressions:
-      - key: app.kubernetes.io/component
-        operator: In
-        values:
-          - gateway
-    matchLabels:
-      {{- include "loki.selectorLabels" . | nindent 6 }}
-  ingress:
-    - ports:
-        - port: {{ .Values.loki.gateway.containerPort | default "http" | quote }}
-          protocol: TCP
-      from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.networkPolicy.fluentBit.namespace | default "fluent" }}
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: fluent-bit
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.networkPolicy.kubePrometheusStack.namespace | default "prometheus" }}
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: grafana
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "loki.name" . }}-ingress-metrics
-  namespace: {{ include "loki.namespace" . }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  policyTypes:
-    - Ingress
-  podSelector:
-    matchLabels:
-      {{- include "loki.selectorLabels" . | nindent 6 }}
-  ingress:
-    - ports:
-        - port: http-metrics
-          protocol: TCP
-      from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.networkPolicy.kubePrometheusStack.namespace | default "prometheus" }}
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: prometheus
-{{- if (gt (len .Values.networkPolicy.externalStorage.cidrs) 0) }}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ include "loki.name" . }}-egress-external-storage
-  namespace: {{ include "loki.namespace" . }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  policyTypes:
-    - Egress
-  podSelector:
-    matchLabels:
-      {{- include "loki.selectorLabels" . | nindent 6 }}
-  egress:
-    - ports:
-        - port: "443"
-          protocol: TCP
+      - port: 443
+        protocol: TCP
       to:
       {{- range $cidr := .Values.networkPolicy.externalStorage.cidrs }}
-        - ipBlock:
-            cidr: {{ $cidr }}
+      - ipBlock:
+          cidr: {{ $cidr }}
       {{- end }}
-{{- end }}
+  {{- end }}
+  {{- if .Values.networkPolicy.dnsEgress }}
+    {{- /* Allow DNS resolution to CoreDNS in .Values.networkPolicy.dnsNamespace
+           (default kube-system). Two podSelectors OR'd: `k8s-app: kube-dns` is the
+           upstream CoreDNS label, `app: coredns` is the variant some chorus-tre
+           clusters ship. node-local-dns is intentionally not covered — its
+           hostNetwork pods can't be matched by K8s NP podSelector. */}}
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            app: coredns
+      ports:
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 53
+  {{- end }}
+---
+{{- /*
+  Gateway policy: additive ingress for the gateway pods only (log producers
+  and query clients from other namespaces). Gateway pods also match the main
+  policy above, so they get the union of both ingress lists; egress is
+  governed by the main policy alone.
+*/}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "loki.name" . }}-gateway-policy
+  namespace: {{ include "loki.namespace" . }}
+  labels:
+    {{- include "networkPolicy.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app.kubernetes.io/component
+      operator: In
+      values:
+      - gateway
+    matchLabels:
+      {{- include "loki.selectorLabels" . | nindent 6 }}
+  policyTypes:
+  - Ingress
+  {{- if .Values.networkPolicy.gatewayIngress }}
+  ingress:
+  {{- toYaml .Values.networkPolicy.gatewayIngress | nindent 4 }}
+  {{- else }}
+  ingress: []
+  {{- end }}
 {{- end }}
