@@ -79,6 +79,24 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  velero:
+    # The probe carries the prometheus identity — the only peer the chart's
+    # NetworkPolicy admits (metrics listener). Server readiness proves the
+    # apiserver egress (Cilium entity rule); no backup location is configured
+    # in CI, so no object-store egress is exercised.
+    timeout: 240
+    pre_install:
+      - kubectl create secret generic velero-credentials --from-literal=cloud="" -n test --dry-run=client -o yaml | kubectl apply -f -
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 8085
+    health_check:
+      path: /metrics
+      port: 8085
+      expect_status: 200
   juicefs-csi-driver:
     timeout: 300
     pre_install:
