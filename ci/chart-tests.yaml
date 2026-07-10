@@ -77,6 +77,10 @@ charts:
     skip_deploy: true
   chorus-ci:
     skip_deploy: true
+  brainstorm:
+    # Image lives in the private Harbor (imagePullSecrets) — not pullable in
+    # the Kind e2e. Policy is covered by helm template checks in the PR.
+    skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
   juicefs-csi-driver:

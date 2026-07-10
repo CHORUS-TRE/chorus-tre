@@ -15,3 +15,50 @@ env:
   display: "workbench:80"
   # if brainstorm is in another namespace than the workbench, use the following format
   # display: "service.namespace-of-service.svc.cluster.local:80"
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend, adapted for a
+# workspace-resident application: when the workbench-operator installs this
+# chart into a workspace, its chart validation rejects cross-namespace
+# selectors, ipBlocks and Cilium entity/CIDR/FQDN rules — so the defaults
+# below stay strictly same-namespace, and DNS is left to the workspace-level
+# CiliumNetworkPolicy the operator manages.
+networkPolicy:
+  enabled: true
+  # L7 stub — see the l7 lists below. Rendered only with rules present.
+  enabledL7: false
+  # Keep false for workspace deployments (the workspace CNP grants DNS and the
+  # operator rejects this rule's cross-namespace selector). Flip to true only
+  # for standalone deployments outside workspaces.
+  dnsEgress: false
+  # Namespace where CoreDNS lives (only consulted when dnsEgress is true).
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress; unusable in workspace deployments
+  # (toCIDR is rejected by the operator's chart validation).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below.
+  #
+  # Nothing connects to brainstorm — it has no Service; deny all ingress.
+  ingress: []
+  # Brainstorm pushes its X11 display to the workbench in the same namespace
+  # (env.display, default `workbench:80` = X display 80 = TCP 6080, the
+  # workbench's x11-socket container port). A podSelector-only peer is
+  # same-namespace by K8s NetworkPolicy semantics. If env.display points to a
+  # workbench in another namespace (standalone deployments only), replace this
+  # rule accordingly.
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: workbench
+    ports:
+    - protocol: TCP
+      port: 6080
+  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
+  # true; unusable in workspace deployments (rejected by operator validation).
+  l7:
+    ingress: []
+    egress: []
