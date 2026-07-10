@@ -79,6 +79,21 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  firecrest-web-ui-v2:
+    # The upstream chart hardcodes its object names (not release-derived).
+    # The probe carries the envoy-gateway identity — the only peer the
+    # chart's NetworkPolicy admits on 3000.
+    timeout: 240
+    values_file: ci/test-values/firecrest-web-ui-v2.yaml
+    fullname_override: firecrest-web-ui-srv
+    pre_install:
+      - kubectl create secret generic firecrest-web-ui-v2 --from-literal=session-secret=342476testcipassword --from-literal=oidc-client-id=e2e-ci --from-literal=oidc-client-secret=e2e-ci-not-a-secret --from-literal=redis-auth-password=unused -n test --dry-run=client -o yaml | kubectl apply -f -
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 3000
   juicefs-csi-driver:
     timeout: 300
     pre_install:

@@ -1,0 +1,10 @@
+# ci/test-values/firecrest-web-ui-v2.yaml
+# CI-specific values for running firecrest-web-ui-v2 in the Kind-based chart
+# e2e. OIDC and the FirecREST API are validated lazily by the app, so dummy
+# endpoints suffice; the session store is disabled to avoid a redis.
+
+firecrest-web-ui-v2:
+  redisActive: "false"
+
+ingress:
+  enabled: false
