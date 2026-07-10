@@ -35,3 +35,60 @@ argo-workflows:
           - argo-workflows.build.chorus-tre.local
           secretName: argo-workflows-tls
     priorityClassName: medium-priority
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend. Covers the
+# workflow-controller and server; workflow step pods run in the configured
+# workflowNamespaces under those namespaces' policies.
+networkPolicy:
+  enabled: true
+  # L7 stub — rendered only with rules present.
+  enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace.
+  dnsEgress: true
+  # Namespace where CoreDNS lives.
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only egress to the kube-apiserver entity (default true): the
+  # controller reconciles Workflow CRs and the server reads them through the
+  # API, which runs as hostNetwork static pods on most clusters — unreachable
+  # through a K8s NP peer. On non-Cilium clusters set this to false and add an
+  # ipBlock egress rule with the apiserver endpoints.
+  kubeApiServer: true
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below.
+  ingress:
+  # Server UI/API through the Envoy Gateway (pod port 2746).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
+    ports:
+    - protocol: TCP
+      port: 2746
+  # Prometheus scrapes the controller metrics listener (9090).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  # No L3/L4 egress beyond DNS: both components' only dependency is the
+  # kube-apiserver, covered by the Cilium entity rule above.
+  egress: []
+  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
+  # true. See the L4/L7-shadowing caveat in the reference chart.
+  l7:
+    ingress: []
+    egress: []

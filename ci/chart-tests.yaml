@@ -61,6 +61,24 @@ defaults:
   timeout: 120
 
 charts:
+  argo-workflows:
+    # The probe carries the envoy-gateway identity — the peer the chart's
+    # NetworkPolicy admits on the server port. Controller/server readiness
+    # proves the apiserver egress (Cilium entity rule).
+    timeout: 300
+    values_file: ci/test-values/argo-workflows.yaml
+    fullname_override: e2e-argo-workflows-server
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 2746
+    health_check:
+      path: /
+      port: 2746
+      expect_status: 200
+      expect_content_type_regex: 'text/html'
   cert-manager:
     timeout: 300
     depends_on:
