@@ -79,6 +79,24 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  trivy-operator:
+    # The probe carries the prometheus identity — the only peer the
+    # operator's NetworkPolicy admits (metrics listener). Readiness proves
+    # the apiserver egress; scan jobs run under their own policy.
+    timeout: 300
+    values_file: ci/test-values/trivy-operator.yaml
+    depends_on:
+      - trivy-operator-crds
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 80
+    health_check:
+      path: /metrics
+      port: 80
+      expect_status: 200
   juicefs-csi-driver:
     timeout: 300
     pre_install:

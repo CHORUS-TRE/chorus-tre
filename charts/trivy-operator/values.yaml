@@ -29,3 +29,48 @@ trivy-operator:
   service:
     # disabled ensures that the pod gets a ClusterIP.
     headless: false
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend. Two policy
+# objects: the operator, and the scan-job pods it creates at runtime
+# (labelled app.kubernetes.io/managed-by: trivy-operator).
+networkPolicy:
+  enabled: true
+  # When true (default), append the CoreDNS-scoped port-53 egress rule to both
+  # objects (scan jobs resolve registry and vulnerability-DB hostnames).
+  dnsEgress: true
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only egress to the kube-apiserver entity for the operator (default
+  # true) — report reconciliation runs through the API, whose hostNetwork
+  # static pods no K8s NP peer can select.
+  kubeApiServer: true
+  # ---- Operator rules ----------------------------------------------------------
+  ingress:
+  # Prometheus scrapes the operator metrics listener (8080).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+  # No L3/L4 egress beyond DNS: the operator only talks to the apiserver
+  # (Cilium entity rule above).
+  egress: []
+  # ---- Scan-job rules ----------------------------------------------------------
+  # Standalone mode: each scan job downloads the trivy vulnerability database
+  # (ghcr.io) and pulls image layers from the registries over HTTPS. K8s NP
+  # cannot scope egress by hostname; narrowing is L7/CNP work.
+  scanJobsEgress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
