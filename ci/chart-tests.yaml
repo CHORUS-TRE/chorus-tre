@@ -79,6 +79,27 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  gateway-crds-helm:
+    skip_deploy: true
+  gateway-helm:
+    # Controller-only policy (data-plane pods belong to chorus-gateway's
+    # CNPs). The probe carries the prometheus identity — a peer the policy
+    # admits (metrics listener); controller readiness proves the apiserver
+    # egress and the certgen/webhook path.
+    timeout: 300
+    fullname_override: envoy-gateway
+    depends_on:
+      - gateway-crds-helm
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 19001
+    health_check:
+      path: /metrics
+      port: 19001
+      expect_status: 200
   juicefs-csi-driver:
     timeout: 300
     pre_install:
