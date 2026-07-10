@@ -1,0 +1,10 @@
+# ci/test-values/juicefs-csi-driver.yaml
+# CI-specific values for running juicefs-csi-driver in the Kind-based chart e2e.
+
+juicefs-csi-driver:
+  dashboard:
+    # Basic auth off in CI — this is exactly the scenario the dashboard
+    # NetworkPolicy protects (gateway-side auth, direct :8088 access denied
+    # to everything but envoy pods), and it lets the health check assert 200.
+    auth:
+      enabled: false
