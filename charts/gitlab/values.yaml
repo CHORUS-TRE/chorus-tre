@@ -130,3 +130,82 @@ gitlab:
 
   networkpolicy:
     enabled: false
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend. Selects only the
+# gitlab chart's own pods via the classic `release` label — the namespace also
+# hosts gitlab-db (postgresql) and gitlab-cache (valkey), whose stricter
+# policies must not be widened by union with this one.
+networkPolicy:
+  enabled: true
+  # L7 stub — rendered only with rules present.
+  enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace (gitlab resolves its db/cache service names
+  # and external hosts).
+  dnsEgress: true
+  # Namespace where CoreDNS lives.
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below.
+  ingress:
+  # Component east-west traffic within the namespace (webservice/sidekiq →
+  # gitaly grpc 8075, exporter probes, shared-secrets jobs).
+  - from:
+    - podSelector: {}
+  # User traffic through the Envoy Gateway: HTTP via workhorse (8181) and git
+  # SSH via gitlab-shell (2222 — the gateway remaps public 22).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
+    ports:
+    - protocol: TCP
+      port: 8181
+    - protocol: TCP
+      port: 2222
+  # Prometheus scrapes the component metrics listeners (webservice 8083,
+  # gitaly 9236, exporter 9168, sidekiq 3807).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 8083
+    - protocol: TCP
+      port: 9236
+    - protocol: TCP
+      port: 9168
+    - protocol: TCP
+      port: 3807
+  # Default egress:
+  #  * intra-namespace — gitaly, gitlab-db (postgresql) and gitlab-cache
+  #    (valkey) all live in the release namespace;
+  #  * HTTPS to anywhere — OIDC sign-in via the keycloak public URL
+  #    (omniauth), outbound webhooks and repository mirroring. K8s NP cannot
+  #    scope egress by hostname; narrowing is L7/CNP work (see l7 below).
+  egress:
+  - to:
+    - podSelector: {}
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
+  # true. See the L4/L7-shadowing caveat in the reference chart.
+  l7:
+    ingress: []
+    egress: []
