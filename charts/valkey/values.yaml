@@ -78,3 +78,24 @@ valkey:
       allowExternal: false
       ingressNSMatchLabels:
         kubernetes.io/metadata.name: prometheus
+
+# Chorus egress-only NetworkPolicy.
+# Ingress is governed by the Bitnami subchart's policy above
+# (valkey.networkPolicy.*) — deliberately left in place: it implements
+# default-deny ingress, own-namespace 6379 access, prometheus-scoped metrics
+# and the ingressNSMatchLabels mechanism for cross-namespace consumers.
+# This block only closes the egress gap the upstream policy leaves open
+# (allowExternalEgress): a cache never dials out.
+networkPolicy:
+  enabled: true
+  # Only needed when replicas are enabled (they resolve the primary's service
+  # name through CoreDNS). Keep false for the standalone default.
+  dnsEgress: false
+  dnsNamespace: kube-system
+  # Deny-all egress by default (standalone cache, local persistence). When
+  # running replicas, add an intra-namespace rule for the replication stream:
+  #   egress:
+  #   - to:
+  #     - podSelector: {}
+  # and set dnsEgress: true.
+  egress: []

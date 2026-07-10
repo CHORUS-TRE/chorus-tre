@@ -79,6 +79,16 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  valkey:
+    # Deploys behind the Bitnami-managed ingress policy (own-namespace 6379)
+    # plus the chorus egress-only deny policy. The same-namespace probe on
+    # 6379 exercises the ingress rule; deny-all egress is proven by the pod
+    # going Ready without any outbound access.
+    timeout: 300
+    values_file: ci/test-values/valkey.yaml
+    fullname_override: e2e-valkey-primary
+    services:
+      - port: 6379
   juicefs-csi-driver:
     timeout: 300
     pre_install:
