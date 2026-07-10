@@ -1,2 +1,26 @@
 reflector:
   priorityClassName: medium-priority
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend, minimal profile:
+# reflector's whole job is mirroring secrets/configmaps through the
+# kube-apiserver — it accepts no traffic and dials nothing else.
+networkPolicy:
+  enabled: true
+  # Reflector resolves nothing (the apiserver is reached via the injected
+  # service IP); keep the DNS rule off.
+  dnsEgress: false
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (only relevant if dnsEgress is enabled).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only egress to the kube-apiserver entity (default true) — the
+  # apiserver runs as hostNetwork static pods on most clusters, unreachable
+  # through a K8s NP peer. On non-Cilium clusters set this to false and add an
+  # ipBlock egress rule with the apiserver endpoints.
+  kubeApiServer: true
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Nothing reaches reflector (no Service; kubelet health probes bypass
+  # NetworkPolicy) and it needs no L3/L4 egress.
+  ingress: []
+  egress: []
