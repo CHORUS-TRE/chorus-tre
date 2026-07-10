@@ -1,0 +1,21 @@
+# keycloak: identity provider reachability + health behind the chart's
+# NetworkPolicy. The probe pod runs in envoy-gateway-system — one of the
+# namespaces the default ingress rule admits on 8080/8443 — and the bundled
+# postgresql subchart exercises the intra-namespace egress rule (keycloak
+# cannot become ready without reaching its database).
+
+charts:
+  keycloak:
+    timeout: 420
+    values_file: ci/test-values/keycloak.yaml
+    pre_install:
+      - kubectl create secret generic keycloak-admin-postgres --from-literal=adminPassword=342476testcipassword --from-literal=postgres-password=342476testcipassword --from-literal=password=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
+    probe:
+      namespace: envoy-gateway-system
+    services:
+      - port: 80
+    health_check:
+      path: /realms/master
+      port: 80
+      expect_status: 200
+      expect_content_type_regex: 'application/json'

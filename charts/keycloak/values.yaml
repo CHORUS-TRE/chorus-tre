@@ -263,10 +263,23 @@ keycloak:
   ## @param postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials
   ## @param postgresql.architecture PostgreSQL architecture (`standalone` or `replication`)
   ##
+  # Disable the Bitnami charts' own NetworkPolicies (we use the chorus
+  # networkPolicy templates below; the upstream ones default to enabled and
+  # their allow-all egress would union with — and defeat — the restricted
+  # egress defined here).
+  networkPolicy:
+    enabled: false
+
   postgresql:
     enabled: true
     auth:
       existingSecret: "keycloak-admin-postgres"
+    primary:
+      networkPolicy:
+        enabled: false
+    readReplicas:
+      networkPolicy:
+        enabled: false
 
   ## External PostgreSQL configuration
   ## All of these values are only used when postgresql.enabled is set to false
@@ -372,21 +385,90 @@ certificate:
   issuerRef:
     name: CHANGEME-issuer
 
-# Restrict ingress to the keycloak pods to the listed namespaces.
-#
-# Default covers: gateway-proxied traffic (browsers + any pod reaching keycloak
-# via the public URL), direct in-cluster calls from platform pods that bypass
-# the gateway (e.g. token_url pointing to the internal keycloak service), and
-# intra-namespace components (cache, config-cli).
-#
-# Override per-env if namespace names differ or if a service not listed here
-# calls keycloak directly via service DNS.
-#
-# The CiliumNetworkPolicy is always rendered (secure-by-default for a TRE).
-# Setting this to [] or omitting it produces a deny-all ingress policy.
-allowedIngressNamespaces:
-  - envoy-gateway-system
-  - backend
-  - harbor
-  - prometheus
-  - keycloak
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend.
+networkPolicy:
+  enabled: true
+  # -----------------------------------------------------------------------------
+  # Two-layer model:
+  #   * networkPolicy.ingress / networkPolicy.egress (below) define L3/L4 rules
+  #     in standard K8s NetworkPolicy syntax. They are ALWAYS rendered when
+  #     networkPolicy.enabled is true, and they work on any CNI that implements
+  #     the K8s NetworkPolicy API (Cilium, Calico, vanilla kube-network, ...).
+  #   * networkPolicy.l7.ingress / networkPolicy.l7.egress (further below) hold
+  #     L7 (HTTP / DNS) rules in CiliumNetworkPolicy syntax. They are ONLY
+  #     consulted on Cilium clusters and only when enabledL7 is true.
+  #
+  # enabledL7 is an explicit opt-in switch for the L7 layer. It does NOT
+  # by itself produce any L7 filtering — the CiliumNetworkPolicy is rendered
+  # only when BOTH conditions hold:
+  #     enabledL7 == true   AND   at least one of l7.ingress / l7.egress
+  #                                  contains rules.
+  # -----------------------------------------------------------------------------
+  enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace (keycloak resolves its database service name).
+  dnsEgress: true
+  # Namespace where CoreDNS lives. Override per-env if the cluster runs DNS
+  # outside kube-system.
+  dnsNamespace: kube-system
+  # When true, additionally render a CiliumNetworkPolicy egress rule allowing
+  # port-53 traffic to the node-local-dns link-local IP. Cilium-only: K8s
+  # NetworkPolicy cannot match hostNetwork pods like node-local-dns.
+  nodeLocalDns: false
+  # Link-local IP where node-local-dns listens.
+  nodeLocalDnsIp: 169.254.20.10
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below — repeat the rules
+  # you want to keep. Set `ingress: []` for a full default-deny.
+  #
+  # Default ingress covers: gateway-proxied traffic (browsers + any pod
+  # reaching keycloak via the public URL), direct in-cluster calls from
+  # platform pods that bypass the gateway (e.g. token_url pointing to the
+  # internal keycloak service: backend, harbor), prometheus scraping, and
+  # intra-namespace components (config-cli job, bundled database).
+  # Override per-env if namespace names differ or if a service not listed here
+  # calls keycloak directly via service DNS.
+  ingress:
+  - from:
+    - podSelector: {}
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: backend
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: harbor
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+    # If keycloak ever runs with replicas > 1, also allow 7800/TCP (jgroups/
+    # infinispan clustering) between the keycloak pods or cross-pod discovery
+    # will fail.
+  # Default egress: the database — the bundled postgresql subchart or the
+  # keycloak-db release, both living in the release namespace in every
+  # environment today. Keycloak has no other outbound dependency here: no SMTP
+  # and no identity-provider federation are configured. If an environment adds
+  # either, it must extend this list (and repeat the intra-namespace rule).
+  egress:
+  - to:
+    - podSelector: {}
+  # L7 rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
+  # Only consulted when enabledL7 is true. Leave empty to skip the CNP entirely.
+  #
+  # IMPORTANT — Cilium L4/L7 shadowing: if a port is opened unconditionally in
+  # the K8s NetworkPolicy above (networkPolicy.ingress/egress), the broader
+  # L4 grant wins and any L7 rule you add here for that same port is silently
+  # NOT enforced. To get L7 filtering on a port, that port must NOT also be
+  # opened in the K8s NP for the same direction — let the CNP own it.
+  l7:
+    ingress: []
+    egress: []

@@ -1,0 +1,20 @@
+# ci/test-values/keycloak.yaml
+# CI-specific values for running keycloak in the Kind-based chart e2e.
+
+keycloak:
+  # Align object names with the e2e release name so the runner's service
+  # resolution (service == release name) finds the keycloak service.
+  fullnameOverride: e2e-keycloak
+
+  resourcesPreset: small
+
+  # No ingress controllers in Kind.
+  ingress:
+    enabled: false
+  adminIngress:
+    enabled: false
+
+  # The config-cli job needs client secrets and an encryption key that are
+  # irrelevant to the network-policy test.
+  keycloakConfigCli:
+    enabled: false
