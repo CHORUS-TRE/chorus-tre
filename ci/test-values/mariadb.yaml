@@ -1,0 +1,7 @@
+# ci/test-values/mariadb.yaml
+# CI-specific values for running mariadb in the Kind-based chart e2e.
+
+mariadb:
+  # Align the Bitnami object names with the e2e release name so the runner's
+  # service resolution (service == release name) finds the primary service.
+  fullnameOverride: e2e-mariadb
