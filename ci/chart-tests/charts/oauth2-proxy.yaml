@@ -1,0 +1,26 @@
+# oauth2-proxy: auth proxy reachability + health behind the chart's
+# NetworkPolicy. Startup OIDC discovery against the keycloak dependency (same
+# namespace) exercises the intra-namespace egress rule; the probe pod carries
+# the envoy-gateway identity — the peer the ingress rule admits on 4180.
+
+charts:
+  oauth2-proxy:
+    timeout: 480
+    values_file: ci/test-values/oauth2-proxy.yaml
+    depends_on:
+      - keycloak
+    dependency_values:
+      oauth2-proxy.extraArgs.oidc-issuer-url:
+        chart: keycloak
+        attribute: httpUrl
+        path: /realms/master
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 80
+    health_check:
+      path: /ping
+      port: 80
+      expect_status: 200

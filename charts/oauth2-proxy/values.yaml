@@ -11,3 +11,69 @@ oauth2-proxy:
       enabled: true
 
   priorityClassName: medium-priority
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend.
+networkPolicy:
+  enabled: true
+  # L7 stub — rendered only with rules present.
+  enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace (the proxy resolves the OIDC issuer and
+  # session-store hostnames).
+  dnsEgress: true
+  # Namespace where CoreDNS lives.
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below.
+  ingress:
+  # Auth requests (ext-auth / auth_request subcalls and /oauth2 endpoints)
+  # arrive through the Envoy Gateway on the proxy port.
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
+    ports:
+    - protocol: TCP
+      port: 4180
+  # Prometheus scrapes the metrics listener (serviceMonitor is enabled by
+  # default in this chart).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 44180
+  # Default egress:
+  #  * intra-namespace — proxied upstreams living next to the proxy;
+  #  * HTTPS to anywhere — the OIDC issuer is reached via the keycloak public
+  #    URL. K8s NP cannot scope egress by hostname; narrowing is L7/CNP work.
+  # When sessionStorage.redis is configured (per-env), add an egress rule to
+  # the valkey service's namespace and port here (it typically lives in the
+  # keycloak namespace on 6379) — remember that overriding replaces this list.
+  egress:
+  - to:
+    - podSelector: {}
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
+  # true. See the L4/L7-shadowing caveat in the reference chart: a port opened
+  # unconditionally above cannot get L7 filtering here.
+  l7:
+    ingress: []
+    egress: []

@@ -1,0 +1,25 @@
+# ci/test-values/oauth2-proxy.yaml
+# CI-specific values for running oauth2-proxy in the Kind-based chart e2e.
+# The OIDC issuer is the keycloak dependency chart (master realm) — its URL is
+# injected by the runner via dependency_values. Startup discovery of
+# /.well-known/openid-configuration exercises the policy's egress; the client
+# credentials are never redeemed, so dummy values suffice.
+
+oauth2-proxy:
+  config:
+    clientID: e2e-ci
+    clientSecret: e2e-ci-not-a-secret
+    # 32 ASCII chars — oauth2-proxy requires a 16/24/32-byte cookie secret.
+    cookieSecret: "0123456789abcdef0123456789abcdef"
+
+  extraArgs:
+    provider: oidc
+    email-domain: "*"
+    # The dependency URL carries an explicit port; keycloak's issuer claim
+    # doesn't. Skip the strict equality check.
+    insecure-oidc-skip-issuer-verification: "true"
+
+  metrics:
+    serviceMonitor:
+      # ServiceMonitor CRD (prometheus-operator) is not installed in Kind.
+      enabled: false
