@@ -49,3 +49,88 @@ argo-cd:
       enabled: true
       serviceMonitor:
         enabled: true
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend. Selects every
+# argo-cd pod via the static `app.kubernetes.io/part-of: argocd` label
+# (server, repo-server, controllers, bundled redis); the external
+# argo-cd-cache release, when used, keeps its own valkey-chart policy.
+networkPolicy:
+  enabled: true
+  # L7 stub — rendered only with rules present.
+  enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace (git remotes, registries and cluster service
+  # names are resolved constantly).
+  dnsEgress: true
+  # Namespace where CoreDNS lives.
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only egress to the kube-apiserver entity (default true): the
+  # application controller and server manage cluster resources through the
+  # API, which runs as hostNetwork static pods on most clusters — unreachable
+  # through a K8s NP peer. On non-Cilium clusters set this to false and add an
+  # ipBlock egress rule with the apiserver endpoints.
+  kubeApiServer: true
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below.
+  ingress:
+  # Component east-west within the namespace (server/controllers →
+  # repo-server 8081, → redis 6379).
+  - from:
+    - podSelector: {}
+  # UI / API / grpc through the Envoy Gateway (server pod port 8080;
+  # server.insecure serves everything on the one port).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Prometheus scrapes the metrics listeners (controller 8082, server 8083,
+  # repo-server 8084, applicationset 8080 — the latter shares its number with
+  # the server UI port, so prometheus incidentally gains reach to the server
+  # API; the server enforces its own authentication).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8082
+    - protocol: TCP
+      port: 8083
+    - protocol: TCP
+      port: 8084
+  # Default egress:
+  #  * intra-namespace — redis (bundled or the argo-cd-cache release) and
+  #    repo-server grpc;
+  #  * HTTPS to anywhere — git remotes and Helm/OCI registries (including the
+  #    in-cluster Harbor via its public URL). Repositories are consumed over
+  #    HTTPS only; add a port-22 rule per env if SSH remotes are ever used.
+  egress:
+  - to:
+    - podSelector: {}
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
+  # true. See the L4/L7-shadowing caveat in the reference chart.
+  l7:
+    ingress: []
+    egress: []

@@ -1,0 +1,22 @@
+# ci/test-values/argo-cd.yaml
+# CI-specific values for running argo-cd in the Kind-based chart e2e.
+
+argo-cd:
+  # ServiceMonitor CRD (prometheus-operator) is not installed in Kind.
+  applicationSet:
+    metrics:
+      serviceMonitor:
+        enabled: false
+  controller:
+    metrics:
+      serviceMonitor:
+        enabled: false
+  server:
+    metrics:
+      serviceMonitor:
+        enabled: false
+    # No ingress controllers in Kind.
+    ingress:
+      enabled: false
+    ingressGrpc:
+      enabled: false
