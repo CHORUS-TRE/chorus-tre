@@ -61,6 +61,23 @@ defaults:
   timeout: 120
 
 charts:
+  argo-events:
+    # The probe carries the prometheus identity — the only peer the chart's
+    # NetworkPolicy admits (metrics listener). Controller readiness itself
+    # proves the apiserver egress (Cilium entity rule).
+    timeout: 240
+    values_file: ci/test-values/argo-events.yaml
+    fullname_override: e2e-argo-events-controller-manager-metrics
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 8082
+    health_check:
+      path: /metrics
+      port: 8082
+      expect_status: 200
   cert-manager:
     timeout: 300
     depends_on:

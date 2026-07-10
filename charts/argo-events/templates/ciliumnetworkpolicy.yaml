@@ -1,0 +1,54 @@
+{{- /*
+  Render a CiliumNetworkPolicy when (a) L7 inspection is requested with at
+  least one L7 rule, (b) nodeLocalDns is enabled, or (c) kubeApiServer is
+  enabled. The K8s NetworkPolicy in networkpolicy.yaml is the L3/L4 baseline;
+  this CNP adds what K8s NP cannot express:
+    * port-53 egress to the node-local-dns link-local IP (hostNetwork pods
+      can't be matched by a K8s NP podSelector),
+    * egress to the kube-apiserver entity — the controller's whole job is
+      reconciling CRs through the API, and the apiserver runs as hostNetwork
+      static pods on most clusters, unreachable through a K8s NP peer.
+  Cilium-backed clusters only.
+*/ -}}
+{{- $l7 := .Values.networkPolicy.l7 | default dict -}}
+{{- $l7ing := and .Values.networkPolicy.enabledL7 $l7.ingress -}}
+{{- $l7eg := and .Values.networkPolicy.enabledL7 $l7.egress -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- $apiSrv := .Values.networkPolicy.kubeApiServer -}}
+{{- if and .Values.networkPolicy.enabled (or $l7ing $l7eg $nld $apiSrv) }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-argo-events-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chorus-argo-events.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "chorus-argo-events.selectorLabels" . | nindent 6 }}
+  {{- with $l7ing }}
+  ingress:
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- if or $nld $l7eg $apiSrv }}
+  egress:
+  {{- if $apiSrv }}
+  - toEntities:
+    - kube-apiserver
+  {{- end }}
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  {{- end }}
+  {{- with $l7eg }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- end }}
+{{- end }}
