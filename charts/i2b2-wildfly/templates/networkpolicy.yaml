@@ -1,4 +1,4 @@
-{{- if and .Values.networkPolicy.enabled (not .Values.networkPolicy.enabled_l7_waf) }}
+{{- if .Values.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -13,23 +13,40 @@ spec:
   policyTypes:
   - Ingress
   - Egress
-  ingress:
   {{- if .Values.networkPolicy.ingress }}
+  ingress:
   {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
   {{- else }}
-  # Default Deny Ingress: Empty ingress list means deny all unless explicitly allowed
-  [] 
+  {{- /* Default deny: empty ingress list means deny all unless explicitly allowed */}}
+  ingress: []
   {{- end }}
   egress:
-  {{- if .Values.networkPolicy.egress }}
-  {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
+  {{- with .Values.networkPolicy.egress }}
+  {{- toYaml . | nindent 4 }}
   {{- end }}
-    # Always allow DNS resolution (port 53 only).
-    # Some clusters use node-local-dns on a host-network link-local IP instead
-    # of kube-dns in kube-system, so we cannot restrict by namespace selector.
-    - ports:
+  {{- if .Values.networkPolicy.dnsEgress }}
+    {{- /* Allow DNS resolution to CoreDNS in .Values.networkPolicy.dnsNamespace
+           (default kube-system). Two podSelectors OR'd: `k8s-app: kube-dns` is the
+           upstream CoreDNS label, `app: coredns` is the variant some chorus-tre
+           clusters ship. node-local-dns is intentionally not covered — its
+           hostNetwork pods can't be matched by K8s NP podSelector. */}}
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            app: coredns
+      ports:
       - protocol: UDP
         port: 53
       - protocol: TCP
         port: 53
-{{- end }} 
+  {{- end }}
+{{- end }}

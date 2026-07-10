@@ -1,6 +1,18 @@
-{{- /* Render CiliumNetworkPolicy only if enabled and L7 WAF is ON */}}
-{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.enabled_l7_waf }}
-apiVersion: "cilium.io/v2"
+{{- /*
+  Render a CiliumNetworkPolicy when either (a) L7 inspection is requested and at
+  least one L7 rule is provided, or (b) nodeLocalDns is enabled. The K8s
+  NetworkPolicy in networkpolicy.yaml is the L3/L4 baseline; this CNP layers
+  L7 rules on top for ports not already opened there (see the L4/L7-shadowing
+  note in values.yaml), and adds a Cilium-only port-53 egress to the
+  node-local-dns link-local IP when nodeLocalDns is true (K8s NP cannot match
+  hostNetwork pods). Cilium-backed clusters only.
+*/ -}}
+{{- $l7 := .Values.networkPolicy.l7 | default dict -}}
+{{- $l7ing := and .Values.networkPolicy.enabledL7 $l7.ingress -}}
+{{- $l7eg := and .Values.networkPolicy.enabledL7 $l7.egress -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- if and .Values.networkPolicy.enabled (or $l7ing $l7eg $nld) }}
+apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
   name: {{ include "i2b2-wildfly.fullname" . }}-l7
@@ -11,53 +23,24 @@ spec:
   endpointSelector:
     matchLabels:
       {{- include "i2b2-wildfly.selectorLabels" . | nindent 6 }}
-  # Define ingress rules (L3/L4 + L7)
+  {{- with $l7ing }}
   ingress:
-  {{- if .Values.networkPolicy.ingress }}
-    {{- /* Use the structure from values.yaml, assuming it's compatible or adapted for Cilium */}}
-    {{- /* L7 rules need to be defined within 'toPorts' -> 'rules' -> 'http' */}}
-    {{- toYaml .Values.networkPolicy.ingress | nindent 2 }}
-    # Example L7 Rule Placeholder (add under ports: -> rules: -> http:)
-    # rules:
-    #   http:
-    #   - method: "GET"
-    #     path: "/specific-path"
-  {{- else }}
-    # Default Deny Ingress if .Values.networkPolicy.ingress is empty
-    []
+    {{- toYaml . | nindent 2 }}
   {{- end }}
-
-  # Define egress rules (L3/L4 + DNS by default)
-  # Note: CiliumNetworkPolicy uses different format than K8s NetworkPolicy
-  # For L7 WAF mode, define specific Cilium egress rules in environment-specific values
+  {{- if or $nld $l7eg }}
   egress:
-  # Allow DNS to in-cluster CoreDNS pods (clusters without node-local-dns).
-  # Targets the kube-dns Service backing pods by their label.
-  - toEndpoints:
-    - matchLabels:
-        "k8s:io.kubernetes.pod.namespace": kube-system
-        app: coredns
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
     toPorts:
     - ports:
       - port: "53"
         protocol: UDP
       - port: "53"
         protocol: TCP
-  # Allow DNS to node-local-dns (host network, link-local IP 169.254.x.x).
-  # Cilium classifies that link-local IP as the "world" entity (not "host" and
-  # not the node-local-dns pod identity, since the pod runs hostNetwork=true).
-  # Bounded to port 53 — does not allow general external egress.
-  - toEntities:
-    - world
-    toPorts:
-    - ports:
-      - port: "53"
-        protocol: UDP
-      - port: "53"
-        protocol: TCP
-  {{- if .Values.networkPolicy.egress }}
-    {{- toYaml .Values.networkPolicy.egress | nindent 2 }}
   {{- end }}
-  # Additional egress rules (e.g., database) should be defined in environment-specific values.yaml
-  # using Cilium-specific format (toEndpoints, not K8s 'to' format)
-{{- end }} 
+  {{- with $l7eg }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- end }}
+{{- end }}
