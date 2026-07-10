@@ -1,16 +1,8 @@
-{{- /*
-  Egress-only policy. Ingress is deliberately NOT handled here: the Bitnami
-  subchart's own NetworkPolicy (valkey.networkPolicy.* in values.yaml) already
-  implements default-deny ingress with own-namespace 6379 access, a
-  prometheus-scoped metrics rule and the per-release ingressNSMatchLabels
-  mechanism for cross-namespace consumers — this chart only closes the egress
-  gap the upstream policy leaves open (allowExternalEgress).
-*/}}
 {{- if .Values.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ .Release.Name }}-valkey-egress-policy
+  name: {{ .Release.Name }}-valkey-policy
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "chorus-valkey.labels" . | nindent 4 }}
@@ -19,7 +11,15 @@ spec:
     matchLabels:
       {{- include "chorus-valkey.selectorLabels" . | nindent 6 }}
   policyTypes:
+  - Ingress
   - Egress
+  {{- if .Values.networkPolicy.ingress }}
+  ingress:
+  {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+  {{- else }}
+  {{- /* Default deny: empty ingress list means deny all unless explicitly allowed */}}
+  ingress: []
+  {{- end }}
   egress:
   {{- with .Values.networkPolicy.egress }}
   {{- toYaml . | nindent 4 }}
