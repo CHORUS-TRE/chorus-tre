@@ -1,0 +1,60 @@
+# ci/test-values/harbor.yaml
+# CI-specific values for running harbor in the Kind-based chart e2e.
+# Production uses external harbor-db/harbor-cache releases and Ingress
+# exposure; CI runs the goharbor-internal database/redis and a ClusterIP
+# service — both stay inside the namespace, so the network policy under test
+# (intra-namespace + HTTPS egress, namespace-scoped ingress) is the same.
+
+harbor:
+  expose:
+    # No ingress controller in Kind.
+    type: clusterIP
+    clusterIP:
+      name: e2e-harbor
+    tls:
+      enabled: false
+
+  externalURL: http://e2e-harbor
+
+  # goharbor-internal database and redis instead of the external releases.
+  database:
+    type: internal
+    internal:
+      password: "342476testcipassword"
+  redis:
+    type: internal
+
+  # Let the chart generate its secrets instead of the shared harbor-secret.
+  existingSecretAdminPassword: ""
+  harborAdminPassword: "342476testcipassword"
+  existingSecretSecretKey: ""
+  secretKey: "e2eci-not-secret"
+  core:
+    existingSecret: ""
+    existingXsrfSecret: ""
+    secretName: ""
+  jobservice:
+    existingSecret: ""
+  registry:
+    existingSecret: ""
+    credentials:
+      existingSecret: ""
+      password: "342476testcipassword"
+
+  # Lighter footprint for Kind.
+  persistence:
+    persistentVolumeClaim:
+      registry:
+        size: 5Gi
+      jobService:
+        size: 1Gi
+  trivy:
+    enabled: false
+  metrics:
+    serviceMonitor:
+      enabled: false
+
+# The config job drives the harbor API post-install; it needs the shared
+# harbor-secret and is irrelevant to the network-policy test.
+configJob:
+  enabled: false

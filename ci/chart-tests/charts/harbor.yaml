@@ -1,0 +1,19 @@
+# harbor: registry reachability + health behind the chart's NetworkPolicy.
+# The probe pod runs in envoy-gateway-system — a namespace the default
+# ingress rule admits — and the API answer proves the intra-namespace rules
+# (nginx → core → database/redis all live behind the same policy).
+
+charts:
+  harbor:
+    timeout: 600
+    values_file: ci/test-values/harbor.yaml
+    fullname_override: e2e-harbor
+    probe:
+      namespace: envoy-gateway-system
+    services:
+      - port: 80
+    health_check:
+      path: /api/v2.0/systeminfo
+      port: 80
+      expect_status: 200
+      expect_content_type_regex: 'application/json'
