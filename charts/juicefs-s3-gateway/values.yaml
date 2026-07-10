@@ -20,3 +20,73 @@ juicefs-s3-gateway:
   options: "--umask 000"
 
   priorityClassName: "high-priority"
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend.
+networkPolicy:
+  enabled: true
+  # -----------------------------------------------------------------------------
+  # Two-layer model:
+  #   * networkPolicy.ingress / networkPolicy.egress (below) define L3/L4 rules
+  #     in standard K8s NetworkPolicy syntax. They are ALWAYS rendered when
+  #     networkPolicy.enabled is true, and they work on any CNI that implements
+  #     the K8s NetworkPolicy API (Cilium, Calico, vanilla kube-network, ...).
+  #   * networkPolicy.l7.ingress / networkPolicy.l7.egress (further below) hold
+  #     L7 (HTTP / DNS) rules in CiliumNetworkPolicy syntax. They are ONLY
+  #     consulted on Cilium clusters and only when enabledL7 is true.
+  #
+  # enabledL7 is an explicit opt-in switch for the L7 layer. It does NOT
+  # by itself produce any L7 filtering — the CiliumNetworkPolicy is rendered
+  # only when BOTH conditions hold:
+  #     enabledL7 == true   AND   at least one of l7.ingress / l7.egress
+  #                                  contains rules.
+  # -----------------------------------------------------------------------------
+  enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace (the gateway resolves its metadata-engine and
+  # object-storage hostnames).
+  dnsEgress: true
+  # Namespace where CoreDNS lives. Override per-env if the cluster runs DNS
+  # outside kube-system.
+  dnsNamespace: kube-system
+  # When true, additionally render a CiliumNetworkPolicy egress rule allowing
+  # port-53 traffic to the node-local-dns link-local IP. Cilium-only: K8s
+  # NetworkPolicy cannot match hostNetwork pods like node-local-dns.
+  nodeLocalDns: false
+  # Link-local IP where node-local-dns listens.
+  nodeLocalDnsIp: 169.254.20.10
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below — repeat the rules
+  # you want to keep. Set `ingress: []` for a full default-deny.
+  #
+  # Default ingress: the chorus backend (S3 API on 9000, metrics on 9567) —
+  # the gateway's only consumer today.
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: backend
+    ports:
+    - protocol: TCP
+      port: 9000
+    - protocol: TCP
+      port: 9567
+  # Default egress: OPEN. The JuiceFS metadata engine (metaurl) and object
+  # storage endpoints are environment-specific and live in the juicefs-secret,
+  # so the chart cannot know them; a wrong guess here would break storage IO.
+  # Each environment should replace this list with rules pinned to its own
+  # metadata engine and object-storage endpoints.
+  egress:
+  - {}
+  # L7 rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
+  # Only consulted when enabledL7 is true. Leave empty to skip the CNP entirely.
+  #
+  # IMPORTANT — Cilium L4/L7 shadowing: if a port is opened unconditionally in
+  # the K8s NetworkPolicy above (networkPolicy.ingress/egress), the broader
+  # L4 grant wins and any L7 rule you add here for that same port is silently
+  # NOT enforced. To get L7 filtering on a port, that port must NOT also be
+  # opened in the K8s NP for the same direction — let the CNP own it.
+  l7:
+    ingress: []
+    egress: []

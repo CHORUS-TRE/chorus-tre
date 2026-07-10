@@ -1,0 +1,26 @@
+# juicefs-s3-gateway: S3 API reachability behind the chart's NetworkPolicy.
+# The probe pod runs in the backend namespace — the exact peer the default
+# ingress rule admits on 9000/9567. A throwaway redis pod provides the JuiceFS
+# metadata engine (the format initContainer and the gateway both need it), and
+# object storage is a pod-local directory — no external dependencies in Kind.
+# An anonymous GET / on the S3 API returns 403 AccessDenied, proving the
+# gateway answered through the policy.
+
+charts:
+  juicefs-s3-gateway:
+    timeout: 300
+    pre_install:
+      - kubectl -n test run e2e-jfs-redis --image=docker.io/library/redis:7-alpine --port=6379 --labels=app=e2e-jfs-redis --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl -n test expose pod e2e-jfs-redis --port=6379 --name=e2e-jfs-redis --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl -n test wait --for=condition=Ready pod/e2e-jfs-redis --timeout=120s
+      - kubectl create secret generic juicefs-secret --from-literal=name=e2efs --from-literal=metaurl=redis://e2e-jfs-redis.test.svc.cluster.local:6379/1 --from-literal=storage=file --from-literal=bucket=/var/jfs --from-literal=access-key=e2eminio --from-literal=secret-key=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
+    probe:
+      namespace: backend
+    services:
+      - port: 9000
+    health_check:
+      path: /
+      port: 9000
+      expect_status: 403
+      expect_content_type_regex: 'application/xml'
+      body_must_match: 'AccessDenied'
