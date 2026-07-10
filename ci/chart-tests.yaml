@@ -79,6 +79,24 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  trust-manager:
+    # The probe carries the prometheus identity — the only K8s-NP peer the
+    # policy admits (metrics listener). Readiness + Bundle admission prove
+    # the bidirectional apiserver entity rules.
+    timeout: 240
+    depends_on:
+      - cert-manager-crds
+    fullname_override: trust-manager-metrics
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 9402
+    health_check:
+      path: /metrics
+      port: 9402
+      expect_status: 200
   juicefs-csi-driver:
     timeout: 300
     pre_install:

@@ -3,3 +3,40 @@ trust-manager:
   crds:
     enabled: true
     keep: true
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend, minimal profile:
+# trust-manager only reconciles Bundle resources through the kube-apiserver
+# and answers the apiserver's validating-webhook calls.
+networkPolicy:
+  enabled: true
+  # trust-manager resolves nothing (the apiserver is reached via the injected
+  # service IP); keep the DNS rule off.
+  dnsEgress: false
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (only relevant if dnsEgress is enabled).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only apiserver rules (default true), in BOTH directions: egress
+  # toEntities for Bundle reconciliation, ingress fromEntities on the webhook
+  # port — the validating webhook is CALLED BY the apiserver, whose
+  # hostNetwork static pods no K8s NP peer can select. Without it, Bundle
+  # admission would fail cluster-wide.
+  kubeApiServer: true
+  # Webhook TLS port the apiserver calls (upstream default; the trust-manager
+  # Service maps 443 to it).
+  webhookPort: 6443
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  ingress:
+  # Prometheus scrapes the metrics listener (9402).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 9402
+  egress: []

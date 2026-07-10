@@ -1,0 +1,48 @@
+{{- /*
+  Render a CiliumNetworkPolicy when (a) nodeLocalDns or (b) kubeApiServer is
+  enabled. The K8s NetworkPolicy in networkpolicy.yaml is the L3/L4 baseline;
+  this CNP adds BOTH directions of apiserver traffic — egress toEntities for
+  Bundle reconciliation (trust-manager writes trust bundles to every
+  namespace through the API), and ingress fromEntities on the webhook port:
+  the Bundle validating webhook is CALLED BY the apiserver, whose hostNetwork
+  static pods no K8s NP peer can select. Cilium-backed clusters only.
+*/ -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- $apiSrv := .Values.networkPolicy.kubeApiServer -}}
+{{- if and .Values.networkPolicy.enabled (or $nld $apiSrv) }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-trust-manager-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chorus-trust-manager.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "chorus-trust-manager.selectorLabels" . | nindent 6 }}
+  {{- if $apiSrv }}
+  ingress:
+  - fromEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: "{{ .Values.networkPolicy.webhookPort }}"
+        protocol: TCP
+  {{- end }}
+  egress:
+  {{- if $apiSrv }}
+  - toEntities:
+    - kube-apiserver
+  {{- end }}
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  {{- end }}
+{{- end }}
