@@ -191,3 +191,67 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend, with one deliberate
+# deviation: the policy selects EVERY pod in the release namespace
+# (podSelector: {}), because the CI machinery (jetstream eventbus, github
+# eventsource, sensors, argo workflow steps) is created at runtime by the
+# argo-events / argo-workflows controllers with labels this chart cannot
+# enumerate — and the namespace is single-tenant.
+networkPolicy:
+  enabled: true
+  # L7 stub — rendered only with rules present.
+  enabledL7: false
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace (git remotes, registries and cluster services
+  # are resolved constantly by CI steps).
+  dnsEgress: true
+  # Namespace where CoreDNS lives.
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only egress to the kube-apiserver entity (default true): sensors
+  # create Workflow resources and the argo workflow executor reports step
+  # state to the API. The apiserver runs as hostNetwork static pods on most
+  # clusters — unreachable through a K8s NP peer. On non-Cilium clusters set
+  # this to false and add an ipBlock egress rule with the apiserver endpoints.
+  kubeApiServer: true
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below.
+  ingress:
+  # Intra-namespace: eventbus <-> eventsource/sensors, workflow steps.
+  - from:
+    - podSelector: {}
+  # GitHub webhooks reach the eventsource through the Envoy Gateway
+  # (pod port 12000 behind the eventsource service).
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
+    ports:
+    - protocol: TCP
+      port: 12000
+  egress:
+  # Intra-namespace: eventbus, artifact hand-off between steps.
+  - to:
+    - podSelector: {}
+  # CI steps clone from GitHub, pull base images and push to registries over
+  # HTTPS. K8s NP cannot scope egress by hostname; narrowing is L7/CNP work.
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
+  # true. See the L4/L7-shadowing caveat in the reference chart: a port opened
+  # unconditionally above cannot get L7 filtering here.
+  l7:
+    ingress: []
+    egress: []
