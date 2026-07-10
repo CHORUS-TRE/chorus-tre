@@ -1,0 +1,81 @@
+{{- /*
+  Cilium-only apiserver rules for the components that need them (K8s NP
+  cannot select the apiserver's hostNetwork static pods):
+    * prometheus-operator — egress toEntities for CR reconciliation, plus
+      ingress fromEntities on the admission-webhook port (the apiserver CALLS
+      the webhook; without this rule default-deny ingress would block
+      PrometheusRule admission cluster-wide),
+    * kube-state-metrics — egress toEntities (it watches every resource).
+  Grafana needs neither. The prometheus pods' egress is unrestricted by design
+  (upstream-rendered policy) and needs no entity rule. nodeLocalDns adds the
+  usual toCIDR port-53 egress per component. Cilium-backed clusters only.
+*/ -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- $apiSrv := .Values.networkPolicy.kubeApiServer -}}
+{{- if and .Values.networkPolicy.enabled (or $nld $apiSrv) }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-prometheus-operator-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chorus-kps.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: kube-prometheus-stack-prometheus-operator
+      release: {{ .Release.Name }}
+  {{- if $apiSrv }}
+  ingress:
+  - fromEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: "{{ .Values.networkPolicy.operatorWebhookPort }}"
+        protocol: TCP
+  {{- end }}
+  egress:
+  {{- if $apiSrv }}
+  - toEntities:
+    - kube-apiserver
+  {{- end }}
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  {{- end }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-kube-state-metrics-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chorus-kps.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: kube-state-metrics
+      release: {{ .Release.Name }}
+  egress:
+  {{- if $apiSrv }}
+  - toEntities:
+    - kube-apiserver
+  {{- end }}
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  {{- end }}
+{{- end }}

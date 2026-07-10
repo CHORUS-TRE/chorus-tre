@@ -23,6 +23,7 @@ kube-prometheus-stack:
       enabled: true
       policyTypes:
         - Ingress
+        - Egress
       gateway:
         namespace: envoy-gateway-system
         podLabels:
@@ -40,6 +41,36 @@ kube-prometheus-stack:
           ports:
             - port: 8080
               protocol: TCP
+      # Egress was previously unrestricted. Alertmanager only dials out for
+      # notifications (the webex receiver, HTTPS) plus the DNS lookups they
+      # need — K8s NP cannot scope egress by hostname.
+      egress:
+        enabled: true
+        rules:
+          - to:
+              - ipBlock:
+                  cidr: 0.0.0.0/0
+            ports:
+              - port: 443
+                protocol: TCP
+          - to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: kube-system
+                podSelector:
+                  matchLabels:
+                    k8s-app: kube-dns
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: kube-system
+                podSelector:
+                  matchLabels:
+                    app: coredns
+            ports:
+              - port: 53
+                protocol: UDP
+              - port: 53
+                protocol: TCP
 
     alertmanagerSpec:
       priorityClassName: high-priority
@@ -244,3 +275,98 @@ alertmanagerConfiguration:
       key: accessToken
 
     roomID: ""
+
+# Chorus NetworkPolicy configuration for the helm-managed components the
+# upstream chart leaves unpoliced: grafana, the prometheus-operator and
+# kube-state-metrics. Documented split: the prometheus and alertmanager pods
+# are operator-created and keep their policies rendered by the UPSTREAM chart
+# (configured under kube-prometheus-stack.{alertmanager,prometheus}.networkPolicy
+# above — the upstream templates derive those pods' CR-based selectors
+# reliably across chart bumps). node-exporter is hostNetwork — out of
+# NetworkPolicy reach. One policy object per component: their label sets share
+# nothing usable, and the namespace also hosts oauth2-proxy and
+# blackbox-exporter releases whose own policies must not be widened by union.
+networkPolicy:
+  enabled: true
+  # When true (default), append the CoreDNS-scoped port-53 egress rule to each
+  # component policy (grafana resolves loki/keycloak hostnames).
+  dnsEgress: true
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only apiserver rules (default true): egress toEntities for the
+  # operator (CR reconciliation) and kube-state-metrics (resource watching),
+  # plus ingress fromEntities on the operator's admission-webhook port — the
+  # apiserver CALLS the webhook, and its hostNetwork static pods cannot be
+  # selected by a K8s NP peer.
+  kubeApiServer: true
+  # Admission-webhook TLS port on the operator (upstream default).
+  operatorWebhookPort: 10250
+  # Per-component L3/L4 rules (K8s NetworkPolicy syntax). Overriding a list
+  # REPLACES it.
+  components:
+    grafana:
+      ingress:
+      # Dashboards through the Envoy Gateway (container port 3000).
+      - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: envoy-gateway-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/managed-by: envoy-gateway
+        ports:
+        - protocol: TCP
+          port: 3000
+      # Prometheus scrapes grafana's own metrics (same namespace).
+      - from:
+        - podSelector: {}
+        ports:
+        - protocol: TCP
+          port: 3000
+      egress:
+      # Datasources: prometheus in this namespace; the loki gateway in the
+      # loki namespace; OIDC login via the keycloak public URL (HTTPS —
+      # K8s NP cannot scope egress by hostname).
+      - to:
+        - podSelector: {}
+      - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: loki
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+              app.kubernetes.io/component: gateway
+        ports:
+        - protocol: TCP
+          port: 8080
+      - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+        ports:
+        - protocol: TCP
+          port: 443
+    operator:
+      ingress:
+      # Prometheus scrapes the operator (https 10250) from this namespace.
+      - from:
+        - podSelector: {}
+        ports:
+        - protocol: TCP
+          port: 10250
+      # Apiserver-to-webhook ingress comes from the Cilium entity rule
+      # (kubeApiServer above); no L3/L4 egress beyond DNS is needed.
+      egress: []
+    kubeStateMetrics:
+      ingress:
+      # Prometheus scrapes the metrics (8080) and telemetry (8081) listeners.
+      - from:
+        - podSelector: {}
+        ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8081
+      egress: []
