@@ -80,11 +80,12 @@ charts:
   self-signed-issuer:
     skip_deploy: true
   prometheus-blackbox-exporter:
-    # The probe pod carries the prometheus identity — the only peer the
-    # chart's NetworkPolicy admits on 9115.
+    # The probe pod carries the prometheus name label — the policy's ingress
+    # peer is a podSelector-only rule (same-namespace prometheus pods, as in
+    # production where the exporter lives in the prometheus namespace), so the
+    # probe must run in the chart namespace, not in `prometheus`.
     timeout: 180
     probe:
-      namespace: prometheus
       labels:
         app.kubernetes.io/name: prometheus
     services:
