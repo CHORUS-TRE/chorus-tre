@@ -86,6 +86,9 @@ charts:
     # CNPs). The probe carries the prometheus identity — a peer the policy
     # admits (metrics listener); controller readiness proves the apiserver
     # egress and the certgen/webhook path.
+    # The chart hardcodes envoy-gateway-system in its Gateway/EnvoyProxy/
+    # GatewayClass resources — deploy where production does.
+    namespace: envoy-gateway-system
     timeout: 300
     fullname_override: envoy-gateway
     depends_on:
