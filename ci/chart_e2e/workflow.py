@@ -393,6 +393,23 @@ class RepoChartE2EWorkflow:
             "Events",
             ["/bin/bash", "-lc", "kubectl get events -A --sort-by=.lastTimestamp | tail -50"],
         )
+        # The nested Kind cluster is gone after the run, so unhealthy pods'
+        # container logs must be captured here or they are lost.
+        self.print_debug_section(
+            "Logs of non-running pods",
+            [
+                "/bin/bash",
+                "-lc",
+                "for ref in $(kubectl get pods -A --no-headers"
+                " | awk '$4 != \"Running\" && $4 != \"Completed\" {print $1 \"/\" $2}'); do"
+                " ns=${ref%%/*}; pod=${ref#*/};"
+                " echo \"--- $ns/$pod (current) ---\";"
+                " kubectl -n \"$ns\" logs \"$pod\" --all-containers --tail=40 2>&1;"
+                " echo \"--- $ns/$pod (previous) ---\";"
+                " kubectl -n \"$ns\" logs \"$pod\" --all-containers --tail=40 --previous 2>&1;"
+                " done",
+            ],
+        )
 
     def print_debug_section(self, title: str, args: list[str]) -> None:
         print(f"=== {title} ===")
