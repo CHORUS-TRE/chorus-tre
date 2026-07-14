@@ -9,6 +9,7 @@
 charts:
   kube-prometheus-stack:
     timeout: 600
+    values_file: ci/test-values/kube-prometheus-stack.yaml
     fullname_override: e2e-kube-prometheus-stack-grafana
     depends_on:
       - prometheus-operator-crds
