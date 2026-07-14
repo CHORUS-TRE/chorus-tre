@@ -87,6 +87,7 @@ charts:
     # cert-manager) — deploy where production does.
     namespace: cert-manager
     timeout: 240
+    values_file: ci/test-values/trust-manager.yaml
     depends_on:
       - cert-manager-crds
     fullname_override: trust-manager-metrics

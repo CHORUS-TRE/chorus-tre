@@ -1,0 +1,12 @@
+# CI-only overrides for the trust-manager chart e2e.
+#
+# The e2e cluster installs only the cert-manager CRDs, never the controller,
+# so the default cert-manager-issued webhook certificate would never be
+# provisioned and the trust-manager pod would wait forever on the TLS secret.
+# Use the Helm-generated cert instead (CI only — production keeps cert-manager).
+trust-manager:
+  app:
+    webhook:
+      tls:
+        helmCert:
+          enabled: true
