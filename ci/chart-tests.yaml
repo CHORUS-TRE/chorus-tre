@@ -83,6 +83,9 @@ charts:
     # The probe carries the prometheus identity — the only K8s-NP peer the
     # policy admits (metrics listener). Readiness + Bundle admission prove
     # the bidirectional apiserver entity rules.
+    # The upstream chart renders RBAC into its trust namespace (default
+    # cert-manager) — deploy where production does.
+    namespace: cert-manager
     timeout: 240
     depends_on:
       - cert-manager-crds
