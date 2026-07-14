@@ -29,7 +29,15 @@ spec:
   {{- if $apiSrv }}
   ingress:
   - fromEntities:
+    {{- /* The apiserver's calls arrive with the node identity (host /
+           remote-node) on kubeadm-style clusters instead of the
+           kube-apiserver entity — observed in the Kind e2e, where the
+           webhook was unreachable with kube-apiserver alone. Admit all
+           three, scoped strictly to the webhook port; the webhook
+           authenticates its callers via TLS. */}}
     - kube-apiserver
+    - remote-node
+    - host
     toPorts:
     - ports:
       - port: "{{ .Values.networkPolicy.operatorWebhookPort }}"
