@@ -69,6 +69,10 @@ charts:
     # enabled, so the prometheus-operator CRDs must exist first.
     timeout: 300
     values_file: ci/test-values/argo-workflows.yaml
+    pre_install:
+      # Upstream renders workflow RBAC into every controller.workflowNamespaces
+      # entry (argo in the wrapper values) and expects the namespace to exist.
+      - kubectl create namespace argo --dry-run=client -o yaml | kubectl apply -f -
     depends_on:
       - prometheus-operator-crds
     fullname_override: e2e-argo-workflows-server
