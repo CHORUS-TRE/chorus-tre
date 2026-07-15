@@ -1,10 +1,16 @@
 # ci/test-values/firecrest-web-ui-v2.yaml
 # CI-specific values for running firecrest-web-ui-v2 in the Kind-based chart
-# e2e. OIDC and the FirecREST API are validated lazily by the app, so dummy
-# endpoints suffice; the session store is disabled to avoid a redis.
+# e2e. The app performs OIDC discovery at startup and HALTS if the issuer is
+# unreachable (the upstream default auth.example.com never resolves), so the
+# e2e points it at the static mock issuer deployed by pre_install
+# (ci/test-manifests/oidc-mock.yaml). The mock listens on 443 so the chart's
+# default egress policy (TCP 443 to anywhere) applies unmodified. The
+# FirecREST API is only called on user actions, so its dummy default is fine;
+# the session store is disabled to avoid a redis.
 
 firecrest-web-ui-v2:
   redisActive: "false"
+  oidcIssuerUrl: "http://oidc-mock.test.svc.cluster.local:443/realms/e2e"
 
 ingress:
   enabled: false
