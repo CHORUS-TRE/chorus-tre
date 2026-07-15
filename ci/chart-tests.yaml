@@ -80,6 +80,7 @@ charts:
       expect_status: 200
   cert-manager:
     timeout: 300
+    values_file: ci/test-values/cert-manager.yaml
     depends_on:
       - cert-manager-crds
   cert-manager-crds:
