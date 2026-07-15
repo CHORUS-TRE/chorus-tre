@@ -297,6 +297,9 @@ networkPolicy:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
   # Default egress:
   #  * intra-namespace — the harbor-db (postgresql) and harbor-cache (valkey)
   #    releases live in the harbor namespace in every environment, plus
