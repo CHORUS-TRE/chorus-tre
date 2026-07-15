@@ -254,15 +254,9 @@ networkPolicy:
   #     the K8s NetworkPolicy API (Cilium, Calico, vanilla kube-network, ...).
   #   * networkPolicy.l7.ingress / networkPolicy.l7.egress (further below) hold
   #     L7 (HTTP / DNS) rules in CiliumNetworkPolicy syntax. They are ONLY
-  #     consulted on Cilium clusters and only when enabledL7 is true.
-  #
-  # enabledL7 is an explicit opt-in switch for the L7 layer. It does NOT
-  # by itself produce any L7 filtering — the CiliumNetworkPolicy is rendered
-  # only when BOTH conditions hold:
-  #     enabledL7 == true   AND   at least one of l7.ingress / l7.egress
-  #                                  contains rules.
+  #     effective on Cilium clusters, and they enforce as soon as either list
+  #     contains rules — what is written in values is what is enforced.
   # -----------------------------------------------------------------------------
-  enabledL7: false
   # When true (default), append an egress rule allowing port-53 traffic to the
   # CoreDNS pods in dnsNamespace (harbor resolves its db/cache service names
   # and external registry hostnames).
@@ -318,13 +312,31 @@ networkPolicy:
     - protocol: TCP
       port: 443
   # L7 rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
-  # Only consulted when enabledL7 is true. Leave empty to skip the CNP entirely.
+  # Enforced as soon as rules are present: the CiliumNetworkPolicy renders when
+  # either list below is non-empty. There is no separate on/off switch — leave
+  # both lists empty to skip the CNP entirely. L7 rules FILTER rather than
+  # allow: once a port carries an L7 rule, only matching traffic passes on it.
   #
   # IMPORTANT — Cilium L4/L7 shadowing: if a port is opened unconditionally in
   # the K8s NetworkPolicy above (networkPolicy.ingress/egress), the broader
   # L4 grant wins and any L7 rule you add here for that same port is silently
   # NOT enforced. To get L7 filtering on a port, that port must NOT also be
   # opened in the K8s NP for the same direction — let the CNP own it.
+  #
+  # Example (adapt the labels/port and move under `ingress:` to activate — it
+  # enforces immediately):
+  #   ingress:
+  #   - fromEndpoints:
+  #     - matchLabels:
+  #         app.kubernetes.io/managed-by: envoy-gateway
+  #     toPorts:
+  #     - ports:
+  #       - port: "8080"
+  #         protocol: TCP
+  #       rules:
+  #         http:
+  #         - method: GET
+  #           path: "/.*"
   l7:
     ingress: []
     egress: []
