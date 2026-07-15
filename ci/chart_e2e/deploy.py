@@ -59,12 +59,14 @@ class DeploymentMixin:
                 str(dep_chart_path),
                 "--namespace",
                 dep_ns,
-                "--values",
-                str(dep_chart_path / "values.yaml"),
                 "--wait",
                 "--timeout",
                 f"{dep_timeout}s",
             ]
+            # CRD-only charts ship no values.yaml — helm errors on a missing
+            # --values file, so pass it only when it exists.
+            if (dep_chart_path / "values.yaml").is_file():
+                dep_helm_cmd.extend(["--values", str(dep_chart_path / "values.yaml")])
 
             if dep_values_file:
                 dep_helm_cmd.extend(["--values", str(self.repo_root / str(dep_values_file))])
@@ -108,12 +110,12 @@ class DeploymentMixin:
             str(self.chart_path),
             "--namespace",
             self.namespace,
-            "--values",
-            str(self.chart_path / "values.yaml"),
             "--wait",
             "--timeout",
             f"{self.timeout}s",
         ]
+        if (self.chart_path / "values.yaml").is_file():
+            helm_cmd.extend(["--values", str(self.chart_path / "values.yaml")])
 
         if self.values_file:
             helm_cmd.extend(["--values", str(self.repo_root / str(self.values_file))])
@@ -135,11 +137,11 @@ class DeploymentMixin:
             str(self.chart_path),
             "--namespace",
             self.namespace,
-            "--values",
-            str(self.chart_path / "values.yaml"),
             "--timeout",
             f"{self.timeout}s",
         ]
+        if (self.chart_path / "values.yaml").is_file():
+            helm_cmd_nowait.extend(["--values", str(self.chart_path / "values.yaml")])
         if self.values_file:
             helm_cmd_nowait.extend(["--values", str(self.repo_root / str(self.values_file))])
         helm_cmd_nowait.extend(helm_set_args)
