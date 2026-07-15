@@ -1,0 +1,9 @@
+# ci/test-values/cert-manager.yaml
+# CI-specific values for running cert-manager in the Kind-based chart e2e.
+
+cert-manager:
+  config:
+    # The controller exits fatally when enableGatewayAPI is on and the
+    # Gateway API CRDs are absent; they exist in production (gateway-crds-helm)
+    # but not in the Kind e2e cluster.
+    enableGatewayAPI: false
