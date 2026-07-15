@@ -396,12 +396,12 @@ class RepoChartE2EWorkflow:
         # The nested Kind cluster is gone after the run, so unhealthy pods'
         # container logs must be captured here or they are lost.
         self.print_debug_section(
-            "Logs of non-running pods",
+            "Logs of non-running pods (and Running-but-unready)",
             [
                 "/bin/bash",
                 "-lc",
                 "for ref in $(kubectl get pods -A --no-headers"
-                " | awk '$4 != \"Running\" && $4 != \"Completed\" {print $1 \"/\" $2}'); do"
+                " | awk '{split($3, r, \"/\")} ($4 != \"Running\" && $4 != \"Completed\") || ($4 == \"Running\" && r[1] != r[2]) {print $1 \"/\" $2}'); do"
                 " ns=${ref%%/*}; pod=${ref#*/};"
                 " echo \"--- $ns/$pod (current) ---\";"
                 " kubectl -n \"$ns\" logs \"$pod\" --all-containers --tail=40 2>&1;"
