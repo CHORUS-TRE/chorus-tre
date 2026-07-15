@@ -10,6 +10,13 @@ fluent-operator:
       registry: ghcr.io
       repository: fluent/fluent-operator/fluent-operator
       tag: ""
+    # The operator's --metrics-bind-address defaults to "0" (disabled), so the
+    # metrics Service the upstream chart always renders on 8080 would point at
+    # nothing. Serve plain HTTP: the NetworkPolicy below limits ingress to the
+    # release namespace.
+    extraArgs:
+      - --metrics-bind-address=:8080
+      - --metrics-secure=false
 
   fluentbit:
     # TODO: install CRDs independently
