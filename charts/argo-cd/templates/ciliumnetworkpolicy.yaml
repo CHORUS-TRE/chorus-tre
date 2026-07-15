@@ -12,8 +12,8 @@
   Cilium-backed clusters only.
 */ -}}
 {{- $l7 := .Values.networkPolicy.l7 | default dict -}}
-{{- $l7ing := and .Values.networkPolicy.enabledL7 $l7.ingress -}}
-{{- $l7eg := and .Values.networkPolicy.enabledL7 $l7.egress -}}
+{{- $l7ing := $l7.ingress -}}
+{{- $l7eg := $l7.egress -}}
 {{- $nld := .Values.networkPolicy.nodeLocalDns -}}
 {{- $apiSrv := .Values.networkPolicy.kubeApiServer -}}
 {{- if and .Values.networkPolicy.enabled (or $l7ing $l7eg $nld $apiSrv) }}
