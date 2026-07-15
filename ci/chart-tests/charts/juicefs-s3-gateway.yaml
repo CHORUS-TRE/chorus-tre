@@ -9,6 +9,9 @@
 charts:
   juicefs-s3-gateway:
     timeout: 300
+    # The upstream subchart hardcodes its object names (not release-derived) —
+    # point the harness at the real Service name.
+    fullname_override: juicefs-s3-gateway
     pre_install:
       - kubectl -n test run e2e-jfs-redis --image=docker.io/library/redis:7-alpine --port=6379 --labels=app=e2e-jfs-redis --dry-run=client -o yaml | kubectl apply -f -
       - kubectl -n test expose pod e2e-jfs-redis --port=6379 --name=e2e-jfs-redis --dry-run=client -o yaml | kubectl apply -f -
