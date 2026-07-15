@@ -53,8 +53,6 @@ valkey:
 # plus real deny-all egress — a cache never dials out.
 networkPolicy:
   enabled: true
-  # L7 stub — rendered only with rules present.
-  enabledL7: false
   # Only needed when replicas are enabled (they resolve the primary's service
   # name through CoreDNS). Keep false for the standalone default.
   dnsEgress: false
@@ -96,8 +94,26 @@ networkPolicy:
   #     - podSelector: {}
   # and set dnsEgress: true.
   egress: []
-  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
-  # true. See the L4/L7-shadowing caveat in the reference chart.
+  # L7 rules in CiliumNetworkPolicy syntax. Enforced as soon as rules are
+  # present: the CiliumNetworkPolicy renders when either list below is
+  # non-empty — there is no separate on/off switch. L7 rules FILTER rather
+  # than allow: once a port carries an L7 rule, only matching traffic passes.
+  # See the L4/L7-shadowing caveat in the reference chart.
+  #
+  # Example (adapt the labels/port and move under `ingress:` to activate — it
+  # enforces immediately):
+  #   ingress:
+  #   - fromEndpoints:
+  #     - matchLabels:
+  #         app.kubernetes.io/managed-by: envoy-gateway
+  #     toPorts:
+  #     - ports:
+  #       - port: "8080"
+  #         protocol: TCP
+  #       rules:
+  #         http:
+  #         - method: GET
+  #           path: "/.*"
   l7:
     ingress: []
     egress: []
