@@ -344,14 +344,18 @@ class ChecksMixin:
             if re.match(r"^\s*Content-Type:", line, re.IGNORECASE):
                 content_type_line = line
 
-        if http_wget_rc and http_wget_rc != "0":
-            self.fail(
-                f"Health check (HTTP): wget failed for {self.release_name}:{health_port}{health_path} (exit {http_wget_rc})"
-            )
-            self.info(f"  headers: {lines_preview(http_headers, limit=5)}")
-        elif not http_line:
-            self.fail(f"Health check (HTTP): no HTTP response from {self.release_name}:{health_port}{health_path}")
-            self.info(f"  output: {lines_preview(health_output, limit=5)}")
+        # wget exits non-zero for ANY non-2xx response (busybox and GNU alike),
+        # so its rc only signals a real failure when no HTTP status line came
+        # back at all — otherwise an expected 403/401 could never pass.
+        if not http_line:
+            if http_wget_rc and http_wget_rc != "0":
+                self.fail(
+                    f"Health check (HTTP): wget failed for {self.release_name}:{health_port}{health_path} (exit {http_wget_rc})"
+                )
+                self.info(f"  headers: {lines_preview(http_headers, limit=5)}")
+            else:
+                self.fail(f"Health check (HTTP): no HTTP response from {self.release_name}:{health_port}{health_path}")
+                self.info(f"  output: {lines_preview(health_output, limit=5)}")
         elif health_status not in http_line:
             self.fail(f"Health check (HTTP): expected HTTP {health_status}, got: {http_line}")
         elif health_status.startswith("2") and http_wget_rc and http_wget_rc != "0":
