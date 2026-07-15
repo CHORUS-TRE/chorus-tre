@@ -42,8 +42,6 @@ argo-workflows:
 # workflowNamespaces under those namespaces' policies.
 networkPolicy:
   enabled: true
-  # L7 stub — rendered only with rules present.
-  enabledL7: false
   # When true (default), append an egress rule allowing port-53 traffic to the
   # CoreDNS pods in dnsNamespace.
   dnsEgress: true
@@ -87,8 +85,26 @@ networkPolicy:
   # No L3/L4 egress beyond DNS: both components' only dependency is the
   # kube-apiserver, covered by the Cilium entity rule above.
   egress: []
-  # L7 rules in CiliumNetworkPolicy syntax. Only consulted when enabledL7 is
-  # true. See the L4/L7-shadowing caveat in the reference chart.
+  # L7 rules in CiliumNetworkPolicy syntax. Enforced as soon as rules are
+  # present: the CiliumNetworkPolicy renders when either list below is
+  # non-empty — there is no separate on/off switch. L7 rules FILTER rather
+  # than allow: once a port carries an L7 rule, only matching traffic passes.
+  # See the L4/L7-shadowing caveat in the reference chart.
+  #
+  # Example (adapt the labels/port and move under `ingress:` to activate — it
+  # enforces immediately):
+  #   ingress:
+  #   - fromEndpoints:
+  #     - matchLabels:
+  #         app.kubernetes.io/managed-by: envoy-gateway
+  #     toPorts:
+  #     - ports:
+  #       - port: "8080"
+  #         protocol: TCP
+  #       rules:
+  #         http:
+  #         - method: GET
+  #           path: "/.*"
   l7:
     ingress: []
     egress: []
