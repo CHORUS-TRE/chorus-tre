@@ -6,6 +6,12 @@ cert-manager:
     priorityClassName: high-priority
   config:
     enableGatewayAPI: true
+  # Route DNS01 propagation self-checks through the cluster resolvers instead
+  # of the zone's authoritative nameservers (the upstream default), so the
+  # pods need no direct external :53 egress and the NetworkPolicy DNS rule
+  # can stay CoreDNS-scoped. Trade-off: resolver caching can slow the
+  # self-check convergence.
+  dns01RecursiveNameserversOnly: true
 
 # A ClusterIssuer
 # See: https://cert-manager.io/docs/concepts/issuer/
@@ -44,9 +50,10 @@ networkPolicy:
   # L7 stub — rendered only with rules present.
   enabledL7: false
   # When true (default), append an egress rule allowing port-53 traffic to the
-  # CoreDNS pods in dnsNamespace. DNS01 self-checks also go through the
-  # cluster resolvers by default (no direct external :53 needed unless
-  # --dns01-recursive-nameservers is pointed elsewhere).
+  # CoreDNS pods in dnsNamespace. DNS01 self-checks stay within this rule
+  # because the wrapper sets dns01RecursiveNameserversOnly above — upstream's
+  # default would query the zone's authoritative nameservers directly on
+  # external :53, which this policy does not allow.
   dnsEgress: true
   # Namespace where CoreDNS lives.
   dnsNamespace: kube-system

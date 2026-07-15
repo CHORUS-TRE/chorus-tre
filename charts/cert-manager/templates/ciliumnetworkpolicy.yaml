@@ -38,8 +38,8 @@ spec:
            remote-node) on kubeadm-style clusters instead of the
            kube-apiserver entity — observed in the Kind e2e, where the
            webhook was unreachable with kube-apiserver alone. Admit all
-           three, scoped strictly to the webhook port; the webhook
-           authenticates its callers via TLS. */}}
+           three, scoped strictly to the admission port; a forged
+           AdmissionReview request doesn't mutate cluster state. */}}
     - kube-apiserver
     - remote-node
     - host
