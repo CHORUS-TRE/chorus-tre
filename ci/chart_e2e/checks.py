@@ -53,7 +53,12 @@ class ChecksMixin:
                     [
                         "sh",
                         "-c",
-                        f"echo | nc -w {CONNECT_TIMEOUT} {svc_host} {svc_port} 2>/dev/null && echo 'TCP_OK'",
+                        # Success = nc exits 0 OR the server sent bytes. Server-
+                        # speaks-first protocols (mysql, smtp) greet on connect
+                        # and then WAIT, so nc hits its timeout and exits
+                        # non-zero even though the connection worked.
+                        f"out=/tmp/probe-out; echo | nc -w {CONNECT_TIMEOUT} {svc_host} {svc_port} > $out 2>/dev/null;"
+                        " rc=$?; if [ $rc -eq 0 ] || [ -s $out ]; then echo 'TCP_OK'; fi",
                     ],
                     capture_output=True,
                     suppress_stderr=True,
