@@ -7,6 +7,12 @@
 matomo:
   mariadb:
     enabled: true
+    # The bundled subchart still defaults to docker.io/bitnami/mariadb, which
+    # is gone since the Bitnami catalog moved — use the same bitnamilegacy
+    # image the standalone mariadb chart pulls (proven in its own e2e).
+    image:
+      repository: bitnamilegacy/mariadb
+      tag: 11.4.5-debian-12-r4
     networkPolicy:
       enabled: false
 
