@@ -24,6 +24,7 @@ charts:
     health_check:
       path: /
       port: 9000
+      # busybox wget aborts on a non-2xx after printing the status line, so
+      # the 403 status is the only assertable part of the anonymous-S3 reply
+      # (no headers/body are fetched on error statuses).
       expect_status: 403
-      expect_content_type_regex: 'application/xml'
-      body_must_match: 'AccessDenied'
