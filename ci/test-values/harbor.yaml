@@ -21,6 +21,11 @@ harbor:
     type: internal
     internal:
       password: "342476testcipassword"
+    external:
+      # The production values set this key, and upstream renders the env ref
+      # whenever it is non-empty — even with type: internal — leaving core and
+      # exporter in CreateContainerConfigError on the absent secret.
+      existingSecret: ""
   redis:
     type: internal
 
