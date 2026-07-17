@@ -199,6 +199,9 @@ class RunnerBase:
             cwd=str(cwd) if cwd else None,
             input=input_text,
             text=True,
+            # Probes can emit raw binary (a mysql greeting relayed by nc);
+            # never let a decode error crash the runner mid-check.
+            errors="replace",
             stdout=stdout,
             stderr=stderr,
             check=False,
