@@ -9,10 +9,10 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any
 
 from .runner import ChartE2ERunner
 from .targets import PlannedTarget, TargetPlanner
+from .utils import run_process
 
 
 KIND_CLUSTER_NAME = "chart-e2e"
@@ -452,26 +452,15 @@ class RepoChartE2EWorkflow:
         merge_stderr: bool = False,
         suppress_stderr: bool = False,
     ) -> subprocess.CompletedProcess[str]:
-        stdout = subprocess.PIPE if capture_output else None
-        if suppress_stderr:
-            stderr: Any = subprocess.DEVNULL
-        elif merge_stderr:
-            stderr = subprocess.STDOUT
-        elif capture_output:
-            stderr = subprocess.PIPE
-        else:
-            stderr = None
-
-        print(f"$ {shlex.join(args)}")
-        return subprocess.run(
+        return run_process(
             args,
-            cwd=str(cwd or self.repo_root),
+            cwd=cwd or self.repo_root,
             env=env,
-            input=input_text,
-            text=True,
-            stdout=stdout,
-            stderr=stderr,
-            check=False,
+            capture_output=capture_output,
+            input_text=input_text,
+            merge_stderr=merge_stderr,
+            suppress_stderr=suppress_stderr,
+            echo=True,
         )
 
 
