@@ -36,10 +36,6 @@ template:
     imageNamespace: "docker_proxy/alpine"
     tag: "1.31.13"
 
-testConnection:
-  busybox:
-    tag: "1.37.0"
-
 chorusWorkbenchOperator:
   # cert-manager v1.16.2 only supports Kubernetes <= 1.32.
   # See https://cert-manager.io/docs/releases/
