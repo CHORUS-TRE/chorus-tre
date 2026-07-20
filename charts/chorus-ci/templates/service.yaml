@@ -7,9 +7,9 @@ metadata:
     {{- include "chorus-ci.labels" . | nindent 4 }}
 spec:
   ports:
-  - port: 8080
+  - port: {{ .Values.service.port }}
     protocol: TCP
-    targetPort: 12000
+    targetPort: {{ .Values.service.targetPort }}
   selector:
     eventsource-name: {{ $fullName }}-github
-  type: ClusterIP
+  type: {{ .Values.service.type }}

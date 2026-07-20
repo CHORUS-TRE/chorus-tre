@@ -96,7 +96,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                   exit:
                     templateRef:
@@ -108,7 +108,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                 workflowTemplateRef:
@@ -194,7 +194,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                   exit:
                     templateRef:
@@ -206,7 +206,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                 workflowTemplateRef:
@@ -312,7 +312,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                         - name: contextSuffix
                           value: "build"
@@ -326,7 +326,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                         - name: contextSuffix
                           value: "build"
@@ -347,15 +347,13 @@ spec:
                               - name: sha
                                 value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
-                                value: "docker/dockerfiles/backend.dockerfile"
+                                value: "docker/Dockerfile"
                               - name: repository
                                 value: {{ .Values.chorusBackend.masterRepository | quote }}
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
-                              - name: gitSecretName
-                                value: {{ $githubSecretName | quote }}
                               - name: addLatestTag
                                 value: "true"
                             artifacts:
@@ -466,7 +464,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                   exit:
@@ -479,7 +477,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                 templates:
@@ -498,15 +496,13 @@ spec:
                               - name: sha
                                 value: "{{`{{workflow.parameters.sha}}`}}"
                               - name: dockerfile
-                                value: "docker/dockerfiles/backend.dockerfile"
+                                value: "docker/Dockerfile"
                               - name: repository
                                 value: "chorus"
                               - name: registry
                                 value: {{ .Values.sensor.registry | quote }}
                               - name: dockerConfigSecret
                                 value: {{ .Values.sensor.dockerConfig.secretName | quote }}
-                              - name: gitSecretName
-                                value: {{ $githubSecretName | quote }}
                             artifacts:
                               - name: source
                                 git:
