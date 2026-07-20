@@ -35,6 +35,19 @@
 #       namespace:         Namespace where the probe pod should run
 #       labels:            Pod labels applied to the probe pod
 #     pre_install:         Commands to run before installing the chart under test
+#     netassert:           Deny-path assertions (run via netassert AFTER the
+#                          positive checks pass — a denied connection and a dead
+#                          backend look identical to the scanner)
+#       workload:          The chart's own workload (dst for denied_ingress,
+#                          src for denied_egress); defaults to
+#                          {kind: deployment, name: <release>, namespace: <ns>}
+#       denied_ingress:    Connections the policy must DROP, from the standard
+#                          decoy identity (ci/test-manifests/netassert-decoy.yaml)
+#         - port:          Target port on the chart workload
+#       denied_egress:     Connections FROM the chart workload that must be dropped
+#         - port:          Target port
+#           host:          External IP/hostname (or k8sResource: {kind,name,namespace})
+#       (items accept protocol/timeoutSeconds/attempts overrides)
 #     services:            List of services to check for reachability after deployment
 #       - port:            Port to check
 #     health_check:        Application-level health verification
