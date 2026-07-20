@@ -99,10 +99,6 @@ spec:
                   value: {{ .Values.sensor.registry | quote }}
                 - name: dockerConfigSecret
                   value: {{ .Values.sensor.dockerConfig.secretName | quote }}
-                - name: githubSecretUsernameKey
-                  value: {{ $githubSecretUsernameKey }}
-                - name: githubSecretPasswordKey
-                  value: {{ $githubSecretPasswordKey }}
                 - name: addLatestTag
                   value: "{{`{{workflow.parameters.addLatestTag}}`}}"
               artifacts:
