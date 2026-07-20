@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .constants import CYAN, GREEN, NC, RED, TEST_IMAGE, YELLOW
-from .utils import config_bool, helm_value_string, nested_get
+from .utils import config_bool, helm_value_string, nested_get, run_process
 
 
 class RunnerBase:
@@ -184,27 +184,13 @@ class RunnerBase:
         suppress_stderr: bool = False,
         cwd: Path | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        stdout = subprocess.PIPE if capture_output else None
-        if suppress_stderr:
-            stderr: Any = subprocess.DEVNULL
-        elif merge_stderr:
-            stderr = subprocess.STDOUT
-        elif capture_output:
-            stderr = subprocess.PIPE
-        else:
-            stderr = None
-
-        return subprocess.run(
+        return run_process(
             args,
-            cwd=str(cwd) if cwd else None,
-            input=input_text,
-            text=True,
-            # Probes can emit raw binary (a mysql greeting relayed by nc);
-            # never let a decode error crash the runner mid-check.
-            errors="replace",
-            stdout=stdout,
-            stderr=stderr,
-            check=False,
+            cwd=cwd,
+            input_text=input_text,
+            capture_output=capture_output,
+            merge_stderr=merge_stderr,
+            suppress_stderr=suppress_stderr,
         )
 
     def run_shell(self, command: str) -> subprocess.CompletedProcess[str]:
