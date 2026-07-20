@@ -45,6 +45,10 @@
 #       protocol:          "http" (default), "pg", or "mariadb"
 #       path:              HTTP path to check (e.g., /) - http mode only
 #       expect_status:     Expected HTTP status code (default: 200) - http mode only
+#                          NOTE: with a non-2xx expectation only the status line
+#                          is assertable — busybox wget fetches no headers/body
+#                          on error statuses, so do not combine a non-2xx with
+#                          expect_content_type_regex / body_must_* assertions.
 #       expect_content_type_regex: Case-insensitive regex for Content-Type - http mode only
 #       body_must_match:   Case-insensitive regex that must appear in the body - http mode only
 #       body_must_not_match: Case-insensitive regex that must not appear in the body - http mode only
