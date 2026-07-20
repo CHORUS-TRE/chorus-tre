@@ -15,9 +15,10 @@ from .utils import config_bool
 DIRECTLY_MODIFIED_REASON = "directly modified"
 CHART_TEST_CONFIG_REASON = "chart test config modified"
 CI_INFRA_CHANGED_REASON = "CI infrastructure changed - full registered chart sweep"
+# Only the sensor template is the harness itself. Everything else under
+# charts/chorus-ci/ is ordinary chart content, tested by deploying chorus-ci.
 CI_INFRA_CHANGED_PATHS = {
     "charts/chorus-ci/templates/chart-e2e-sensor.yaml",
-    "charts/chorus-ci/values.yaml",
 }
 
 
@@ -149,8 +150,6 @@ class TargetPlanner:
         chart_paths = set()
         for changed_file in changed_files:
             if TargetPlanner._is_ci_infra_change(changed_file):
-                continue
-            if changed_file.startswith("charts/chorus-ci/"):
                 continue
             path = PurePosixPath(changed_file)
             if len(path.parts) >= 3 and path.parts[0] == "charts":

@@ -81,7 +81,16 @@ charts:
   chorus-priority-class:
     skip_deploy: true
   chorus-ci:
-    skip_deploy: true
+    # Deployed like any chart; its argo CRs (EventBus, Sensors,
+    # WorkflowTemplates) need both argo controllers' CRDs, and the
+    # argo-events controller running to reconcile them. Only
+    # chart-e2e-sensor.yaml changes trigger the full harness sweep
+    # instead (see ci/chart_e2e/targets.py).
+    timeout: 300
+    values_file: ci/test-values/chorus-ci.yaml
+    depends_on:
+      - argo-events
+      - argo-workflows
   self-signed-issuer:
     skip_deploy: true
   juicefs-csi-driver:
