@@ -70,30 +70,11 @@ spec:
                 name: {{ $githubSecretName }}
                 key: {{ $githubSecretPasswordKey }}
               ref: "{{`{{workflow.parameters.ref}}`}}"
-      volumes:
-        - name: github-secret
-          secret:
-            secretName: {{ $githubSecretName }}
       container:
-        env:
-          - name: GIT_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: {{ $githubSecretName }}
-                key: {{ $githubSecretUsernameKey }}
-          - name: GIT_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: {{ $githubSecretName }}
-                key: {{ $githubSecretPasswordKey }}
         image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default "latest" }}
         command: [sh, -e, -c]
         args:
           - >
-            GOPRIVATE=github.com/CHORUS-TRE/*
-            GIT_CONFIG_COUNT=1
-            GIT_CONFIG_KEY_0=url."https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/".insteadOf
-            GIT_CONFIG_VALUE_0=https://github.com/
             go test -v ./...
         workingDir: "/src"
     - name: acceptance-tests
@@ -111,15 +92,13 @@ spec:
                 - name: sha
                   value: "{{`{{workflow.parameters.sha}}`}}"
                 - name: dockerfile
-                  value: "docker/dockerfiles/backend.dockerfile"
+                  value: "docker/Dockerfile"
                 - name: repository
                   value: "{{`{{workflow.parameters.repository}}`}}"
                 - name: registry
                   value: {{ .Values.sensor.registry | quote }}
                 - name: dockerConfigSecret
                   value: {{ .Values.sensor.dockerConfig.secretName | quote }}
-                - name: gitSecretName
-                  value: {{ $githubSecretName | quote }}
                 - name: githubSecretUsernameKey
                   value: {{ $githubSecretUsernameKey }}
                 - name: githubSecretPasswordKey
