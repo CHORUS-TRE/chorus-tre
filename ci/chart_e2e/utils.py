@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import re
+import shlex
+import subprocess
+from pathlib import Path
 from typing import Any
 
 
@@ -49,6 +52,45 @@ def config_bool(value: Any, *, default: bool = False) -> bool:
 def lines_preview(text: str, limit: int = 20) -> str:
     preview = " ".join(text.splitlines()[:limit])
     return re.sub(r"\s+", " ", preview).strip()
+
+
+def run_process(
+    args: list[str],
+    *,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    capture_output: bool = False,
+    input_text: str | None = None,
+    merge_stderr: bool = False,
+    suppress_stderr: bool = False,
+    echo: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    stdout = subprocess.PIPE if capture_output else None
+    if suppress_stderr:
+        stderr: Any = subprocess.DEVNULL
+    elif merge_stderr:
+        stderr = subprocess.STDOUT
+    elif capture_output:
+        stderr = subprocess.PIPE
+    else:
+        stderr = None
+
+    if echo:
+        print(f"$ {shlex.join(args)}")
+    return subprocess.run(
+        args,
+        cwd=str(cwd) if cwd else None,
+        env=env,
+        input=input_text,
+        text=True,
+        # Captured output can be raw binary (a mysql greeting relayed by nc,
+        # kubectl logs from a crashing container); never let a decode error
+        # crash the harness.
+        errors="replace",
+        stdout=stdout,
+        stderr=stderr,
+        check=False,
+    )
 
 
 def extract_block(text: str, start_marker: str, end_marker: str) -> str:
