@@ -99,8 +99,6 @@ spec:
           fi;
           echo -n "${version}" > /tmp/image-version.txt;
 
-          # VERSION/GIT_COMMIT are only consumed by chorus-backend's Dockerfile
-          # (ARG VERSION, ARG GIT_COMMIT) -- not needed for any other caller.
           BUILD_ARGS="";
           if [ "${IMAGE}" = "backend" ]; then
             BUILD_ARGS="--build-arg VERSION=${version} --build-arg GIT_COMMIT=${SHA}";
