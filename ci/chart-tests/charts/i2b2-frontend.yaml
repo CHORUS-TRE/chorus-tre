@@ -30,6 +30,15 @@ charts:
         app.kubernetes.io/managed-by: envoy-gateway
     services:
       - port: 80
+    # Deny complement of the probe: the decoy identity must not reach 80, and
+    # the frontend's egress (wildfly:8080 + DNS only) must not reach external
+    # HTTPS. Runs only after the positive checks above pass.
+    netassert:
+      denied_ingress:
+        - port: 80
+      denied_egress:
+        - host: 1.1.1.1
+          port: 443
     health_check:
       path: /webclient/
       port: 80

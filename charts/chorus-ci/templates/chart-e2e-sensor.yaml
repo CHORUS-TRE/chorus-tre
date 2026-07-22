@@ -192,6 +192,8 @@ spec:
                           mv /tmp/linux-amd64/helm /usr/local/bin/ &&
                           curl -fsSL https://github.com/mikefarah/yq/releases/download/{{ .Values.chorusTreChartE2E.tools.yqVersion | default "v4.44.6" }}/yq_linux_amd64 -o /usr/local/bin/yq &&
                           chmod +x /usr/local/bin/yq &&
+                          curl -fsSL https://github.com/controlplaneio/netassert/releases/download/{{ .Values.chorusTreChartE2E.tools.netassertVersion | default "v2.1.5" }}/netassert_{{ .Values.chorusTreChartE2E.tools.netassertVersion | default "v2.1.5" }}_linux_amd64.tar.gz | tar xz -C /tmp netassert &&
+                          mv /tmp/netassert /usr/local/bin/ &&
                           until docker info >/dev/null 2>&1; do sleep 3; done;
                           echo "=== Docker info ===";
                           docker info;

@@ -1,0 +1,28 @@
+# Standard wrong-identity source for the chart-e2e deny assertions
+# (ci/chart_e2e/netassert.py): a namespace and labels that no chart's
+# NetworkPolicy admits, so any connection from here that succeeds means the
+# policy failed to deny. Applied idempotently by the netassert phase.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: decoy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netassert-decoy
+  namespace: decoy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: netassert-decoy
+  template:
+    metadata:
+      labels:
+        app: netassert-decoy
+    spec:
+      containers:
+        - name: sleep
+          image: docker.io/library/busybox:1.36.1@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+          command: ["sleep", "infinity"]

@@ -6,9 +6,10 @@ from .base import RunnerBase
 from .checks import ChecksMixin
 from .constants import GREEN, NC, RED
 from .deploy import DeploymentMixin
+from .netassert import NetassertMixin
 
 
-class ChartE2ERunner(ChecksMixin, DeploymentMixin, RunnerBase):
+class ChartE2ERunner(NetassertMixin, ChecksMixin, DeploymentMixin, RunnerBase):
     def print_summary(self) -> int:
         self.section(f"Summary: {self.chart_name}")
         print()
@@ -59,4 +60,9 @@ class ChartE2ERunner(ChecksMixin, DeploymentMixin, RunnerBase):
         self.show_deployed_resources()
         self.run_smoke_tests()
         self.run_health_check()
+        if self.failures == 0:
+            # A denied connection and a dead backend are indistinguishable to
+            # the scanner — deny assertions are only meaningful once the
+            # positive checks proved the service is alive.
+            self.run_netassert_tests()
         return self.print_summary()
