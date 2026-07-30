@@ -1,8 +1,5 @@
 {{- $fullName := include "chorus-ci.fullname" . -}}
 {{- $serviceAccountName := include "chorus-ci.serviceAccountName" . -}}
-{{- $githubSecretName := .Values.gitCredentials.secretName | default "argo-workflows-github-pat" }}
-{{- $githubSecretUsernameKey := .Values.gitCredentials.usernameKey | default "username" }}
-{{- $githubSecretPasswordKey := .Values.gitCredentials.passwordKey | default "password" }}
 {{- $backendAcceptanceTestsReleaseName := "acceptance" -}}
 ---
 apiVersion: argoproj.io/v1alpha1
@@ -63,12 +60,6 @@ spec:
             git:
               repo: "{{`{{workflow.parameters.repoUrl}}`}}"
               revision: "{{`{{workflow.parameters.sha}}`}}"
-              usernameSecret:
-                name: {{ $githubSecretName }}
-                key: {{ $githubSecretUsernameKey }}
-              passwordSecret:
-                name: {{ $githubSecretName }}
-                key: {{ $githubSecretPasswordKey }}
               ref: "{{`{{workflow.parameters.ref}}`}}"
       container:
         image: {{ .Values.chorusBackend.golang.imageDomain | default .Values.global.imageDomain }}/{{ .Values.chorusBackend.golang.imageNamespace | default .Values.global.imageNamespace }}/golang:{{ .Values.chorusBackend.golang.tag | default "latest" }}
@@ -106,12 +97,6 @@ spec:
                   git:
                     repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                     revision: "{{`{{workflow.parameters.sha}}`}}"
-                    usernameSecret:
-                      name: {{ $githubSecretName }}
-                      key: {{ $githubSecretUsernameKey }}
-                    passwordSecret:
-                      name: {{ $githubSecretName }}
-                      key: {{ $githubSecretPasswordKey }}
                     ref: "{{`{{workflow.parameters.ref}}`}}"
         - - name: backend-acceptance-tests
             templateRef:
@@ -130,12 +115,6 @@ spec:
                       value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
             arguments:
               parameters:
-                - name: githubSecretName
-                  value: {{ $githubSecretName }}
-                - name: githubSecretUsernameKey
-                  value: {{ $githubSecretUsernameKey }}
-                - name: githubSecretPasswordKey
-                  value: {{ $githubSecretPasswordKey }}
                 - name: releaseName
                   value: "{{ $backendAcceptanceTestsReleaseName }}-{{`{{=sprig.trunc(8, workflow.uid)}}`}}"
                 - name: chorusBackendAcceptanceNamespace
@@ -147,10 +126,4 @@ spec:
                   git:
                     repo: "{{`{{workflow.parameters.repoUrl}}`}}"
                     revision: "{{`{{workflow.parameters.sha}}`}}"
-                    usernameSecret:
-                      name: {{ $githubSecretName }}
-                      key: {{ $githubSecretUsernameKey }}
-                    passwordSecret:
-                      name: {{ $githubSecretName }}
-                      key: {{ $githubSecretPasswordKey }}
                     ref: "{{`{{workflow.parameters.ref}}`}}"
