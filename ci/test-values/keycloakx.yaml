@@ -1,0 +1,36 @@
+# ci/test-values/keycloakx.yaml
+# CI-specific values for running keycloakx in the Kind-based chart e2e.
+# The database is the postgresql dependency chart (see depends_on); CI
+# connects as its postgres superuser.
+
+keycloak:
+  # Align object names with the e2e release name; the codecentric chart names
+  # the HTTP service `<fullname>-http`.
+  fullnameOverride: e2e-keycloakx
+
+  # database.hostname is injected by the runner via dependency_values.
+  database:
+    username: postgres
+    database: postgres
+
+  # Replaces the chart's extraEnv block: no public hostname exists in Kind,
+  # and Keycloak 26 refuses `start` without one unless strict mode is off.
+  extraEnv: |
+    - name: KC_BOOTSTRAP_ADMIN_USERNAME
+      value: "admin"
+    - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: keycloak-secret
+          key: adminPassword
+    - name: KC_HOSTNAME_STRICT
+      value: "false"
+    - name: KC_HTTP_ENABLED
+      value: "true"
+    - name: KC_HEALTH_ENABLED
+      value: "true"
+
+# The config-cli job needs client secrets that are irrelevant to the
+# network-policy test.
+keycloakConfigCli:
+  enabled: false
