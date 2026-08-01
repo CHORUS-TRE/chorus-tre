@@ -1,0 +1,30 @@
+# kube-prometheus-stack: monitoring stack health behind five network policies
+# (upstream-rendered prometheus + alertmanager, chorus-rendered grafana +
+# operator + kube-state-metrics). The probe carries the envoy-gateway
+# identity — the peer grafana's policy admits on 3000 — and grafana's health
+# answer proves its intra-namespace egress to prometheus. Prometheus and
+# alertmanager going ready proves the operator's apiserver egress and webhook
+# admission (Cilium entity rules).
+
+charts:
+  kube-prometheus-stack:
+    timeout: 600
+    values_file: ci/test-values/kube-prometheus-stack.yaml
+    fullname_override: e2e-kube-prometheus-stack-grafana
+    depends_on:
+      - prometheus-operator-crds
+    pre_install:
+      - kubectl create secret generic grafana-secret --from-literal=admin-user=admin --from-literal=admin-password=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl create secret generic loki-client-credentials --from-literal=httpUser=ci --from-literal=httpPassword=342476testcipassword --from-literal=tenantID=ci -n test --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl create secret generic config-webex-secret --from-literal=accessToken=e2e-ci-not-a-token -n test --dry-run=client -o yaml | kubectl apply -f -
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 80
+    health_check:
+      path: /api/health
+      port: 80
+      expect_status: 200
+      expect_content_type_regex: 'application/json'

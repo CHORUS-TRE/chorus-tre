@@ -1,0 +1,9 @@
+# ci/test-values/kube-prometheus-stack.yaml
+# CI-specific values for running kube-prometheus-stack in the Kind-based
+# chart e2e.
+
+alertmanagerConfiguration:
+  webex:
+    # The chart renders roomID verbatim into the AlertmanagerConfig CR, and
+    # the CRD requires a string — the production value comes from env values.
+    roomID: "e2e-ci-room"
