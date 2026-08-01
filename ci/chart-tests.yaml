@@ -84,6 +84,21 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  prometheus-blackbox-exporter:
+    # The probe pod carries the prometheus name label — the policy's ingress
+    # peer is a podSelector-only rule (same-namespace prometheus pods, as in
+    # production where the exporter lives in the prometheus namespace), so the
+    # probe must run in the chart namespace, not in `prometheus`.
+    timeout: 180
+    probe:
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 9115
+    health_check:
+      path: /metrics
+      port: 9115
+      expect_status: 200
   juicefs-csi-driver:
     timeout: 300
     pre_install:
