@@ -82,6 +82,11 @@ charts:
     skip_deploy: true
   chorus-ci:
     skip_deploy: true
+  gitlab:
+    # Resource footprint (webservice + gitaly + sidekiq + migrations, ~8GB)
+    # exceeds the Kind e2e runner. Policy is covered by helm template checks
+    # in the PR.
+    skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
   juicefs-csi-driver:
