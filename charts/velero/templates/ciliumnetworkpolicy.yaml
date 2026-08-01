@@ -1,0 +1,38 @@
+{{- /*
+  Render a CiliumNetworkPolicy when (a) nodeLocalDns or (b) kubeApiServer is
+  enabled. The K8s NetworkPolicy in networkpolicy.yaml is the L3/L4 baseline;
+  this CNP adds egress to the kube-apiserver entity — velero reconciles
+  Backup/Restore CRs and reads every resource it backs up through the API,
+  whose hostNetwork static pods no K8s NP peer can select. Cilium-backed
+  clusters only.
+*/ -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- $apiSrv := .Values.networkPolicy.kubeApiServer -}}
+{{- if and .Values.networkPolicy.enabled (or $nld $apiSrv) }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-velero-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chorus-velero.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "chorus-velero.selectorLabels" . | nindent 6 }}
+  egress:
+  {{- if $apiSrv }}
+  - toEntities:
+    - kube-apiserver
+  {{- end }}
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  {{- end }}
+{{- end }}
