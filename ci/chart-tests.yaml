@@ -86,5 +86,21 @@ charts:
     skip_deploy: true
   juicefs-csi-driver:
     timeout: 300
+    values_file: ci/test-values/juicefs-csi-driver.yaml
+    # The dashboard service has a fixed name (not release-derived).
+    fullname_override: juicefs-csi-dashboard
     pre_install:
       - kubectl create secret generic juicefs-dashboard-secret --from-literal=username=admin --from-literal=password=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
+    # Probe carries the exact source identity the dashboard NetworkPolicy
+    # admits (envoy-gateway pods in envoy-gateway-system).
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 8088
+    health_check:
+      path: /
+      port: 8088
+      expect_status: 200
+      expect_content_type_regex: 'text/html'
