@@ -1,0 +1,7 @@
+# ci/test-values/trivy-operator.yaml
+# CI-specific values for running trivy-operator in the Kind-based chart e2e.
+
+trivy-operator:
+  serviceMonitor:
+    # ServiceMonitor CRD (prometheus-operator) is not installed in Kind.
+    enabled: false
