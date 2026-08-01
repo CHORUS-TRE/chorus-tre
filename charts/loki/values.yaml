@@ -139,15 +139,116 @@ loki:
   test:
     enabled: false
 
-# We manage network policies without relying on the upstream chart
-# because we want to be able to use Cilium's advanced features and have more control over the policies.
+# Chorus NetworkPolicy configuration (we manage policies without relying on
+# the upstream chart to keep full control over the rules).
+# Follows the reference pattern from charts/i2b2-frontend, with two
+# loki-specific extensions: `gatewayIngress` (a second, gateway-scoped policy —
+# a single object can't restrict a target to gateway pods only) and
+# `externalStorage.cidrs` (object-storage egress on 443).
 networkPolicy:
   enabled: true
-  # available flavors are "kubernetes" and "cilium"
-  flavor: cilium
-  kubePrometheusStack:
-    namespace: prometheus
-  fluentBit:
-    namespace: fluent
+  # -----------------------------------------------------------------------------
+  # Two-layer model:
+  #   * networkPolicy.ingress / gatewayIngress / egress (below) define L3/L4
+  #     rules in standard K8s NetworkPolicy syntax. They are ALWAYS rendered
+  #     when networkPolicy.enabled is true, and they work on any CNI that
+  #     implements the K8s NetworkPolicy API (Cilium, Calico, ...).
+  #   * networkPolicy.l7.ingress / networkPolicy.l7.egress (further below) hold
+  #     L7 (HTTP / DNS) rules in CiliumNetworkPolicy syntax. They are ONLY
+  #     effective on Cilium clusters, and they enforce as soon as either list
+  #     contains rules — what is written in values is what is enforced.
+  # -----------------------------------------------------------------------------
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace (loki resolves the S3 endpoint and memberlist
+  # peer names).
+  dnsEgress: true
+  # Namespace where CoreDNS lives. Override per-env if the cluster runs DNS
+  # outside kube-system.
+  dnsNamespace: kube-system
+  # When true, additionally render a CiliumNetworkPolicy egress rule allowing
+  # port-53 traffic to the node-local-dns link-local IP. Cilium-only: K8s
+  # NetworkPolicy cannot match hostNetwork pods like node-local-dns.
+  nodeLocalDns: false
+  # Link-local IP where node-local-dns listens.
+  nodeLocalDnsIp: 169.254.20.10
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below — repeat the rules
+  # you want to keep. Set a list to [] for default-deny in that direction.
+  #
+  # Applies to every pod with the loki selector labels (loki components,
+  # gateway, memcached caches).
+  ingress:
+  # Allow traffic between pods of the release namespace: gateway → loki
+  # components, loki ↔ loki (memberlist gossip 7946, grpc 9095, http 3100),
+  # loki → memcached.
+  - from:
+    - podSelector: {}
+  # Allow Prometheus to scrape the metrics endpoints.
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: http-metrics
+  # Additive ingress for the gateway pods only (second policy object): the
+  # log producers and query clients from other namespaces. The gateway port is
+  # the container port named `http`.
+  gatewayIngress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: fluent
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: fluent-bit
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: grafana
+    ports:
+    - protocol: TCP
+      port: http
+  egress:
+  # Allow traffic to pods in the release namespace (loki ↔ loki, memcached).
+  - to:
+    - podSelector: {}
+  # Object-storage egress: add your S3 provider's IP ranges here. Rendered as
+  # an ipBlock rule on port 443 in addition to the egress list above.
   externalStorage:
-    cidrs: [] # add your S3 provider's IP ranges here for secure access to external storage
+    cidrs: []
+  # L7 rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
+  # Enforced as soon as rules are present: the CiliumNetworkPolicy renders when
+  # either list below is non-empty. There is no separate on/off switch — leave
+  # both lists empty to skip the CNP entirely. L7 rules FILTER rather than
+  # allow: once a port carries an L7 rule, only matching traffic passes on it.
+  #
+  # IMPORTANT — Cilium L4/L7 shadowing: if a port is opened unconditionally in
+  # the K8s NetworkPolicies above, the broader L4 grant wins and any L7 rule
+  # you add here for that same port is silently NOT enforced. To get L7
+  # filtering on a port, that port must NOT also be opened in the K8s NP for
+  # the same direction — let the CNP own it.
+  #
+  # Example (adapt the labels/port and move under `ingress:` to activate — it
+  # enforces immediately):
+  #   ingress:
+  #   - fromEndpoints:
+  #     - matchLabels:
+  #         app.kubernetes.io/managed-by: envoy-gateway
+  #     toPorts:
+  #     - ports:
+  #       - port: "8080"
+  #         protocol: TCP
+  #       rules:
+  #         http:
+  #         - method: GET
+  #           path: "/.*"
+  l7:
+    ingress: []
+    egress: []

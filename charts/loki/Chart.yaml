@@ -1,7 +1,7 @@
 apiVersion: v2
 description: Helm chart for Grafana Loki and Grafana Enterprise Logs supporting monolithic, simple scalable, and microservices modes.
 name: loki
-version: 0.1.0
+version: 0.1.1
 dependencies:
   - name: loki
     version: 13.2.0

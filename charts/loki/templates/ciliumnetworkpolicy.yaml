@@ -1,27 +1,21 @@
-{{- if and (.Values.networkPolicy.enabled) (eq .Values.networkPolicy.flavor "cilium") }}
----
+{{- /*
+  Render a CiliumNetworkPolicy when either (a) at least one L7 rule is provided
+  (rules enforce as soon as they are present), or (b) nodeLocalDns is enabled. The K8s
+  NetworkPolicies in networkpolicy.yaml are the L3/L4 baseline; this CNP layers
+  L7 rules on top for ports not already opened there (see the L4/L7-shadowing
+  note in values.yaml), and adds a Cilium-only port-53 egress to the
+  node-local-dns link-local IP when nodeLocalDns is true (K8s NP cannot match
+  hostNetwork pods). Cilium-backed clusters only.
+*/ -}}
+{{- $l7 := .Values.networkPolicy.l7 | default dict -}}
+{{- $l7ing := $l7.ingress -}}
+{{- $l7eg := $l7.egress -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- if and .Values.networkPolicy.enabled (or $l7ing $l7eg $nld) }}
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: {{ include "loki.name" . }}-namespace-only
-  namespace: {{ include "loki.namespace" . }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  endpointSelector: {}
-  egress:
-  - toEndpoints:
-    - matchLabels:
-        "k8s:io.kubernetes.pod.namespace": {{ include "loki.namespace" . }}
-  ingress:
-  - fromEndpoints:
-    - matchLabels:
-        "k8s:io.kubernetes.pod.namespace": {{ include "loki.namespace" . }}
----
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: {{ include "loki.name" . }}-egress-dns
+  name: {{ include "loki.name" . }}-l7
   namespace: {{ include "loki.namespace" . }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
@@ -29,88 +23,24 @@ spec:
   endpointSelector:
     matchLabels:
       {{- include "loki.selectorLabels" . | nindent 6 }}
+  {{- with $l7ing }}
+  ingress:
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- if or $nld $l7eg }}
   egress:
-  - toPorts:
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
     - ports:
       - port: "53"
         protocol: UDP
       - port: "53"
         protocol: TCP
-    toEndpoints:
-    - matchLabels:
-        "k8s:io.kubernetes.pod.namespace": kube-system
-        k8s-app: kube-dns
----
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: {{ include "loki.name" . }}-ingress
-  namespace: {{ include "loki.namespace" . }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  endpointSelector:
-    matchExpressions:
-      - key: app.kubernetes.io/component
-        operator: In
-        values:
-          - gateway
-    matchLabels:
-      {{- include "loki.selectorLabels" . | nindent 6 }}
-  ingress:
-  - toPorts:
-    - ports:
-      - port: {{ .Values.loki.gateway.containerPort | default "http" | quote }}
-        protocol: TCP
-    fromEndpoints:
-    - matchLabels:
-        "k8s:io.kubernetes.pod.namespace": {{ .Values.networkPolicy.fluentBit.namespace | default "fluent" }}
-        app.kubernetes.io/name: fluent-bit
-    - matchLabels:
-        "k8s:io.kubernetes.pod.namespace": {{ .Values.networkPolicy.kubePrometheusStack.namespace | default "prometheus" }}
-        app.kubernetes.io/name: grafana
----
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: {{ include "loki.name" . }}-ingress-metrics
-  namespace: {{ include "loki.namespace" . }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  endpointSelector:
-    matchLabels:
-      {{- include "loki.selectorLabels" . | nindent 6 }}
-  ingress:
-  - fromEndpoints:
-    - matchLabels:
-        "k8s:io.kubernetes.pod.namespace": {{ .Values.networkPolicy.kubePrometheusStack.namespace | default "prometheus" }}
-        app.kubernetes.io/name: prometheus
-    toPorts:
-    - ports:
-      - port: http-metrics
-        protocol: TCP
-{{- if (gt (len .Values.networkPolicy.externalStorage.cidrs) 0) }}
----
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: {{ include "loki.name" . }}-egress-external-storage
-  namespace: {{ include "loki.namespace" . }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  endpointSelector:
-    matchLabels:
-      {{- include "loki.selectorLabels" . | nindent 6 }}
-  egress:
-  - toPorts:
-    - ports:
-      - port: "443"
-        protocol: TCP
-    toCIDR:
-    {{- range $cidr := .Values.networkPolicy.externalStorage.cidrs }}
-    - {{ $cidr }}
-    {{- end }}
-{{- end }}
+  {{- end }}
+  {{- with $l7eg }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- end }}
 {{- end }}

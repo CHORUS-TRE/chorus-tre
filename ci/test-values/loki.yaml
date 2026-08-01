@@ -1,0 +1,60 @@
+# ci/test-values/loki.yaml
+# CI-specific values for running loki in the Kind-based chart e2e.
+# Production runs Distributed mode against S3; CI runs SingleBinary against
+# the local filesystem so no object store or S3 credentials are needed.
+# The network policy under test is identical in both modes.
+
+loki:
+  fullnameOverride: e2e-loki
+
+  deploymentMode: SingleBinary
+
+  loki:
+    # Single tenant in CI — no X-Scope-OrgID header on the health check.
+    auth_enabled: false
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: filesystem
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+
+  singleBinary:
+    replicas: 1
+    persistence:
+      size: 2Gi
+
+  # Zero out the Distributed-mode components enabled in the chart defaults
+  # (their extraEnv S3 secret refs never materialize with 0 replicas).
+  ingester:
+    replicas: 0
+  querier:
+    replicas: 0
+  queryFrontend:
+    replicas: 0
+  queryScheduler:
+    replicas: 0
+  distributor:
+    replicas: 0
+  compactor:
+    replicas: 0
+  indexGateway:
+    replicas: 0
+
+  gateway:
+    # No htpasswd secret in CI; reachability through the gateway is the point.
+    basicAuth:
+      enabled: false
+
+  # Memcached caches are memory-hungry and irrelevant to the policy test.
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
