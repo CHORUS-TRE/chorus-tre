@@ -1,0 +1,28 @@
+# ci/test-values/matomo.yaml
+# CI-specific values for running matomo in the Kind-based chart e2e.
+# Production uses the external matomo-db (mariadb chart) in the same
+# namespace; CI enables the bundled mariadb subchart instead — also
+# intra-namespace, so the network policy under test is the same.
+
+matomo:
+  mariadb:
+    enabled: true
+    # The bundled subchart still defaults to docker.io/bitnami/mariadb, which
+    # is gone since the Bitnami catalog moved — use the same bitnamilegacy
+    # image the standalone mariadb chart pulls (proven in its own e2e).
+    image:
+      repository: bitnamilegacy/mariadb
+      tag: 11.4.5-debian-12-r4
+    networkPolicy:
+      enabled: false
+
+  externalDatabase:
+    existingSecret: ""
+
+  # The archive/task-scheduler cronjobs reference pre-existing PVCs that are
+  # irrelevant to the policy test.
+  cronjobs:
+    archive:
+      enabled: false
+    taskScheduler:
+      enabled: false

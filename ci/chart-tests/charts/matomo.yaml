@@ -1,0 +1,23 @@
+# matomo: web analytics reachability + health behind the chart's
+# NetworkPolicy. The probe pod carries the envoy-gateway identity — the only
+# peer the default ingress rule admits on 8080/8443 — and matomo cannot become
+# ready without reaching its database through the intra-namespace egress rule.
+
+charts:
+  matomo:
+    timeout: 420
+    values_file: ci/test-values/matomo.yaml
+    pre_install:
+      - kubectl create secret generic matomo-matomo-secret --from-literal=matomo-password=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 80
+    health_check:
+      path: /
+      port: 80
+      expect_status: 200
+      expect_content_type_regex: 'text/html'
+      body_must_match: 'Matomo'
