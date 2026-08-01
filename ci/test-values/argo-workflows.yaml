@@ -1,0 +1,8 @@
+# ci/test-values/argo-workflows.yaml
+# CI-specific values for running argo-workflows in the Kind-based chart e2e.
+
+argo-workflows:
+  server:
+    # No ingress controllers in Kind.
+    ingress:
+      enabled: false
