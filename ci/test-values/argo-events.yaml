@@ -1,0 +1,8 @@
+# ci/test-values/argo-events.yaml
+# CI-specific values for running argo-events in the Kind-based chart e2e.
+
+argo-events:
+  controller:
+    # Expose the metrics service so the e2e has a reachability target.
+    metrics:
+      enabled: true
