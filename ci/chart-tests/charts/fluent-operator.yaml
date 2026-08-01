@@ -1,0 +1,21 @@
+# fluent-operator: operator + fluent-bit daemonset behind the chart's
+# NetworkPolicy/CiliumNetworkPolicy.
+# The deploy itself exercises the policy: the operator can only reconcile the
+# FluentBit CR into a running daemonset if its kube-apiserver egress (Cilium
+# entity rule in the chart's CNP) is admitted, and fluent-bit's kubernetes
+# metadata filter needs the same. The probe pod runs in the chart namespace,
+# matching the NP's same-namespace ingress peer, and checks the operator's
+# metrics service.
+
+charts:
+  fluent-operator:
+    timeout: 300
+    fullname_override: fluent-operator
+    pre_install:
+      - kubectl create secret generic loki-client-credentials --from-literal=httpUser=ci --from-literal=httpPassword=342476testcipassword --from-literal=tenantID=ci -n test --dry-run=client -o yaml | kubectl apply -f -
+    services:
+      - port: 8080
+    health_check:
+      path: /metrics
+      port: 8080
+      expect_status: 200

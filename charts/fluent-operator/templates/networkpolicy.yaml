@@ -1,101 +1,51 @@
-{{- if and (.Values.networkPolicy.enabled) (eq .Values.networkPolicy.flavor "kubernetes") }}
----
+{{- if .Values.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: fluent-namespace-only
+  name: {{ .Release.Name }}-fluent-operator-policy
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "networkPolicy.labels" . | nindent 4 }}
 spec:
+  podSelector:
+    {{- include "networkPolicy.podsSelector" . | nindent 4 }}
   policyTypes:
-    - Ingress
-    - Egress
-  podSelector: {}
-  egress:
-    - to:
-        - podSelector: {}
+  - Ingress
+  - Egress
+  {{- if .Values.networkPolicy.ingress }}
   ingress:
-    - from:
-        - podSelector: {}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: fluent-egress-dns
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  policyTypes:
-    - Egress
-  podSelector: {}
+  {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+  {{- else }}
+  {{- /* Default deny: empty ingress list means deny all unless explicitly allowed */}}
+  ingress: []
+  {{- end }}
   egress:
-    - ports:
-        - port: 53
-          protocol: UDP
-        - port: 53
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: kube-system
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: fluent-egress-kube-apiserver
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  policyTypes:
-    - Egress
-  podSelector:
-    matchExpressions:
-    - key: "app.kubernetes.io/name"
-      operator: In
-      values:
-      - fluent-bit
-      - fluent-operator
-  egress:
-    - ports:
-        - port: 6443
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: kube-system
-          podSelector:
-            matchLabels:
-              component: kube-apiserver
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: fluent-egress
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "networkPolicy.labels" . | nindent 4 }}
-spec:
-  policyTypes:
-    - Egress
-  podSelector:
-    matchLabels:
-      {{- include "networkPolicy.fluentBitSelector" . | nindent 6 }}
-  egress:
-    - ports:
-        - port: {{ .Values.networkPolicy.loki.port | default 80 }}
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.networkPolicy.loki.namespace | default "loki" }}
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: loki
-              app.kubernetes.io/component: gateway
+  {{- with .Values.networkPolicy.egress }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if .Values.networkPolicy.dnsEgress }}
+    {{- /* Allow DNS resolution to CoreDNS in .Values.networkPolicy.dnsNamespace
+           (default kube-system). Two podSelectors OR'd: `k8s-app: kube-dns` is the
+           upstream CoreDNS label, `app: coredns` is the variant some chorus-tre
+           clusters ship. node-local-dns is intentionally not covered — its
+           hostNetwork pods can't be matched by K8s NP podSelector. */}}
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            app: coredns
+      ports:
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 53
+  {{- end }}
 {{- end }}

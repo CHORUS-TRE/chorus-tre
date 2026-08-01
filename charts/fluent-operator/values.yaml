@@ -10,6 +10,13 @@ fluent-operator:
       registry: ghcr.io
       repository: fluent/fluent-operator/fluent-operator
       tag: ""
+    # The operator's --metrics-bind-address defaults to "0" (disabled), so the
+    # metrics Service the upstream chart always renders on 8080 would point at
+    # nothing. Serve plain HTTP: the NetworkPolicy below limits ingress to the
+    # release namespace.
+    extraArgs:
+      - --metrics-bind-address=:8080
+      - --metrics-secure=false
 
   fluentbit:
     # TODO: install CRDs independently
@@ -63,14 +70,94 @@ fluent-operator:
     crdsEnable: true
     enable: false
 
-# Network Policy Configuration
-# Custom NetworkPolicy resources for securing Fluent Operator deployment
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend. The policies select
+# the chart's own pods (fluent-operator + fluent-bit) — not the whole namespace.
 networkPolicy:
   enabled: true
-  # Available flavors: "kubernetes" or "cilium"
-  flavor: cilium
-  loki:
-    # Namespace where Loki is deployed
-    namespace: loki
-    # Port for Loki gateway (pod port, not service port - typically 8080)
-    port: 8080
+  # -----------------------------------------------------------------------------
+  # Two-layer model:
+  #   * networkPolicy.ingress / networkPolicy.egress (below) define L3/L4 rules
+  #     in standard K8s NetworkPolicy syntax. They are ALWAYS rendered when
+  #     networkPolicy.enabled is true, and they work on any CNI that implements
+  #     the K8s NetworkPolicy API (Cilium, Calico, vanilla kube-network, ...).
+  #   * networkPolicy.l7.ingress / networkPolicy.l7.egress (further below) hold
+  #     L7 (HTTP / DNS) rules in CiliumNetworkPolicy syntax. They are ONLY
+  #     effective on Cilium clusters, and they enforce as soon as either list
+  #     contains rules — what is written in values is what is enforced.
+  # -----------------------------------------------------------------------------
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace (fluent-bit resolves the loki gateway and the
+  # apiserver service name).
+  dnsEgress: true
+  # Namespace where CoreDNS lives. Override per-env if the cluster runs DNS
+  # outside kube-system.
+  dnsNamespace: kube-system
+  # When true, additionally render a CiliumNetworkPolicy egress rule allowing
+  # port-53 traffic to the node-local-dns link-local IP. Cilium-only: K8s
+  # NetworkPolicy cannot match hostNetwork pods like node-local-dns.
+  nodeLocalDns: false
+  # Link-local IP where node-local-dns listens.
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only egress to the kube-apiserver entity (default true). Both
+  # fluent-operator (CR reconciliation) and fluent-bit (kubernetes metadata
+  # filter) need the apiserver, which runs as hostNetwork static pods on most
+  # clusters — unreachable through a K8s NP namespaceSelector/podSelector peer,
+  # so the Cilium entity match is the only reliable rule. On non-Cilium
+  # clusters set this to false and add an ipBlock egress rule below with your
+  # apiserver endpoint IPs instead.
+  kubeApiServer: true
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below — repeat the rules
+  # you want to keep. Set `ingress: []` for a full default-deny.
+  ingress:
+  # Allow traffic from pods in the release namespace only.
+  - from:
+    - podSelector: {}
+  egress:
+  # Allow traffic to pods in the release namespace.
+  - to:
+    - podSelector: {}
+  # Allow fluent-bit to push logs to the Loki gateway (pod port, not service
+  # port — typically 8080). Adjust namespace/port here if Loki lives elsewhere.
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: loki
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: loki
+          app.kubernetes.io/component: gateway
+    ports:
+    - protocol: TCP
+      port: 8080
+  # L7 rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
+  # Enforced as soon as rules are present: the CiliumNetworkPolicy renders when
+  # either list below is non-empty. There is no separate on/off switch — leave
+  # both lists empty to skip the CNP entirely. L7 rules FILTER rather than
+  # allow: once a port carries an L7 rule, only matching traffic passes on it.
+  #
+  # IMPORTANT — Cilium L4/L7 shadowing: if a port is opened unconditionally in
+  # the K8s NetworkPolicy above (networkPolicy.ingress/egress), the broader
+  # L4 grant wins and any L7 rule you add here for that same port is silently
+  # NOT enforced. To get L7 filtering on a port, that port must NOT also be
+  # opened in the K8s NP for the same direction — let the CNP own it.
+  #
+  # Example (adapt the labels/port and move under `ingress:` to activate — it
+  # enforces immediately):
+  #   ingress:
+  #   - fromEndpoints:
+  #     - matchLabels:
+  #         app.kubernetes.io/managed-by: envoy-gateway
+  #     toPorts:
+  #     - ports:
+  #       - port: "8080"
+  #         protocol: TCP
+  #       rules:
+  #         http:
+  #         - method: GET
+  #           path: "/.*"
+  l7:
+    ingress: []
+    egress: []
