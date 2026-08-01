@@ -1,0 +1,21 @@
+# argo-cd: GitOps server reachability + health behind the chart's
+# NetworkPolicy. The probe pod carries the envoy-gateway identity — the peer
+# the ingress rule admits on the server port — and the components can only
+# become ready if the intra-namespace (redis, repo-server) and apiserver
+# (Cilium entity) egress rules are admitted.
+
+charts:
+  argo-cd:
+    timeout: 420
+    values_file: ci/test-values/argo-cd.yaml
+    fullname_override: e2e-argo-cd-argocd-server
+    probe:
+      namespace: envoy-gateway-system
+      labels:
+        app.kubernetes.io/managed-by: envoy-gateway
+    services:
+      - port: 80
+    health_check:
+      path: /healthz
+      port: 80
+      expect_status: 200
