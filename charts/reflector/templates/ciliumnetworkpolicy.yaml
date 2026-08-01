@@ -1,0 +1,38 @@
+{{- /*
+  Render a CiliumNetworkPolicy when (a) nodeLocalDns or (b) kubeApiServer is
+  enabled. The K8s NetworkPolicy in networkpolicy.yaml is the L3/L4 baseline;
+  this CNP adds egress to the kube-apiserver entity — reflector's whole job is
+  watching and writing secrets/configmaps through the API, and the apiserver
+  runs as hostNetwork static pods on most clusters, unreachable through a K8s
+  NP peer. Cilium-backed clusters only.
+*/ -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- $apiSrv := .Values.networkPolicy.kubeApiServer -}}
+{{- if and .Values.networkPolicy.enabled (or $nld $apiSrv) }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-reflector-l7
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chorus-reflector.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "chorus-reflector.selectorLabels" . | nindent 6 }}
+  egress:
+  {{- if $apiSrv }}
+  - toEntities:
+    - kube-apiserver
+  {{- end }}
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  {{- end }}
+{{- end }}

@@ -84,6 +84,11 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  reflector:
+    # No Service exists to smoke-test; the deploy itself is the policy test —
+    # reflector cannot become ready without its apiserver egress (Cilium
+    # entity rule), and its policy denies everything else in both directions.
+    timeout: 180
   juicefs-csi-driver:
     timeout: 300
     pre_install:
