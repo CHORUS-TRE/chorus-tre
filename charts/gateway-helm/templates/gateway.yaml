@@ -9,9 +9,9 @@ metadata:
 spec:
   gatewayClassName: eg
   listeners:
-    {{- range .Values.listeners }}
-    {{- /* Name: use explicit .name if set, otherwise derived from hostname (dots → dashes, * → wildcard, truncated to 63 chars).
-         Hostnames that differ only by characters mapping to "-" would collide — set an explicit .name per listener to disambiguate. */}}
+  {{- range .Values.listeners }}
+  {{- /* Name: use explicit .name if set, otherwise derived from hostname (dots → dashes, * → wildcard, truncated to 63 chars).
+      Hostnames that differ only by characters mapping to "-" would collide — set an explicit .name per listener to disambiguate. */}}
     - name: {{ .name | default (required "listener.hostname is required" .hostname | replace "." "-" | replace "*" "wildcard" | trunc 63) }}
       port: 443
       protocol: HTTPS
@@ -26,13 +26,25 @@ spec:
         namespaces:
           # Allow HTTPRoutes from any namespace — service charts deploy routes in their own namespaces.
           from: All
-    {{- end }}
-    {{- range .Values.tcpListeners }}
+  {{- end }}
+  {{- if .Values.httpSolverListener }}
+  {{- /* Plain HTTP listener for cert-manager's ACME HTTP-01 gatewayHTTPRoute solver
+      (needed for issuers that can't use DNS-01, e.g. a private ACME server with no
+      DNS API). No hostname set, so it matches the challenge HTTPRoute regardless of
+      which domain is currently being validated. */}}
+    - name: http-01-solver
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+  {{- end }}
+  {{- range .Values.tcpListeners }}
     - name: {{ .name | default (print "tcp-" .port) }}
       port: {{ .port }}
       protocol: TCP
       allowedRoutes:
         namespaces:
           from: All
-    {{- end }}
+  {{- end }}
 {{- end }}
