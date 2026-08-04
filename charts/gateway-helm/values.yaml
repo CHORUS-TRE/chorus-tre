@@ -43,6 +43,12 @@ listeners: []
 #   - port: 22
 tcpListeners: []
 
+# Set to true to add a plain HTTP (port 80) listener with no hostname restriction,
+# for cert-manager's ACME HTTP-01 gatewayHTTPRoute solver to attach its temporary
+# challenge HTTPRoute to. Only needed when clusterIssuer is an HTTP-01 issuer
+# (e.g. an internal ACME server with no DNS-01 API) — leave false for DNS-01 setups.
+httpSolverListener: false
+
 # Extra annotations for the auto-created Envoy LoadBalancer Service
 # (EnvoyProxy spec.provider.kubernetes.envoyService.annotations). Use this to pass
 # load-balancer-implementation-specific Service annotations (e.g. health-check
