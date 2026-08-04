@@ -70,6 +70,20 @@ charts:
     values_file: ci/test-values/cert-manager.yaml
     depends_on:
       - cert-manager-crds
+    # The probe carries the prometheus identity — the only peer the chart's
+    # NetworkPolicy admits (metrics listeners). Controller readiness proves
+    # the apiserver egress; webhook admission proves the CNP's
+    # fromEntities kube-apiserver ingress rule.
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 9402
+    health_check:
+      path: /metrics
+      port: 9402
+      expect_status: 200
   cert-manager-crds:
     skip_deploy: true
   fluent-operator-crds:
