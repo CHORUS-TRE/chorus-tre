@@ -55,3 +55,84 @@ httpSolverListener: false
 # tuning) when the underlying LB needs them. Leave empty when not required.
 # Set concrete values per environment.
 envoyServiceAnnotations: {}
+
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend. Covers ONLY the
+# Envoy Gateway controller pods (control-plane label); the data-plane Envoy
+# proxies it provisions in the same namespace are governed by the
+# chorus-gateway chart's CiliumNetworkPolicies and must never fall under this
+# policy's default-deny.
+networkPolicy:
+  enabled: true
+  # When true (default), append an egress rule allowing port-53 traffic to the
+  # CoreDNS pods in dnsNamespace.
+  dnsEgress: true
+  # Namespace where CoreDNS lives.
+  dnsNamespace: kube-system
+  # Cilium-only node-local-dns egress (K8s NP cannot match hostNetwork pods).
+  nodeLocalDns: false
+  nodeLocalDnsIp: 169.254.20.10
+  # Cilium-only apiserver rules (default true), in BOTH directions: egress
+  # toEntities for the controller watching Gateway API resources, and ingress
+  # fromEntities on the webhook port — the topology-injector webhook is
+  # CALLED BY the apiserver, whose hostNetwork static pods no K8s NP peer can
+  # select. On non-Cilium clusters set this to false and manage the webhook
+  # exposure explicitly.
+  kubeApiServer: true
+  # Webhook TLS port the apiserver calls (upstream default).
+  webhookPort: 9443
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding these lists REPLACES the defaults below.
+  ingress:
+  # Data-plane Envoy proxies fetch their configuration from the controller
+  # (xDS 18000/18001, wasm/rate-limit 18002). They live in this namespace and
+  # carry the managed-by label; a podSelector-only peer is same-namespace.
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/managed-by: envoy-gateway
+    ports:
+    - protocol: TCP
+      port: 18000
+    - protocol: TCP
+      port: 18001
+    - protocol: TCP
+      port: 18002
+  # Prometheus scrapes the metrics listener.
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: prometheus
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 19001
+  # No L3/L4 egress beyond DNS: the controller's only dependency is the
+  # kube-apiserver, covered by the Cilium entity rule above.
+  egress: []
+  # L7 rules in CiliumNetworkPolicy syntax. Enforced as soon as rules are
+  # present: the CiliumNetworkPolicy renders when either list below is
+  # non-empty — there is no separate on/off switch. L7 rules FILTER rather
+  # than allow: once a port carries an L7 rule, only matching traffic passes.
+  # See the L4/L7-shadowing caveat in the reference chart.
+  #
+  # Example (adapt the labels/port and move under `ingress:` to activate — it
+  # enforces immediately):
+  #   ingress:
+  #   - fromEndpoints:
+  #     - matchLabels:
+  #         app.kubernetes.io/managed-by: envoy-gateway
+  #     toPorts:
+  #     - ports:
+  #       - port: "8080"
+  #         protocol: TCP
+  #       rules:
+  #         http:
+  #         - method: GET
+  #           path: "/.*"
+  l7:
+    ingress: []
+    egress: []
