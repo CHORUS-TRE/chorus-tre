@@ -26,6 +26,10 @@ spec:
       parameters:
         - name: podLabels.commit-sha
           value: $ARGOCD_APP_REVISION_SHORT
+      {{- with .imageTagOverride }}
+        - name: image.tag
+          value: {{ . | quote }}
+      {{- end }}
   - ref: values
     repoURL: {{ .repoURL | quote }}
     targetRevision: {{ .revision | default "HEAD" | quote }}

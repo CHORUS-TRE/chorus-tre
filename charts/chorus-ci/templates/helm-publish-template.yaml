@@ -19,6 +19,8 @@ spec:
         value: "harbor.build.chorus-tre.local"
       - name: chartsProject
         value: "charts"
+      - name: chartVersion
+        value: "n/a"
       - name: dockerConfigSecret
 
   templates:
