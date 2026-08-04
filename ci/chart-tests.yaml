@@ -84,6 +84,28 @@ charts:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  trust-manager:
+    # The probe carries the prometheus identity — the only K8s-NP peer the
+    # policy admits (metrics listener). Readiness + Bundle admission prove
+    # the bidirectional apiserver entity rules.
+    # The upstream chart renders RBAC into its trust namespace (default
+    # cert-manager) — deploy where production does.
+    namespace: cert-manager
+    timeout: 240
+    values_file: ci/test-values/trust-manager.yaml
+    depends_on:
+      - cert-manager-crds
+    fullname_override: trust-manager-metrics
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 9402
+    health_check:
+      path: /metrics
+      port: 9402
+      expect_status: 200
   juicefs-csi-driver:
     timeout: 300
     pre_install:
