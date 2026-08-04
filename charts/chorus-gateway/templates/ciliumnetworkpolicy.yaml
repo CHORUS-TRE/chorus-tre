@@ -28,6 +28,12 @@ spec:
             - port: {{ add .gatewayPort 10000 | toString | quote }}
               protocol: TCP
             {{- end }}
+            {{- if .Values.httpSolverListener }}
+            # ACME HTTP-01 solver listener (gateway-helm httpSolverListener):
+            # gateway port 80 → Envoy remaps to 10080.
+            - port: "10080"
+              protocol: TCP
+            {{- end }}
 {{- end }}
 
 {{- range .Values.internalShellServices }}
