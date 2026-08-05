@@ -1,0 +1,19 @@
+# postgresql: Database service reachability + health behind the chart's
+# NetworkPolicy (same-namespace ingress on 5432, deny-all egress).
+# The probe pod runs in the chart namespace, matching the NP's
+# `podSelector: {}` same-namespace ingress peer.
+
+charts:
+  postgresql:
+    timeout: 300
+    values_file: ci/test-values/postgresql.yaml
+    pre_install:
+      - kubectl create secret generic postgresql-secret --from-literal=postgres-password=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
+    services:
+      - port: 5432
+    health_check:
+      protocol: pg
+      port: 5432
+      pg_user: postgres
+      pg_db: postgres
+      pg_password: 342476testcipassword

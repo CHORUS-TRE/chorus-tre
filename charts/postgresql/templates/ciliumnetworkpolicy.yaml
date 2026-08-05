@@ -1,42 +1,46 @@
-{{- if and .Values.chorusNetworkPolicy.enabled .Values.chorusNetworkPolicy.enabled_l7_waf }}
+{{- /*
+  Render a CiliumNetworkPolicy when either (a) at least one L7 rule is provided
+  (rules enforce as soon as they are present), or (b) nodeLocalDns is enabled. The K8s
+  NetworkPolicy in networkpolicy.yaml is the L3/L4 baseline; this CNP layers
+  L7 rules on top for ports not already opened there (see the L4/L7-shadowing
+  note in values.yaml), and adds a Cilium-only port-53 egress to the
+  node-local-dns link-local IP when nodeLocalDns is true (K8s NP cannot match
+  hostNetwork pods). Cilium-backed clusters only.
+*/ -}}
+{{- $l7 := .Values.networkPolicy.l7 | default dict -}}
+{{- $l7ing := $l7.ingress -}}
+{{- $l7eg := $l7.egress -}}
+{{- $nld := .Values.networkPolicy.nodeLocalDns -}}
+{{- if and .Values.networkPolicy.enabled (or $l7ing $l7eg $nld) }}
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: {{ .Release.Name }}-postgresql-chorus
-  namespace: {{ .Release.Namespace | quote }}
+  name: {{ .Release.Name }}-postgresql-l7
+  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "chorus-postgresql.labels" . | nindent 4 }}
 spec:
   endpointSelector:
     matchLabels:
-      app.kubernetes.io/name: postgresql
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "chorus-postgresql.selectorLabels" . | nindent 6 }}
+  {{- with $l7ing }}
   ingress:
-  # Default: Allow ingress on PostgreSQL port from same namespace only
-  - fromEndpoints:
-    - matchLabels:
-        k8s:io.kubernetes.pod.namespace: {{ .Release.Namespace | quote }}
-    toPorts:
-    - ports:
-      - port: "5432"
-        protocol: TCP
-  # Default: Allow Prometheus to scrape postgres_exporter
-  - fromEndpoints:
-    - matchLabels:
-        k8s:io.kubernetes.pod.namespace: {{ .Values.chorusNetworkPolicy.prometheusNamespace | default "prometheus" }}
-    toPorts:
-    - ports:
-      - port: {{ .Values.chorusNetworkPolicy.metricsPort | default 9187 | quote }}
-        protocol: TCP
-  {{- with .Values.chorusNetworkPolicy.ingress }}
     {{- toYaml . | nindent 2 }}
   {{- end }}
-  {{- if .Values.chorusNetworkPolicy.egress }}
+  {{- if or $nld $l7eg }}
   egress:
-    {{- toYaml .Values.chorusNetworkPolicy.egress | nindent 2 }}
-  {{- else }}
-  egress: [] # Deny all egress for database (empty array = no rules)
+  {{- if $nld }}
+  - toCIDR:
+    - "{{ .Values.networkPolicy.nodeLocalDnsIp }}/32"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
   {{- end }}
-{{- end }} 
+  {{- with $l7eg }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- end }}
+{{- end }}
