@@ -20,11 +20,22 @@ spec:
     # Name of a secret used to store the account's private key
     privateKeySecretRef:
       name: {{ .secret | default .name | quote }}
+    {{- with .caBundle }}
+    # Base64 PEM bundle used to validate the ACME server's own TLS certificate
+    # (needed for a private/internal ACME server not signed by a public CA).
+    caBundle: {{ . | quote }}
+    {{- end }}
     solvers:
-    # Enable the HTTP-01 challenge provider
+    # Enable the HTTP-01 challenge provider. Defaults to the classic
+    # ingress-nginx solver; set .solver to override (e.g. gatewayHTTPRoute
+    # for a Gateway API setup).
     - http01:
+        {{- with .solver }}
+        {{- toYaml . | nindent 8 }}
+        {{- else }}
         ingress:
           ingressClassName: nginx
+        {{- end }}
 {{- end }}
 {{- end }}
 {{- with .Values.clusterissuer.dns01 }}
@@ -46,6 +57,11 @@ spec:
     # Name of a secret used to store the account's private key
     privateKeySecretRef:
       name: {{ .secret | default .name | quote }}
+    {{- with .caBundle }}
+    # Base64 PEM bundle used to validate the ACME server's own TLS certificate
+    # (needed for a private/internal ACME server not signed by a public CA).
+    caBundle: {{ . | quote }}
+    {{- end }}
     solvers:
     - dns01:
         {{- .solver | toYaml | nindent 8 }}
