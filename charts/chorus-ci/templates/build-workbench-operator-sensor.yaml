@@ -107,7 +107,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                   exit:
                     templateRef:
@@ -119,7 +119,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                 templates:
@@ -254,7 +254,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                         - name: contextSuffix
                           value: "e2e"
@@ -268,7 +268,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                         - name: contextSuffix
                           value: "e2e"
@@ -455,7 +455,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                   exit:
                     templateRef:
@@ -467,7 +467,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                 templates:
