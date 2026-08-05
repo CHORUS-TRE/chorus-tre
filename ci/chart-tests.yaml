@@ -108,8 +108,11 @@ charts:
     # its own. The Envoy Gateway + Gateway API CRDs are not in the cluster
     # baseline, so pull them in first via gateway-crds-helm; helm --wait then
     # returns immediately since there is nothing to wait on.
+    # values_file pins the objects to ns test and enables a route so the CNP
+    # actually renders (empty route lists render only a ClientTrafficPolicy).
     depends_on:
       - gateway-crds-helm
+    values_file: ci/test-values/chorus-gateway.yaml
   juicefs-csi-driver:
     timeout: 300
     pre_install:
