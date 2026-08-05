@@ -81,7 +81,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
                   exit:
                     templateRef:
@@ -93,7 +93,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                 templates:
@@ -154,11 +154,11 @@ spec:
               operation: prepend
             # Generate a nice title and description
             - src:
-                dependencyName: ci-workbench-operator
+                dependencyName: ci-chorus-web-ui
                 dataTemplate: "CI {{`{{ .Input.body.repository.full_name }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/title
             - src:
-                dependencyName: ci-workbench-operator
+                dependencyName: ci-chorus-web-ui
                 dataTemplate: "PR #{{`{{ .Input.body.pull_request.number }}`}} - {{`{{ .Input.body.pull_request.head.ref }}`}}"
               dest: metadata.annotations.workflows\.argoproj\.io/description
 
@@ -216,7 +216,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                   exit:
@@ -229,7 +229,7 @@ spec:
                           value: "{{`{{workflow.parameters.repoFullName}}`}}"
                         - name: sha
                           value: "{{`{{workflow.parameters.sha}}`}}"
-                        - name: githubSecret
+                        - name: githubSecretName
                           value: {{ $githubSecretName }}
 
                 templates:

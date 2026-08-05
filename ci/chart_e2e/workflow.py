@@ -28,6 +28,7 @@ class RepoChartE2EWorkflow:
         self.registry_file: Path | None = None
         self.planner: TargetPlanner | None = None
         self.cluster_created = False
+        self.debug_dumped = False
 
     def run(self) -> int:
         status = 0
@@ -55,7 +56,7 @@ class RepoChartE2EWorkflow:
             print(str(exc), file=sys.stderr)
             status = 1
         finally:
-            if status != 0 and self.cluster_created:
+            if status != 0 and self.cluster_created and not self.debug_dumped:
                 self.dump_debug_info()
             if self.registry_file and self.registry_file.exists():
                 self.registry_file.unlink(missing_ok=True)
@@ -282,6 +283,12 @@ class RepoChartE2EWorkflow:
                 print(str(exc), file=sys.stderr)
                 exit_code = 1
             finally:
+                # Dump BEFORE cleanup: the uninstall races pod termination, and
+                # a failed target's pods are often gone by the time the outer
+                # failure path would dump (observed as an empty log section).
+                if exit_code != 0 and self.cluster_created:
+                    self.dump_debug_info()
+                    self.debug_dumped = True
                 self.cleanup_chart(target.chart_name)
                 print()
 
@@ -396,12 +403,12 @@ class RepoChartE2EWorkflow:
         # The nested Kind cluster is gone after the run, so unhealthy pods'
         # container logs must be captured here or they are lost.
         self.print_debug_section(
-            "Logs of non-running pods",
+            "Logs of non-running pods (and Running-but-unready)",
             [
                 "/bin/bash",
                 "-lc",
                 "for ref in $(kubectl get pods -A --no-headers"
-                " | awk '$4 != \"Running\" && $4 != \"Completed\" {print $1 \"/\" $2}'); do"
+                " | awk '{split($3, r, \"/\")} ($4 != \"Running\" && $4 != \"Completed\") || ($4 == \"Running\" && r[1] != r[2]) {print $1 \"/\" $2}'); do"
                 " ns=${ref%%/*}; pod=${ref#*/};"
                 " echo \"--- $ns/$pod (current) ---\";"
                 " kubectl -n \"$ns\" logs \"$pod\" --all-containers --tail=40 2>&1;"
