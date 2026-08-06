@@ -92,12 +92,27 @@ charts:
     skip_deploy: true
   trivy-operator-crds:
     skip_deploy: true
+  gateway-crds-helm:
+    # Envoy Gateway + Gateway API CRDs (experimental channel). CRD-only:
+    # deployed as a dependency of chorus-gateway, never a standalone target.
+    skip_deploy: true
   chorus-priority-class:
     skip_deploy: true
   chorus-ci:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  chorus-gateway:
+    # Renders only Gateway API / Envoy Gateway CRD-backed resources (routes,
+    # traffic/security policies) plus a CiliumNetworkPolicy — no workload of
+    # its own. The Envoy Gateway + Gateway API CRDs are not in the cluster
+    # baseline, so pull them in first via gateway-crds-helm; helm --wait then
+    # returns immediately since there is nothing to wait on.
+    # values_file pins the objects to ns test and enables a route so the CNP
+    # actually renders (empty route lists render only a ClientTrafficPolicy).
+    depends_on:
+      - gateway-crds-helm
+    values_file: ci/test-values/chorus-gateway.yaml
   juicefs-csi-driver:
     timeout: 300
     pre_install:
