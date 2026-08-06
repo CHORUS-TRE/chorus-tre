@@ -2,14 +2,80 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# Custom Chorus NetworkPolicy configuration
-chorusNetworkPolicy:
+# Chorus NetworkPolicy configuration.
+# Follows the reference pattern from charts/i2b2-frontend.
+networkPolicy:
   enabled: true
-  enabled_l7_waf: false
-  # Default ingress: Allow from same namespace only
-  ingress: []
-  # Default egress: Deny all (databases don't initiate outbound connections)
+  # -----------------------------------------------------------------------------
+  # Two-layer model:
+  #   * networkPolicy.ingress / networkPolicy.egress (below) define L3/L4 rules
+  #     in standard K8s NetworkPolicy syntax. They are ALWAYS rendered when
+  #     networkPolicy.enabled is true, and they work on any CNI that implements
+  #     the K8s NetworkPolicy API (Cilium, Calico, vanilla kube-network, ...).
+  #   * networkPolicy.l7.ingress / networkPolicy.l7.egress (further below) hold
+  #     L7 (HTTP / DNS) rules in CiliumNetworkPolicy syntax. They are ONLY
+  #     effective on Cilium clusters, and they enforce as soon as either list
+  #     contains rules — what is written in values is what is enforced.
+  # -----------------------------------------------------------------------------
+  # Databases never resolve names: no DNS egress rule. Together with the empty
+  # egress list below this renders a full deny-all egress policy.
+  dnsEgress: false
+  # Namespace where CoreDNS lives (only consulted when dnsEgress is true).
+  # Override per-env if the cluster runs DNS outside kube-system.
+  dnsNamespace: kube-system
+  # When true, additionally render a CiliumNetworkPolicy egress rule allowing
+  # port-53 traffic to the node-local-dns link-local IP. Cilium-only: K8s
+  # NetworkPolicy cannot match hostNetwork pods like node-local-dns. Set to
+  # true on clusters that run node-local-dns; safe to leave false otherwise.
+  nodeLocalDns: false
+  # Link-local IP where node-local-dns listens. The upstream default is
+  # 169.254.20.10; override if your cluster uses a different address.
+  nodeLocalDnsIp: 169.254.20.10
+  # ---- L3/L4 baseline (K8s NetworkPolicy, networking.k8s.io/v1) ----------------
+  # Standard K8s syntax: `from` / `to` / `ports`. Always rendered.
+  # NOTE: overriding this list REPLACES the defaults below — repeat the rules
+  # you want to keep. Set `ingress: []` for a full default-deny.
+  ingress:
+  # Allow PostgreSQL from the release namespace only (i2b2-wildfly runs in the
+  # same namespace). A `podSelector: {}` peer with no namespaceSelector matches
+  # every pod in this policy's own namespace.
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Deny all egress (databases don't initiate outbound connections; DNS is
+  # already excluded via dnsEgress above).
   egress: []
+  # L7 rules in CiliumNetworkPolicy syntax (toPorts + rules.http / rules.dns).
+  # Enforced as soon as rules are present: the CiliumNetworkPolicy renders when
+  # either list below is non-empty. There is no separate on/off switch — leave
+  # both lists empty to skip the CNP entirely. L7 rules FILTER rather than
+  # allow: once a port carries an L7 rule, only matching traffic passes on it.
+  #
+  # IMPORTANT — Cilium L4/L7 shadowing: if a port is opened unconditionally in
+  # the K8s NetworkPolicy above (networkPolicy.ingress/egress), the broader
+  # L4 grant wins and any L7 rule you add here for that same port is silently
+  # NOT enforced. To get L7 filtering on a port, that port must NOT also be
+  # opened in the K8s NP for the same direction — let the CNP own it.
+  #
+  # Example (adapt the labels/port and move under `ingress:` to activate — it
+  # enforces immediately):
+  #   ingress:
+  #   - fromEndpoints:
+  #     - matchLabels:
+  #         app.kubernetes.io/managed-by: envoy-gateway
+  #     toPorts:
+  #     - ports:
+  #       - port: "8080"
+  #         protocol: TCP
+  #       rules:
+  #         http:
+  #         - method: GET
+  #           path: "/.*"
+  l7:
+    ingress: []
+    egress: []
 
 replicaCount: 1
 

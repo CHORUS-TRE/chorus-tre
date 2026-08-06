@@ -271,3 +271,10 @@ openGrpcRoutes: []
 #       containerPort: 2222
 #       gatewayPort: 22
 internalShellServices: []
+
+# Set to true when the gateway-helm chart's httpSolverListener is enabled — flip the
+# two flags together. That listener serves cert-manager's ACME HTTP-01 challenges on
+# gateway port 80 (Envoy remaps it to 10080), and every Envoy listener port must be
+# listed in the envoy-gateway-ingress CNP or deny-by-default drops the challenge
+# traffic and HTTP-01 validation never completes.
+httpSolverListener: false
