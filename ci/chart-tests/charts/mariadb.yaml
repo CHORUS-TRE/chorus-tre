@@ -1,0 +1,20 @@
+# mariadb: Database service reachability + health behind the chart's
+# NetworkPolicy (same-namespace ingress on 3306, deny-all egress).
+# The services port probe runs from a pod in the chart namespace, matching
+# the NP's `podSelector: {}` same-namespace ingress peer. The SQL health
+# check itself runs via kubectl exec inside the mariadb pod.
+
+charts:
+  mariadb:
+    timeout: 300
+    values_file: ci/test-values/mariadb.yaml
+    pre_install:
+      - kubectl create secret generic mariadb-secret --from-literal=mariadb-root-password=342476testcipassword -n test --dry-run=client -o yaml | kubectl apply -f -
+    services:
+      - port: 3306
+    health_check:
+      protocol: mariadb
+      port: 3306
+      mariadb_user: root
+      mariadb_db: mysql
+      mariadb_password: 342476testcipassword
