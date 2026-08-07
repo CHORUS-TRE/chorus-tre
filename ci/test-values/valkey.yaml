@@ -1,0 +1,11 @@
+# ci/test-values/valkey.yaml
+# CI-specific values for running valkey in the Kind-based chart e2e.
+
+valkey:
+  metrics:
+    # ServiceMonitor/PodMonitor CRDs (prometheus-operator) are not installed
+    # in Kind.
+    serviceMonitor:
+      enabled: false
+    podMonitor:
+      enabled: false
