@@ -1,0 +1,6 @@
+# ci/test-values/chorus-ci.yaml
+# CI-specific values for running chorus-ci in the Kind-based chart e2e.
+
+# No ingress controllers in Kind.
+ingress:
+  enabled: false
