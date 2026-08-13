@@ -286,4 +286,10 @@ httpSolverListener: false
 # L3/L4 instead of opened from anywhere. Set this to the ACME server's validation source
 # network(s); leave empty and external HTTP-01 validation cannot complete (fail-closed).
 # Only used when httpSolverListener is true.
+#
+# Only meaningful when the gateway preserves client source IPs (envoyService
+# externalTrafficPolicy: Local). Under SNAT the validator arrives with a node IP / cluster
+# identity, which the always-on cluster rule already admits — the allowlist can't
+# distinguish it, and a node CIDR cannot be allowlisted (Cilium CIDR rules never match
+# cluster/host-originated traffic).
 httpSolverAllowedCIDRs: []

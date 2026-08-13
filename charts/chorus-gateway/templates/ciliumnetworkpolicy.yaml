@@ -45,18 +45,32 @@ spec:
     # from anywhere. Allowed sources: in-cluster (cert-manager's HTTP-01 self-check) plus the
     # ACME validator networks in httpSolverAllowedCIDRs. Empty allowlist = self-check only;
     # the external ACME server cannot validate until its CIDR is added (fail-closed).
+    #
+    # Two SEPARATE rules on purpose: Cilium rejects fromEntities and fromCIDR in the SAME
+    # ingress rule (the L3 source types are mutually exclusive per rule). Rules in the
+    # ingress list are OR'ed across rules, so the two together admit cluster OR the CIDRs.
+    #
+    # The fromCIDR leg only restricts anything where client source IPs reach the Envoy pods
+    # UNREWRITTEN (envoyService externalTrafficPolicy: Local). Under SNAT (Cluster), the
+    # validator arrives as a node IP, which carries a cluster identity — so the fromEntities
+    # rule would admit it and the allowlist is inert. Keep the gateway on Local for this to
+    # be meaningful.
     - fromEntities:
         - cluster
-      {{- with .Values.httpSolverAllowedCIDRs }}
-      fromCIDR:
-        {{- range . }}
-        - {{ . | quote }}
-        {{- end }}
-      {{- end }}
       toPorts:
         - ports:
             - port: "10080"
               protocol: TCP
+    {{- with .Values.httpSolverAllowedCIDRs }}
+    - fromCIDR:
+        {{- range . }}
+        - {{ . | quote }}
+        {{- end }}
+      toPorts:
+        - ports:
+            - port: "10080"
+              protocol: TCP
+    {{- end }}
     {{- end }}
 {{- end }}
 
