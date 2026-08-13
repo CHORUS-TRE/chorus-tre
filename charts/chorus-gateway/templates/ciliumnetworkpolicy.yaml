@@ -1,10 +1,16 @@
-{{- if or .Values.internalRoutes .Values.externalRoutes .Values.openRoutes .Values.internalShellServices }}
+{{- if or .Values.internalRoutes .Values.externalRoutes .Values.openRoutes .Values.internalShellServices .Values.httpSolverListener }}
 ---
-# Allow ingress on the Envoy Gateway pods from both cluster and external traffic.
-# Access control is enforced per-route via SecurityPolicy (internal: allow podCIDR,
-# external: deny podCIDR, open: no restriction).
+# Allow ingress on the Envoy Gateway pods.
 # Adding any ingress rule triggers Cilium deny-by-default for ALL other ingress on the
 # matched pods, so every Envoy listener port must be explicitly listed here.
+#
+# HARDENING RULE — do NOT add a port to the "from anywhere" toPorts block below unless a
+# per-route Envoy SecurityPolicy governs who may use that port's route (internal routes
+# allow podCIDR, external deny podCIDR, open none; shell TCPRoutes carry a podCIDR
+# SecurityPolicy). That L7 SecurityPolicy is what makes a from-anywhere L3/L4 admission
+# acceptable. A listener whose route has NO SecurityPolicy we control — e.g. cert-manager's
+# ACME HTTP-01 solver, whose HTTPRoute cert-manager owns — MUST NOT be added to the open
+# block; it has to be source-restricted at L3/L4 like the httpSolverListener rule below.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -17,6 +23,9 @@ spec:
     matchLabels:
       app.kubernetes.io/managed-by: envoy-gateway
   ingress:
+    {{- if or .Values.internalRoutes .Values.externalRoutes .Values.openRoutes .Values.internalShellServices }}
+    # From anywhere (cluster + external): every route on these ports is filtered per-route
+    # by a SecurityPolicy (internal: allow podCIDR, external: deny podCIDR, open: none).
     - toPorts:
         - ports:
             {{- if or .Values.internalRoutes .Values.externalRoutes .Values.openRoutes }}
@@ -28,12 +37,41 @@ spec:
             - port: {{ add .gatewayPort 10000 | toString | quote }}
               protocol: TCP
             {{- end }}
-            {{- if .Values.httpSolverListener }}
-            # ACME HTTP-01 solver listener (gateway-helm httpSolverListener):
-            # gateway port 80 → Envoy remaps to 10080.
+    {{- end }}
+    {{- if .Values.httpSolverListener }}
+    # ACME HTTP-01 solver listener (gateway-helm httpSolverListener): gateway port 80 →
+    # Envoy remaps to 10080. cert-manager owns the challenge HTTPRoute, so there is NO
+    # per-route SecurityPolicy to filter it — access is SOURCE-RESTRICTED here, never opened
+    # from anywhere. Allowed sources: in-cluster (cert-manager's HTTP-01 self-check) plus the
+    # ACME validator networks in httpSolverAllowedCIDRs. Empty allowlist = self-check only;
+    # the external ACME server cannot validate until its CIDR is added (fail-closed).
+    #
+    # Two SEPARATE rules on purpose: Cilium rejects fromEntities and fromCIDR in the SAME
+    # ingress rule (the L3 source types are mutually exclusive per rule). Rules in the
+    # ingress list are OR'ed across rules, so the two together admit cluster OR the CIDRs.
+    #
+    # The fromCIDR leg only restricts anything where client source IPs reach the Envoy pods
+    # UNREWRITTEN (envoyService externalTrafficPolicy: Local). Under SNAT (Cluster), the
+    # validator arrives as a node IP, which carries a cluster identity — so the fromEntities
+    # rule would admit it and the allowlist is inert. Keep the gateway on Local for this to
+    # be meaningful.
+    - fromEntities:
+        - cluster
+      toPorts:
+        - ports:
             - port: "10080"
               protocol: TCP
-            {{- end }}
+    {{- with .Values.httpSolverAllowedCIDRs }}
+    - fromCIDR:
+        {{- range . }}
+        - {{ . | quote }}
+        {{- end }}
+      toPorts:
+        - ports:
+            - port: "10080"
+              protocol: TCP
+    {{- end }}
+    {{- end }}
 {{- end }}
 
 {{- range .Values.internalShellServices }}
