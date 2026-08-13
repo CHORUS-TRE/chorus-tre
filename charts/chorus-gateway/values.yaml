@@ -276,5 +276,14 @@ internalShellServices: []
 # two flags together. That listener serves cert-manager's ACME HTTP-01 challenges on
 # gateway port 80 (Envoy remaps it to 10080), and every Envoy listener port must be
 # listed in the envoy-gateway-ingress CNP or deny-by-default drops the challenge
-# traffic and HTTP-01 validation never completes.
+# traffic and HTTP-01 validation never completes. The 10080 port is NOT opened from
+# anywhere — it is source-restricted via httpSolverAllowedCIDRs below.
 httpSolverListener: false
+
+# Source CIDRs allowed to reach the ACME HTTP-01 solver port (10080), IN ADDITION to
+# in-cluster traffic (cert-manager's self-check, always allowed). cert-manager owns the
+# solver HTTPRoute so it has no per-route SecurityPolicy; the port is restricted here at
+# L3/L4 instead of opened from anywhere. Set this to the ACME server's validation source
+# network(s); leave empty and external HTTP-01 validation cannot complete (fail-closed).
+# Only used when httpSolverListener is true.
+httpSolverAllowedCIDRs: []

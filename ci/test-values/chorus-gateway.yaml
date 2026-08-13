@@ -9,7 +9,8 @@
 # behind having at least one route. Enable one internalRoute (and podCIDR, which
 # its SecurityPolicy requires) so the CNP, HTTPRoute, SecurityPolicy and
 # ReferenceGrant all render and get admission-checked. httpSolverListener: true
-# additionally emits the ACME HTTP-01 solver port (10080) in the CNP.
+# additionally emits the source-restricted ACME HTTP-01 solver port (10080) in the
+# CNP; httpSolverAllowedCIDRs exercises its fromCIDR allowlist branch.
 #
 # The referenced Service/Gateway need not exist — these are unreconciled CRs;
 # the chart ships no workload, so helm --wait returns as soon as they apply.
@@ -19,6 +20,9 @@ gateway:
 podCIDR: 10.0.0.0/16
 
 httpSolverListener: true
+
+httpSolverAllowedCIDRs:
+  - 192.0.2.0/24
 
 internalRoutes:
   - name: smoke
