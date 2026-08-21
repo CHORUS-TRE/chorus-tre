@@ -12,7 +12,7 @@ spec:
     parameters:
       - name: repoFullName
       - name: sha
-      - name: githubSecret
+      - name: githubSecretName
 
   templates:
   - name: github-notify
@@ -20,14 +20,14 @@ spec:
       parameters:
         - name: repoFullName
         - name: sha
-        - name: githubSecret
+        - name: githubSecretName
         - name: contextSuffix
           value: "n/a"
 
     volumes:
       - name: github-secret
         secret:
-          secretName: "{{`{{inputs.parameters.githubSecret}}`}}"
+          secretName: "{{`{{inputs.parameters.githubSecretName}}`}}"
 
     container:
       image: "ghcr.io/supportpal/github-gh-cli"

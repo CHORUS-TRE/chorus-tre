@@ -9,4 +9,4 @@ roleRef:
   name: chorus-ci-role
 subjects:
 - kind: ServiceAccount
-  name: {{ .Values.serviceAccount.name | default "chorus-ci-sa" }}
+  name: {{ include "chorus-ci.serviceAccountName" . }}

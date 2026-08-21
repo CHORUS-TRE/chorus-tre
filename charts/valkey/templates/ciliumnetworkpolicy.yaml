@@ -15,14 +15,14 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: {{ .Release.Name }}-postgresql-l7
+  name: {{ .Release.Name }}-valkey-l7
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "chorus-postgresql.labels" . | nindent 4 }}
+    {{- include "chorus-valkey.labels" . | nindent 4 }}
 spec:
   endpointSelector:
     matchLabels:
-      {{- include "chorus-postgresql.selectorLabels" . | nindent 6 }}
+      {{- include "chorus-valkey.selectorLabels" . | nindent 6 }}
   {{- with $l7ing }}
   ingress:
     {{- toYaml . | nindent 2 }}

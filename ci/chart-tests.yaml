@@ -45,6 +45,10 @@
 #       protocol:          "http" (default), "pg", or "mariadb"
 #       path:              HTTP path to check (e.g., /) - http mode only
 #       expect_status:     Expected HTTP status code (default: 200) - http mode only
+#                          NOTE: with a non-2xx expectation only the status line
+#                          is assertable — busybox wget fetches no headers/body
+#                          on error statuses, so do not combine a non-2xx with
+#                          expect_content_type_regex / body_must_* assertions.
 #       expect_content_type_regex: Case-insensitive regex for Content-Type - http mode only
 #       body_must_match:   Case-insensitive regex that must appear in the body - http mode only
 #       body_must_not_match: Case-insensitive regex that must not appear in the body - http mode only
@@ -66,6 +70,20 @@ charts:
     values_file: ci/test-values/cert-manager.yaml
     depends_on:
       - cert-manager-crds
+    # The probe carries the prometheus identity — the only peer the chart's
+    # NetworkPolicy admits (metrics listeners). Controller readiness proves
+    # the apiserver egress; webhook admission proves the CNP's
+    # fromEntities kube-apiserver ingress rule.
+    probe:
+      namespace: prometheus
+      labels:
+        app.kubernetes.io/name: prometheus
+    services:
+      - port: 9402
+    health_check:
+      path: /metrics
+      port: 9402
+      expect_status: 200
   cert-manager-crds:
     skip_deploy: true
   fluent-operator-crds:
@@ -74,12 +92,37 @@ charts:
     skip_deploy: true
   trivy-operator-crds:
     skip_deploy: true
+  gateway-crds-helm:
+    # Envoy Gateway + Gateway API CRDs (experimental channel). CRD-only:
+    # deployed as a dependency of chorus-gateway, never a standalone target.
+    skip_deploy: true
   chorus-priority-class:
     skip_deploy: true
   chorus-ci:
     skip_deploy: true
   self-signed-issuer:
     skip_deploy: true
+  valkey:
+    # Deploys behind the Bitnami-managed ingress policy (own-namespace 6379)
+    # plus the chorus egress-only deny policy. The same-namespace probe on
+    # 6379 exercises the ingress rule; deny-all egress is proven by the pod
+    # going Ready without any outbound access.
+    timeout: 300
+    values_file: ci/test-values/valkey.yaml
+    fullname_override: e2e-valkey-primary
+    services:
+      - port: 6379
+  chorus-gateway:
+    # Renders only Gateway API / Envoy Gateway CRD-backed resources (routes,
+    # traffic/security policies) plus a CiliumNetworkPolicy — no workload of
+    # its own. The Envoy Gateway + Gateway API CRDs are not in the cluster
+    # baseline, so pull them in first via gateway-crds-helm; helm --wait then
+    # returns immediately since there is nothing to wait on.
+    # values_file pins the objects to ns test and enables a route so the CNP
+    # actually renders (empty route lists render only a ClientTrafficPolicy).
+    depends_on:
+      - gateway-crds-helm
+    values_file: ci/test-values/chorus-gateway.yaml
   juicefs-csi-driver:
     timeout: 300
     pre_install:

@@ -1,45 +1,52 @@
-{{- if and .Values.chorusNetworkPolicy.enabled (not .Values.chorusNetworkPolicy.enabled_l7_waf) }}
+{{- if .Values.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ .Release.Name }}-postgresql-chorus
-  namespace: {{ .Release.Namespace | quote }}
+  name: {{ .Release.Name }}-postgresql-policy
+  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "chorus-postgresql.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: postgresql
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "chorus-postgresql.selectorLabels" . | nindent 6 }}
   policyTypes:
   - Ingress
   - Egress
+  {{- if .Values.networkPolicy.ingress }}
   ingress:
-  # Default: Allow ingress on PostgreSQL port from same namespace only
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: {{ .Release.Namespace | quote }}
-    ports:
-    - protocol: TCP
-      port: 5432
-  # Default: Allow Prometheus to scrape postgres_exporter
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: {{ .Values.chorusNetworkPolicy.prometheusNamespace | default "prometheus" }}
-    ports:
-    - protocol: TCP
-      port: {{ .Values.chorusNetworkPolicy.metricsPort | default 9187 }}
-  {{- with .Values.chorusNetworkPolicy.ingress }}
-    {{- toYaml . | nindent 2 }}
-  {{- end }}
-  {{- if .Values.chorusNetworkPolicy.egress }}
-  egress:
-    {{- toYaml .Values.chorusNetworkPolicy.egress | nindent 2 }}
+  {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
   {{- else }}
-  egress: [] # Deny all egress for database (empty array = no rules)
+  {{- /* Default deny: empty ingress list means deny all unless explicitly allowed */}}
+  ingress: []
   {{- end }}
-{{- end }} 
+  egress:
+  {{- with .Values.networkPolicy.egress }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if .Values.networkPolicy.dnsEgress }}
+    {{- /* Allow DNS resolution to CoreDNS in .Values.networkPolicy.dnsNamespace
+           (default kube-system). Two podSelectors OR'd: `k8s-app: kube-dns` is the
+           upstream CoreDNS label, `app: coredns` is the variant some chorus-tre
+           clusters ship. node-local-dns is intentionally not covered — its
+           hostNetwork pods can't be matched by K8s NP podSelector. */}}
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .Values.networkPolicy.dnsNamespace }}
+        podSelector:
+          matchLabels:
+            app: coredns
+      ports:
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 53
+  {{- end }}
+{{- end }}
