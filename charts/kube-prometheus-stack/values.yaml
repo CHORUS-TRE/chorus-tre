@@ -244,3 +244,14 @@ alertmanagerConfiguration:
       key: accessToken
 
     roomID: ""
+
+  teams:
+    enabled: false
+
+    name: teams
+    severity: critical # E.g. "warning|critical"
+
+    webhookURL:
+      # The name of the secret and the key containing the Teams Workflow webhook URL.
+      name: config-msteams-secret
+      key: webhook-url

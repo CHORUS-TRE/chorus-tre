@@ -9,23 +9,32 @@ spec:
     groupWait: 30s
     groupInterval: 5m
     repeatInterval: 12h
-    {{- with .Values.alertmanagerConfiguration.webex }}
-      {{- if .enabled }}
+    {{- $webex := .Values.alertmanagerConfiguration.webex }}
+    {{- $teams := .Values.alertmanagerConfiguration.teams }}
+    {{- if or $webex.enabled $teams.enabled }}
     routes:
+      {{- if $webex.enabled }}
       - matchers:
           - matchType: =~
             name: severity
-            value: {{ .severity | quote }}
+            value: {{ $webex.severity | quote }}
         continue: true
-        receiver: {{ .name | quote }}
+        receiver: {{ $webex.name | quote }}
+      {{- end }}
+      {{- if $teams.enabled }}
+      - matchers:
+          - matchType: =~
+            name: severity
+            value: {{ $teams.severity | quote }}
+        continue: true
+        receiver: {{ $teams.name | quote }}
       {{- end }}
     {{- end }}
     receiver: "null"
   receivers:
     - name: "null"
-    {{- with .Values.alertmanagerConfiguration.webex }}
-      {{- if .enabled }}
-    - name: {{ .name | quote }}
+    {{- if $webex.enabled }}
+    - name: {{ $webex.name | quote }}
       webexConfigs:
         - apiURL: https://webexapis.com/v1/messages
           sendResolved: true
@@ -33,8 +42,16 @@ spec:
             authorization:
               type: Bearer
               credentials:
-                {{- .credentials | toYaml | nindent 16 }}
-          roomID: {{ .roomID }}
+                {{- $webex.credentials | toYaml | nindent 16 }}
+          roomID: {{ $webex.roomID }}
           message: '{{`{{ template "webex.default.message" . }}`}}'
-      {{- end }}
+    {{- end }}
+    {{- if $teams.enabled }}
+    - name: {{ $teams.name | quote }}
+      msteamsv2Configs:
+        - webhookURL:
+            {{- $teams.webhookURL | toYaml | nindent 12 }}
+          sendResolved: true
+          title: '{{`{{ template "msteamsv2.default.title" . }}`}}'
+          text: '{{`{{ template "msteamsv2.default.text" . }}`}}'
     {{- end }}
