@@ -1,0 +1,20 @@
+{{- if and .Values.certificate.enabled .Values.certificate.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: {{ .Release.Name }}-cert-probe
+  labels:
+    {{- .Values.certificate.serviceMonitor.labels | toYaml | nindent 4 }}
+spec:
+  jobName: tcp-insecure
+  interval: 60s
+  module: tcp_insecure
+  prober:
+    url: {{ .Values.certificate.serviceMonitor.prober.url | quote }}
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - {{ .Release.Name }}-postgresql.{{ .Release.Namespace }}.svc:5432
+{{- end }}
